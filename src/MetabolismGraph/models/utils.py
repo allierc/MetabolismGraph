@@ -958,8 +958,8 @@ def save_exploration_artifacts(root_dir, exploration_dir, config, config_file_, 
         if os.path.exists(src_matrix):
             shutil.copy2(src_matrix, dst_matrix)
 
-    # save activity plot only at first iteration of each block
-    activity_path = f"{data_folder}/activity.png"
+    # save concentration plot only at first iteration of each block
+    activity_path = f"{data_folder}/concentration.png"
     if is_block_start:
         dst_activity = f"{activity_save_dir}/block_{block_number:03d}.png"
         if os.path.exists(activity_path):

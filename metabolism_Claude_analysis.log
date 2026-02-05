@@ -1,2 +1,3 @@
-final_loss: 60.141686
-stoichiometry_R2: 0.0388
+stoichiometry_R2: 0.0376
+test_R2: -46829.7854
+test_pearson: 0.2160

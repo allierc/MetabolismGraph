@@ -608,7 +608,7 @@ If you cannot fix it, say "CANNOT_FIX" and explain why."""
 
                     data_test(
                         config=config,
-                        best_model='best',
+                        best_model=config.training.n_epochs - 1,  # last epoch
                         device=device,
                         log_file=log_file,
                     )

@@ -335,8 +335,8 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                         x = x.clone()
                         x[:, 3] = pred_c
 
-                    # loss on final concentration vs ground truth
-                    loss = loss + (pred_c - y_target).norm(2) / time_step
+                    # loss on final concentration vs ground truth (normalized to derivative scale)
+                    loss = loss + ((pred_c - y_target) / (delta_t * time_step)).norm(2)
 
                 else:
                     # single-step: predict dx/dt directly

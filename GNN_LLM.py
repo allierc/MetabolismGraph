@@ -82,9 +82,9 @@ if __name__ == "__main__":
                 task_params[key] = int(value) if value.isdigit() else value
     else:
         best_model = ''
-        task = 'generate_train_test_plot_Claude_cluster'  # 'train', 'test', 'generate', 'plot', 'Claude', 'code', 'cluster'
-        config_list = ['metabolism_1']
-        task_params = {'iterations': 2048}
+        task = 'generate_train_test_Claude'  # 'train', 'test', 'generate', 'plot', 'Claude', 'code', 'cluster'
+        config_list = ['metabolism']
+        task_params = {'iterations': 64}
 
 
 

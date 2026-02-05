@@ -47,9 +47,9 @@ from MetabolismGraph.models.utils import (
 )
 
 
-def data_train(config, erase, best_model, device, log_file=None):
+def data_train(config, erase, best_model, device, log_file=None, style='color'):
     """dispatcher that calls data_train_metabolism() directly."""
-    return data_train_metabolism(config, erase, best_model, device, log_file=log_file)
+    return data_train_metabolism(config, erase, best_model, device, log_file=log_file, style=style)
 
 
 def data_test(config, best_model=20, n_rollout_frames=600, device=None, log_file=None):
@@ -59,7 +59,7 @@ def data_test(config, best_model=20, n_rollout_frames=600, device=None, log_file
                                 device=device, log_file=log_file)
 
 
-def data_train_metabolism(config, erase, best_model, device, log_file=None):
+def data_train_metabolism(config, erase, best_model, device, log_file=None, style='color'):
     """train a model to recover stoichiometric weights and external modulation.
 
     combines the edge-weight recovery approach of data_train_flyvis with the

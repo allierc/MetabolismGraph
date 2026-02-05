@@ -1,0 +1,45 @@
+description: designed by Claude
+dataset: metabolism_1_Claude
+simulation:
+  n_metabolites: 100
+  n_reactions: 256
+  max_metabolites_per_reaction: 4
+  n_frames: 2880
+  delta_t: 1
+  start_frame: 0
+  seed: 42
+graph_model:
+  model_name: PDE_M1
+  prediction: first_derivative
+  input_size: 2
+  output_size: 16
+  hidden_dim: 32
+  n_layers: 3
+  input_size_update: 3
+  n_layers_update: 3
+  hidden_dim_update: 64
+  aggr_type: add
+  update_type: none
+plotting:
+  colormap: tab20
+training:
+  n_epochs: 1
+  n_runs: 1
+  device: auto
+  batch_size: 8
+  small_init_batch_size: false
+  seed: 42
+  data_augmentation_loop: 100
+  sparsity: none
+  learning_rate_start: 0.001
+  learning_rate_embedding_start: 0.0001
+  learning_rate_S_start: 0.001
+  coeff_S_L1: 0.0
+  coeff_S_integer: 0.001
+  coeff_mass_conservation: 0.001
+claude:
+  n_epochs: 1
+  data_augmentation_loop: 100
+  n_iter_block: 24
+  ucb_c: 1.414
+  node_name: a100

@@ -165,7 +165,13 @@ if __name__ == "__main__":
                         yaml.dump(config_data, f, default_flow_style=False, sort_keys=False)
                     print(f"\033[93mmodified {target_config}: dataset='{llm_task_name}', n_epochs={claude_n_epochs}, data_augmentation_loop={claude_data_augmentation_loop}, n_iter_block={claude_n_iter_block}, ucb_c={claude_ucb_c}, node_name={claude_node_name}\033[0m")
             else:
-                print(f"\033[93mpreserving {target_config} (resuming from iter {start_iteration})\033[0m")
+                # Check if resuming from a parallel run (_00.yaml exists)
+                parallel_slot0_config = f"{config_root}/{pre}{llm_task_name}_00.yaml"
+                if os.path.exists(parallel_slot0_config):
+                    shutil.copy2(parallel_slot0_config, target_config)
+                    print(f"\033[93mcopied {parallel_slot0_config} -> {target_config} (resuming from parallel run)\033[0m")
+                else:
+                    print(f"\033[93mpreserving {target_config} (resuming from iter {start_iteration})\033[0m")
                 # load existing config to get claude parameters
                 with open(target_config, 'r') as f:
                     config_data = yaml.safe_load(f)
@@ -455,7 +461,7 @@ if __name__ == "__main__":
 
                             # code files that Claude might modify
                             code_files = [
-                                'src/MetabolismGraph/models/trainer.py',
+                                'src/MetabolismGraph/models/graph_trainer.py',
                                 'src/MetabolismGraph/generators/data_generator.py',
                             ]
 
@@ -751,7 +757,7 @@ Current config: {config_path}"""
                             print("\033[90m  no code modifications detected\033[0m")
                     else:
                         # not a git repo - check for code modifications directly
-                        tracked_code_files = ['src/MetabolismGraph/models/trainer.py']
+                        tracked_code_files = ['src/MetabolismGraph/models/graph_trainer.py']
                         modified_files = get_modified_code_files(root_dir, tracked_code_files)
                         if modified_files:
                             code_modified_by_claude = True

@@ -304,7 +304,7 @@ if __name__ == "__main__":
     else:
         best_model = ''
         task = 'generate_train_test_plot_Claude_cluster'
-        config_list = ['metabolism_1']
+        config_list = ['metabolism']
         task_params = {'iterations': 2048}
 
     n_iterations = task_params.get('iterations', 5)
@@ -610,7 +610,7 @@ Write the planned mutations to the working memory file."""
                             'src/MetabolismGraph/generators/utils.py',
                             'src/MetabolismGraph/generators/data_generator.py',
                             'src/MetabolismGraph/generators/PDE_M1.py',
-                            'src/MetabolismGraph/models/trainer.py',
+                            'src/MetabolismGraph/models/graph_trainer.py',
                         ]
                         modified_code = get_modified_code_files(root_dir, code_files) if is_git_repo(root_dir) else []
 

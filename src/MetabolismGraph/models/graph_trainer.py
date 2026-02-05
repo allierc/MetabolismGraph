@@ -107,8 +107,8 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     print(f'data pre-loaded to GPU: {x_list[0].shape[0] * x_list[0].shape[1] * x_list[0].shape[2] * 4 * n_runs / 1024 / 1024:.1f} MB')
 
     # --- normalization ---
-    activity = x_list[0][:, :, 3:4].squeeze()  # already on GPU
-    distrib = activity.flatten()
+    concentration = x_list[0][:, :, 3:4].squeeze()  # already on GPU
+    distrib = concentration.flatten()
     valid_distrib = distrib[~torch.isnan(distrib)]
     if len(valid_distrib) > 0:
         xnorm = 1.5 * torch.std(valid_distrib)

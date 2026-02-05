@@ -6,6 +6,27 @@ import torch
 from MetabolismGraph.utils import to_numpy
 
 
+# ---------------------------------------------------------------------------
+#  Loss plotting color scheme
+# ---------------------------------------------------------------------------
+
+LOSS_COLORS = {
+    'loss': ('blue', 4, 'loss (no regul)'),           # prediction loss only
+    'regul_total': ('cyan', 2, 'total regularization'),
+    'S_L1': ('red', 1.5, 'S L1 sparsity'),            # promotes zero entries
+    'S_integer': ('orange', 1.5, 'S integer penalty'), # pushes to integer values
+    'mass_conservation': ('green', 1.5, 'mass conservation'),  # column sums = 0
+}
+"""
+Color scheme for loss.tif plot components:
+- **blue (thick)**: prediction loss (MSE on dc/dt, without regularization)
+- **cyan**: total regularization (sum of all regularization terms)
+- **red**: S L1 sparsity penalty (coeff_S_L1 * ||sto_all||_1)
+- **orange**: S integer penalty (coeff_S_integer * sin²(π·S))
+- **green**: mass conservation penalty (coeff_mass * column_sum²)
+"""
+
+
 def plot_loss(loss_dict, log_dir, epoch=None, Niter=None, debug=False,
               current_loss=None, current_regul=None, total_loss=None,
               total_loss_regul=None):
@@ -89,24 +110,24 @@ def plot_loss(loss_dict, log_dir, epoch=None, Niter=None, debug=False,
     if info_text:
         fig_loss.suptitle(info_text, fontsize=20, y=0.995)
 
-    # optional regularization components to plot (key, color, linewidth, label)
+    # build optional components list from LOSS_COLORS (metabolism-specific)
+    # plus legacy components for NeuralGraph compatibility
     optional_components = [
-        ('regul_total', 'b', 2, 'total regularization'),
+        (k, v[0], v[1], v[2]) for k, v in LOSS_COLORS.items() if k != 'loss'
+    ] + [
+        # legacy NeuralGraph components (for compatibility)
         ('W_L1', 'r', 1.5, 'W L1 sparsity'),
         ('W_L2', 'darkred', 1.5, 'W L2 regul'),
         ('W_sign', 'navy', 1.5, 'W sign (Dale)'),
         ('phi_weight', 'lime', 1.5, 'MLP0 Weight Regul'),
-        ('edge_diff', 'orange', 1.5, 'MLP1 monotonicity'),
+        ('edge_diff', 'magenta', 1.5, 'MLP1 monotonicity'),
         ('edge_norm', 'brown', 1.5, 'MLP1 norm'),
         ('edge_weight', 'pink', 1.5, 'MLP1 weight regul'),
-        ('S_L1', 'r', 1.5, 'S L1 sparsity'),
-        ('S_L2', 'darkred', 1.5, 'S L2 regul'),
-        ('S_integer', 'orange', 1.5, 'S integer penalty'),
-        ('mass_conservation', 'green', 1.5, 'mass conservation'),
     ]
 
-    # linear scale
-    ax1.plot(loss_dict['loss'], color='b', linewidth=4, label='loss (no regul)', alpha=0.8)
+    # linear scale (main prediction loss in blue)
+    loss_color, loss_lw, loss_label = LOSS_COLORS['loss']
+    ax1.plot(loss_dict['loss'], color=loss_color, linewidth=loss_lw, label=loss_label, alpha=0.8)
     for key, color, lw, label in optional_components:
         if key in loss_dict:
             ax1.plot(loss_dict[key], color=color, linewidth=lw, label=label, alpha=0.7)
@@ -118,7 +139,7 @@ def plot_loss(loss_dict, log_dir, epoch=None, Niter=None, debug=False,
     ax1.tick_params(labelsize=14)
 
     # log scale
-    ax2.plot(loss_dict['loss'], color='b', linewidth=4, label='loss (no regul)', alpha=0.8)
+    ax2.plot(loss_dict['loss'], color=loss_color, linewidth=loss_lw, label=loss_label, alpha=0.8)
     for key, color, lw, label in optional_components:
         if key in loss_dict:
             ax2.plot(loss_dict[key], color=color, linewidth=lw, label=label, alpha=0.7)

@@ -225,3 +225,43 @@ The `substrate_func` and `rate_func` are compared by:
 - **High stoichiometry_R2 + low func_R2**: Model learned correct S but compensated with different rate functions. May still give good dynamics.
 - **Low stoichiometry_R2 + high func_R2**: Model learned similar functions but wrong S. Likely poor dynamics.
 - **All high**: Ideal — model recovered both the stoichiometric matrix and the reaction kinetics.
+
+## Loss Figure
+
+The training progress is visualized in `{log_dir}/tmp_training/loss.tif`, updated every `plot_frequency` iterations. This figure shows two panels (linear and log scale) with all loss components.
+
+### Color Scheme
+
+| Color | Component | Description |
+|-------|-----------|-------------|
+| **blue** (thick) | `loss` | Prediction loss only (MSE on dc/dt, without regularization) |
+| **cyan** | `regul_total` | Sum of all regularization terms |
+| **red** | `S_L1` | Sparsity penalty: `coeff_S_L1 * ||sto_all||_1` |
+| **orange** | `S_integer` | Integer penalty: `coeff_S_integer * mean(sin²(π·S))` |
+| **green** | `mass_conservation` | Mass balance penalty: `coeff_mass * mean(column_sum²)` |
+
+### How to Read the Loss Figure
+
+**Monitor these patterns:**
+
+1. **Prediction loss (blue) should decrease** — if it stagnates early, increase `lr` or `data_augmentation_loop`
+2. **Regularization terms (cyan) should be small relative to prediction loss** — if they dominate, reduce regularization coefficients
+3. **Individual regularization terms reveal which constraints are active:**
+   - **Red (S_L1) decreasing**: Model is learning sparse S (good)
+   - **Orange (S_integer) decreasing**: Model is converging to integer values (good)
+   - **Green (mass_conservation) low**: Reactions are mass-balanced (good)
+
+**Warning signs:**
+
+- **Prediction loss increases while regularization decreases**: Regularization is too strong — reduce coefficients
+- **All terms oscillating**: Learning rate too high — reduce `lr` and/or `lr_S`
+- **Prediction loss flat but regularization still dropping**: Model is stuck in a local minimum — try different initialization or learning rates
+
+### Using the Loss Figure for Hyperparameter Tuning
+
+When sweeping hyperparameters, examine the loss figure to understand:
+
+1. **Effect of `coeff_S_L1`**: Watch the red curve. Higher values → red curve drops faster but blue curve may increase if too aggressive
+2. **Effect of `coeff_S_integer`**: Watch the orange curve. This should drop as S converges to integers. If orange stays high, S values are stuck between integers
+3. **Effect of `coeff_mass_conservation`**: Watch the green curve. Should be low if reactions are mass-balanced. High values indicate column sums ≠ 0
+4. **Balance check**: Cyan (total regul) should be 10-100x smaller than blue (prediction loss) for good balance

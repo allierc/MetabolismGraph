@@ -198,3 +198,30 @@ This allows a warm-up strategy: e.g., train with no L1 first (let S find approxi
 - **L1 vs integer**: L1 pushes toward zero, integer pushes toward nearest integer. For non-zero entries, these cooperate (integer wants ±1, ±2). For zero entries, only L1 helps
 - **mass conservation vs L1**: Mass conservation constrains column sums without affecting individual coefficient magnitudes. It's orthogonal to L1 and should generally be used together
 - **Scale ambiguity**: Without regularization, the model can learn S*α and v/α for any α. L1 and integer regularization both break this symmetry by preferring small integer S values
+
+## Training Metrics
+
+The following metrics are written to `analysis.log` at the end of training:
+
+| Metric | Description | Good value |
+|--------|-------------|------------|
+| `final_loss` | Final prediction loss (MSE on dc/dt) | Lower is better |
+| `stoichiometry_R2` | R² between learned and true stoichiometric coefficients | > 0.9 |
+| `substrate_func_R2` | R² between learned and GT substrate_func outputs on test grid | > 0.8 |
+| `substrate_func_corr` | Pearson correlation for substrate_func | > 0.9 |
+| `rate_func_R2` | R² between learned and GT rate_func outputs on test grid | > 0.8 |
+| `rate_func_corr` | Pearson correlation for rate_func | > 0.9 |
+
+### Function comparison methodology
+
+The `substrate_func` and `rate_func` are compared by:
+
+1. **substrate_func**: Evaluated on a 50×50 grid of inputs `[concentration, |stoich|]` where concentration ∈ [0, 10] and |stoich| ∈ [0, 3]. R² and correlation computed between GT and learned outputs.
+
+2. **rate_func**: Evaluated on 100 random message vectors (sampled from N(0, 2)). R² and correlation computed between `softplus(GT_rate_func(h))` and `softplus(learned_rate_func(h))`.
+
+### Interpretation
+
+- **High stoichiometry_R2 + low func_R2**: Model learned correct S but compensated with different rate functions. May still give good dynamics.
+- **Low stoichiometry_R2 + high func_R2**: Model learned similar functions but wrong S. Likely poor dynamics.
+- **All high**: Ideal — model recovered both the stoichiometric matrix and the reaction kinetics.

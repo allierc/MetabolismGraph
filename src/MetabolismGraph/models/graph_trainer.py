@@ -520,15 +520,26 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
         )
     final_loss = list_loss[-1] if list_loss else 0.0
 
+    # --- compare learned vs GT functions ---
+    func_metrics = _compare_functions(model, gt_model, device)
+
     print(f"\n=== training complete ===")
     print(f"  final prediction loss: {final_loss:.6f}")
     print(f"  stoichiometry R2: {final_r2:.4f}")
+    print(f"  substrate_func R2: {func_metrics['substrate_func_r2']:.4f}")
+    print(f"  rate_func R2: {func_metrics['rate_func_r2']:.4f}")
     logger.info(f"final prediction loss: {final_loss:.6f}")
     logger.info(f"stoichiometry R2: {final_r2:.4f}")
+    logger.info(f"substrate_func R2: {func_metrics['substrate_func_r2']:.4f}")
+    logger.info(f"rate_func R2: {func_metrics['rate_func_r2']:.4f}")
 
     if log_file is not None:
         log_file.write(f"final_loss: {final_loss:.6f}\n")
         log_file.write(f"stoichiometry_R2: {final_r2:.4f}\n")
+        log_file.write(f"substrate_func_R2: {func_metrics['substrate_func_r2']:.4f}\n")
+        log_file.write(f"substrate_func_corr: {func_metrics['substrate_func_corr']:.4f}\n")
+        log_file.write(f"rate_func_R2: {func_metrics['rate_func_r2']:.4f}\n")
+        log_file.write(f"rate_func_corr: {func_metrics['rate_func_corr']:.4f}\n")
 
 
 def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=None, log_file=None):
@@ -976,3 +987,80 @@ def _plot_stoichiometry_comparison(model, gt_S, stoich_graph, n_metabolites,
     plt.close()
 
     return r_squared
+
+
+def _compare_functions(model, gt_model, device):
+    """Compare learned vs ground truth substrate_func and rate_func.
+
+    Evaluates both functions on a grid of inputs and computes correlation metrics.
+
+    Returns
+    -------
+    dict with keys:
+        substrate_func_r2: R² between GT and learned substrate_func outputs
+        substrate_func_corr: Pearson correlation for substrate_func
+        rate_func_r2: R² between GT and learned rate_func outputs
+        rate_func_corr: Pearson correlation for rate_func
+    """
+    model.eval()
+    gt_model.eval()
+
+    with torch.no_grad():
+        # --- substrate_func comparison ---
+        # Create grid of inputs: [concentration, |stoich|]
+        # concentration range: 0 to 10, stoich range: 0 to 3
+        n_pts = 50
+        conc = torch.linspace(0, 10, n_pts, device=device)
+        stoich = torch.linspace(0, 3, n_pts, device=device)
+        conc_grid, stoich_grid = torch.meshgrid(conc, stoich, indexing='ij')
+        inputs = torch.stack([conc_grid.flatten(), stoich_grid.flatten()], dim=-1)
+
+        # Evaluate both models
+        learned_out = model.substrate_func(inputs)
+        gt_out = gt_model.substrate_func(inputs)
+
+        # Flatten to 1D for correlation
+        learned_flat = learned_out.flatten()
+        gt_flat = gt_out.flatten()
+
+        # Compute metrics
+        ss_res = ((learned_flat - gt_flat) ** 2).sum()
+        ss_tot = ((gt_flat - gt_flat.mean()) ** 2).sum()
+        substrate_r2 = 1 - ss_res / (ss_tot + 1e-8)
+
+        # Pearson correlation
+        learned_centered = learned_flat - learned_flat.mean()
+        gt_centered = gt_flat - gt_flat.mean()
+        substrate_corr = (learned_centered * gt_centered).sum() / (
+            learned_centered.norm() * gt_centered.norm() + 1e-8
+        )
+
+        # --- rate_func comparison ---
+        # Create grid of inputs in message space
+        msg_dim = model.substrate_func[-2].out_features  # output dim of substrate_func
+        n_msg_pts = 100
+        # Random inputs spanning typical message range
+        msg_inputs = torch.randn(n_msg_pts, msg_dim, device=device) * 2
+
+        learned_rate = model.softplus(model.rate_func(msg_inputs))
+        gt_rate = gt_model.softplus(gt_model.rate_func(msg_inputs))
+
+        learned_rate_flat = learned_rate.flatten()
+        gt_rate_flat = gt_rate.flatten()
+
+        ss_res_rate = ((learned_rate_flat - gt_rate_flat) ** 2).sum()
+        ss_tot_rate = ((gt_rate_flat - gt_rate_flat.mean()) ** 2).sum()
+        rate_r2 = 1 - ss_res_rate / (ss_tot_rate + 1e-8)
+
+        rate_learned_centered = learned_rate_flat - learned_rate_flat.mean()
+        rate_gt_centered = gt_rate_flat - gt_rate_flat.mean()
+        rate_corr = (rate_learned_centered * rate_gt_centered).sum() / (
+            rate_learned_centered.norm() * rate_gt_centered.norm() + 1e-8
+        )
+
+    return {
+        'substrate_func_r2': float(substrate_r2.cpu()),
+        'substrate_func_corr': float(substrate_corr.cpu()),
+        'rate_func_r2': float(rate_r2.cpu()),
+        'rate_func_corr': float(rate_corr.cpu()),
+    }

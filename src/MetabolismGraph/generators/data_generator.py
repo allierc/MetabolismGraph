@@ -101,6 +101,7 @@ def data_generate(
     if bSave:
         torch.save(S, f'{folder}/stoichiometry.pt')
         torch.save(stoich_graph, f'{folder}/stoich_graph.pt')
+        torch.save(model.state_dict(), f'{folder}/gt_model.pt')
 
     # --- plots: stoichiometric matrix + SVD + rates ---
     plot_stoichiometric_matrix(S, dataset_name)

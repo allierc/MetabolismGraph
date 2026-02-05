@@ -110,7 +110,7 @@ class TrainingConfig(BaseModel):
     # stoichiometry learning rate and regularization
     learning_rate_S_start: float = 0.0
     coeff_S_L1: float = 0.0
-    coeff_S_L2: float = 0.0
+    coeff_S_integer: float = 0.0
     coeff_mass_conservation: float = 0.0
 
     # phase-1 regularization

@@ -57,5 +57,5 @@ training:
   learning_rate_S_start: 1.0E-3
 
   coeff_S_L1: 0.0
-  coeff_S_L2: 0.0
+  coeff_S_integer: 0.0
   coeff_mass_conservation: 0.0

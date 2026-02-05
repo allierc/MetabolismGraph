@@ -50,5 +50,5 @@ training:
   learning_rate_S_start: 1.0E-3    # lr for sto_all
 
   coeff_S_L1: 0.0                  # L1 on sto_all (sparsity)
-  coeff_S_L2: 0.0                  # L2 on sto_all
-  coeff_mass_conservation: 0.0     # penalize non-zero column sums of S (mass balance)
+  coeff_S_integer: 1.0E-3              # sin²(πS) penalty to encourage integer coefficients
+  coeff_mass_conservation: 1.0E-3     # penalize non-zero column sums of S (mass balance)

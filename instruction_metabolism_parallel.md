@@ -47,7 +47,12 @@ If there are no Established Principles yet, use slot 3 as a **boundary-probe** i
 When the prompt says `PARALLEL START`:
 - Read the base config to understand the starting training parameters
 - Create 4 diverse initial training parameter variations
-- Suggested spread: vary `lr_S` across [1E-4, 5E-4, 1E-3, 5E-3] and/or `coeff_S_L1` across [0, 1E-4, 1E-3, 1E-2]
+- Suggested initial spread across slots:
+  - Slot 0: baseline config (lr_S=1E-3, coeff_S_integer=1E-3, coeff_mass=1E-3)
+  - Slot 1: vary lr_S (e.g. 5E-4 or 5E-3)
+  - Slot 2: vary coeff_S_integer (e.g. 1E-2 or 1E-1)
+  - Slot 3: vary coeff_mass_conservation (e.g. 1E-2 or 1E-1)
+- See "Training Parameters Reference" in base instruction file for parameter descriptions, ranges, and interactions
 - All 4 slots share the same simulation parameters (DO NOT change them)
 - Write the planned initial variations to the working memory file
 
@@ -59,7 +64,7 @@ Same as base instructions, but you write 4 entries per batch:
 ## Iter N: [converged/partial/failed]
 Node: id=N, parent=P
 Mode/Strategy: [strategy]
-Config: seed=S, lr=X, lr_emb=Y, lr_S=Z, coeff_S_L1=W, coeff_S_L2=V, coeff_mass=M, batch_size=B, n_epochs=E, data_augmentation_loop=A
+Config: seed=S, lr=X, lr_emb=Y, lr_S=Z, coeff_S_L1=W, coeff_S_integer=V, coeff_mass=M, batch_size=B, n_epochs=E, data_augmentation_loop=A
 Metrics: stoichiometry_R2=C, test_R2=A, test_pearson=B, final_loss=E
 Mutation: [param]: [old] -> [new]
 Parent rule: [one line]

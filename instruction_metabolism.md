@@ -43,12 +43,12 @@ dc_i/dt = sum_j S_ij * v_j(c)
 ## Training Loss
 
 ```
-L = L_pred + coeff_S_L1 * ||sto_all||_1 + coeff_S_L2 * ||sto_all||_2 + coeff_mass * sum_j (sum_i S_ij)^2
+L = L_pred + coeff_S_L1 * ||sto_all||_1 + coeff_S_integer * mean(sin²(π * sto_all)) + coeff_mass * sum_j (sum_i S_ij)^2
 ```
 
 - `L_pred`: MSE between predicted dc/dt and true dc/dt
 - `coeff_S_L1`: L1 on sto_all (promotes sparsity = correct zero pattern in S)
-- `coeff_S_L2`: L2 on sto_all (weight decay on stoichiometric coefficients)
+- `coeff_S_integer`: sin²(π·S) penalty on sto_all (encourages integer-valued coefficients)
 - `coeff_mass_conservation`: penalizes non-zero column sums of S (mass balance per reaction)
 
 ## Metabolic Network Architecture (Metabolism_Propagation)
@@ -84,3 +84,79 @@ dc_i/dt = sum_j  S_true[i,j] * v_j(c)
 - S_true: fixed stoichiometric matrix (100 x 256), entries in {-2, -1, 0, +1, +2}
 - v_j: reaction rates from random MLPs with fixed rate constants k_j
 - No external input (PDE_M1 = pure stoichiometric kinetics)
+
+## Training Parameters Reference
+
+All parameters below are in the `training:` section of the YAML config. **Simulation parameters are FROZEN — do not change them.**
+
+### Learning Rates
+
+| Parameter | Config key | Description | Typical range |
+|-----------|-----------|-------------|---------------|
+| `lr` | `learning_rate_start` | Learning rate for MLP parameters (substrate_func, rate_func, log_k) | 1E-4 to 1E-2 |
+| `lr_embedding` | `learning_rate_embedding_start` | Learning rate for embeddings (if used) | 1E-5 to 1E-3 |
+| `lr_S` | `learning_rate_S_start` | Separate learning rate for stoichiometric coefficients (sto_all). If 0, sto_all uses the same lr as MLPs | 1E-4 to 1E-2 |
+
+**Key insight**: `lr_S` controls how fast the stoichiometric matrix is learned relative to the MLPs. Too fast and S overfits before the MLPs learn good rate functions; too slow and S barely moves.
+
+### Regularization Coefficients
+
+| Parameter | Config key | Loss term | Effect | Typical range |
+|-----------|-----------|-----------|--------|---------------|
+| `coeff_S_L1` | `coeff_S_L1` | `coeff * \|\|sto_all\|\|_1` | Promotes sparsity — pushes small coefficients toward zero. Helps recover the correct zero pattern in S (~96% of entries are zero) | 0 to 1E-2 |
+| `coeff_S_integer` | `coeff_S_integer` | `coeff * mean(sin²(π * sto_all))` | Encourages integer values — penalty is zero at every integer (0, ±1, ±2, ...) and maximal at half-integers. True S entries are in {-2, -1, +1, +2} | 0 to 1E-1 |
+| `coeff_mass` | `coeff_mass_conservation` | `coeff * mean_j(sum_i S_ij)²` | Enforces mass conservation per reaction — the column sum of S should be zero (substrates consumed = products produced). This is true by construction in the ground truth | 0 to 1.0 |
+
+**Regularization strategy**: These three regularizations encode different prior knowledge about S:
+- **L1** knows S is sparse (most entries are zero)
+- **Integer** knows S has integer entries
+- **Mass conservation** knows each reaction conserves mass
+
+All three are valid physics priors. The challenge is balancing them against the prediction loss — too strong and the model can't fit the dynamics; too weak and S drifts to non-physical values.
+
+### Training Schedule
+
+| Parameter | Config key | Description | Typical range |
+|-----------|-----------|-------------|---------------|
+| `n_epochs` | `n_epochs` | Number of training epochs | 1 to 20 |
+| `batch_size` | `batch_size` | Number of time frames per gradient step | 4 to 32 |
+| `data_augmentation_loop` | `data_augmentation_loop` | Multiplier for iterations per epoch. Total iterations ≈ n_frames * data_augmentation_loop / batch_size * 0.2 | 100 to 10000 |
+| `n_runs` | `n_runs` | Number of independent simulation runs used for training | 1 to 5 |
+| `seed` | `seed` | Random seed for training reproducibility | any integer |
+
+**Key insight**: `data_augmentation_loop` controls total training iterations. Higher values = more gradient steps per epoch. With `n_epochs=1` and `data_augmentation_loop=1000`, training does ~72,000 gradient steps (2880 frames * 1000 / 8 batch * 0.2).
+
+### Two-Phase Training (optional)
+
+| Parameter | Config key | Description |
+|-----------|-----------|-------------|
+| `n_epochs_init` | `n_epochs_init` | Number of initial epochs with different L1 coefficient. Default 0 (disabled) |
+| `first_coeff_L1` | `first_coeff_L1` | L1 coefficient during initial phase. Default same as `coeff_S_L1` |
+
+This allows a warm-up strategy: e.g., train with no L1 first (let S find approximate values), then turn on L1 to sparsify.
+
+### GNN Architecture (graph_model section)
+
+| Parameter | Config key | Description | Default |
+|-----------|-----------|-------------|---------|
+| `hidden_dim` | `hidden_dim` | Hidden layer width for substrate_func and rate_func MLPs | 32 |
+| `output_size` | `output_size` | Output dimension of substrate_func = input dimension of rate_func (message dimension) | 16 |
+| `n_layers` | `n_layers` | Number of layers in MLPs | 3 |
+
+**Note**: substrate_func is `MLP([2, hidden_dim, output_size])` with Tanh activation. rate_func is `MLP([output_size, hidden_dim, 1])` with Tanh + softplus output.
+
+## Parameter Sweep Guidelines
+
+### Suggested exploration order
+
+1. **Learning rates first**: Sweep `lr` and `lr_S` — these have the largest impact on convergence
+2. **Regularization balance**: Once a good lr is found, sweep regularization coefficients
+3. **Training duration**: Increase `data_augmentation_loop` or `n_epochs` if the model is still improving at the end of training
+4. **Architecture**: Try different `hidden_dim` and `output_size` if loss plateaus
+
+### Interactions to watch for
+
+- **lr_S vs regularization**: High `lr_S` + strong regularization can cause oscillations. Lower `lr_S` with stronger regularization is more stable
+- **L1 vs integer**: L1 pushes toward zero, integer pushes toward nearest integer. For non-zero entries, these cooperate (integer wants ±1, ±2). For zero entries, only L1 helps
+- **mass conservation vs L1**: Mass conservation constrains column sums without affecting individual coefficient magnitudes. It's orthogonal to L1 and should generally be used together
+- **Scale ambiguity**: Without regularization, the model can learn S*α and v/α for any α. L1 and integer regularization both break this symmetry by preferring small integer S values

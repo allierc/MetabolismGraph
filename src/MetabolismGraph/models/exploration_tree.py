@@ -324,7 +324,7 @@ def plot_exploration_tree(nodes: list[ExperimentNode],
 
     # Focus on key parameters
     if is_metabolism:
-        key_params = ['lr_S', 'lr', 'coeff_S_L1', 'coeff_S_L2', 'coeff_mass', 'batch_size']
+        key_params = ['lr_S', 'lr', 'coeff_S_L1', 'coeff_S_integer', 'coeff_mass', 'batch_size']
     else:
         key_params = ['lr_W', 'lr', 'coeff_W_L1', 'batch_size', 'factor', 'gain', 'n_types', 'Dale_law']
     key_params = [p for p in key_params if p in param_names]

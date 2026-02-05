@@ -547,6 +547,16 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
     # --- normalization (ynorm=1 always) ---
     ynorm = torch.tensor(1.0, device=device)
 
+    # --- find best model if 'best' specified ---
+    if best_model == 'best':
+        files = glob.glob(f"{log_dir}/models/*")
+        files.sort(key=sort_key)
+        filename = files[-1]
+        filename = filename.split('/')[-1]
+        filename = filename.split('graphs')[-1][1:-3]
+        best_model = filename
+        print(f'best model: {best_model}')
+
     # --- load trained model ---
     from MetabolismGraph.models.Metabolism_Propagation import Metabolism_Propagation
     model = Metabolism_Propagation(config=config, device=device)

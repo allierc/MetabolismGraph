@@ -80,7 +80,7 @@ class PDE_M2(nn.Module):
         self.register_buffer('sto_all', sto_all)
 
         # pre-compute number of substrates per reaction for averaging
-        n_sub_per_rxn = torch.zeros(n_rxn, dtype=torch.float32)
+        n_sub_per_rxn = torch.zeros(n_rxn, dtype=torch.float32, device=rxn_sub.device)
         n_sub_per_rxn.index_add_(0, rxn_sub, torch.ones_like(rxn_sub, dtype=torch.float32))
         n_sub_per_rxn.clamp_(min=1.0)
         self.register_buffer('n_sub_per_rxn', n_sub_per_rxn)
@@ -93,7 +93,7 @@ class PDE_M2(nn.Module):
         self.register_buffer('rxn_prod', rxn_prod)
 
         # pre-compute number of products per reaction for averaging
-        n_prod_per_rxn = torch.zeros(n_rxn, dtype=torch.float32)
+        n_prod_per_rxn = torch.zeros(n_rxn, dtype=torch.float32, device=rxn_prod.device)
         n_prod_per_rxn.index_add_(0, rxn_prod, torch.ones_like(rxn_prod, dtype=torch.float32))
         n_prod_per_rxn.clamp_(min=1.0)
         self.register_buffer('n_prod_per_rxn', n_prod_per_rxn)
@@ -104,7 +104,7 @@ class PDE_M2(nn.Module):
         """Compute dx/dt for all metabolites."""
         x = data.x
         concentrations = x[:, 3]
-        external_input = x[:, 4]
+        external_input = x[:, 4] * 2
 
         # 1. gather substrate concentrations and stoichiometric coefficients
         x_src = concentrations[self.met_sub].unsqueeze(-1)

@@ -8,7 +8,7 @@ simulation:
   n_input_metabolites: 100 # all metabolites receive external input
 
   n_frames: 2880 # 2 days in minutes (2 * 24 * 60)
-  delta_t: 1 # 1 minute per step
+  delta_t: 0.05 # 1 minute per step
   start_frame: 0
   seed: 42
 

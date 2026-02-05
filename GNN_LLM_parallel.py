@@ -110,7 +110,7 @@ def submit_cluster_job(slot, config_path, analysis_log_path, config_file_field,
     with open(cluster_script_path, 'w') as f:
         f.write("#!/bin/bash\n")
         f.write(f"cd {CLUSTER_ROOT_DIR}\n")
-        f.write(f"conda run -n neural-graph-linux {cluster_train_cmd}\n")
+        f.write(f"conda run -n neural-graph {cluster_train_cmd}\n")
     os.chmod(cluster_script_path, 0o755)
 
     cluster_script = cluster_script_path.replace(root_dir, CLUSTER_ROOT_DIR)

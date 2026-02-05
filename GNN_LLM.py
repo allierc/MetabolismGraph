@@ -411,7 +411,7 @@ if __name__ == "__main__":
                             with open(cluster_script_path, 'w') as f:
                                 f.write("#!/bin/bash\n")
                                 f.write(f"cd {cluster_root_dir}\n")
-                                f.write(f"conda run -n neural-graph-linux {cluster_train_cmd}\n")
+                                f.write(f"conda run -n neural-graph {cluster_train_cmd}\n")
                             os.chmod(cluster_script_path, 0o755)
 
                             # path to script on cluster

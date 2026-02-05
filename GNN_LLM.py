@@ -18,7 +18,7 @@ import sys
 
 from MetabolismGraph.config import MetabolismGraphConfig
 from MetabolismGraph.generators.data_generator import data_generate
-from MetabolismGraph.models.trainer import data_train, data_test
+from MetabolismGraph.models.graph_trainer import data_train, data_test
 from MetabolismGraph.models.exploration_tree import compute_ucb_scores
 from MetabolismGraph.models.plot_exploration_tree import parse_ucb_scores, plot_ucb_tree
 from MetabolismGraph.models.utils import save_exploration_artifacts
@@ -82,7 +82,7 @@ if __name__ == "__main__":
                 task_params[key] = int(value) if value.isdigit() else value
     else:
         best_model = ''
-        task = 'generate_train_test_Claude'  # 'train', 'test', 'generate', 'plot', 'Claude', 'code', 'cluster'
+        task = 'test_Claude'  # 'train', 'test', 'generate', 'plot', 'Claude', 'code', 'cluster'
         config_list = ['metabolism']
         task_params = {'iterations': 64}
 

@@ -5,7 +5,7 @@ import os
 
 from MetabolismGraph.config import MetabolismGraphConfig
 from MetabolismGraph.generators.data_generator import data_generate
-from MetabolismGraph.models.trainer import data_train, data_test
+from MetabolismGraph.models.graph_trainer import data_train, data_test
 from MetabolismGraph.utils import set_device
 
 import warnings

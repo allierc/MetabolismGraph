@@ -17,7 +17,7 @@ import sys
 
 from MetabolismGraph.config import MetabolismGraphConfig
 from MetabolismGraph.generators.data_generator import data_generate
-from MetabolismGraph.models.trainer import data_train, data_test
+from MetabolismGraph.models.graph_trainer import data_train, data_test
 from MetabolismGraph.models.exploration_tree import compute_ucb_scores
 from MetabolismGraph.models.plot_exploration_tree import parse_ucb_scores, plot_ucb_tree
 from MetabolismGraph.models.utils import save_exploration_artifacts

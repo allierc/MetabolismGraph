@@ -21,7 +21,7 @@ import traceback
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'src'))
 
 from MetabolismGraph.config import MetabolismGraphConfig
-from MetabolismGraph.models.trainer import data_train
+from MetabolismGraph.models.graph_trainer import data_train
 from MetabolismGraph.utils import set_device
 
 

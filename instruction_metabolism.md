@@ -129,29 +129,40 @@ All three are valid physics priors. The challenge is balancing them against the 
 
 ### Recurrent Training (optional)
 
-| Parameter | Config key | Description | Default |
-|-----------|-----------|-------------|---------|
-| `recurrent_training` | `recurrent_training` | Enable multi-step rollout during training | False |
-| `noise_recurrent_level` | `noise_recurrent_level` | Noise injected at each rollout step (helps generalization) | 0.0 |
-| `time_step` | `time_step` | Number of rollout steps per training sample | 1 |
+When `recurrent_training=True` and `time_step=T`, the model is trained to predict T steps ahead using its own predictions (autoregressive rollout):
 
-When `recurrent_training=True` and `time_step > 1`:
-1. Start at frame k with concentration c(k)
-2. For each step t in [0, time_step):
-   - Predict dc/dt using current concentration
-   - Update: c = c + delta_t * dc/dt + noise
-3. Compute loss between predicted c(k + time_step) and true c(k + time_step)
+1. Sample frame k
+2. Target = actual concentration at frame `k + time_step` (not derivative)
+3. First step: `pred_c = c + delta_t * model(c) + noise`
+4. Steps 2..T: feed `pred_c` back into model, accumulate Euler steps
+5. Loss = `||pred_c - c_true|| / (delta_t * time_step)` (backprop through all T steps)
 
-**Why use recurrent training?**
-- Single-step training only ensures the model predicts correct instantaneous derivatives
-- Recurrent training forces the model to produce stable multi-step trajectories
-- This can improve generalization for long rollouts at test time
-- The `noise_recurrent_level` adds robustness against error accumulation during rollout
+**Key parameters:**
 
-**Trade-offs:**
-- Slower training (time_step forward passes per sample instead of 1)
-- May need lower learning rates to avoid instability
-- Recommended: start with single-step training to get a good initialization, then switch to recurrent
+| Parameter | Config key | Description | Range |
+|-----------|-----------|-------------|-------|
+| `recurrent_training` | `recurrent_training` | Enable multi-step rollout | True/False |
+| `time_step` | `time_step` | Rollout depth (1 = single-step, no recurrence) | 1, 4, 8, 16 |
+| `noise_recurrent_level` | `noise_recurrent_level` | Noise per rollout step (regularization) | 0 to 0.1 |
+
+**Single-step vs Recurrent targets:**
+- Single-step (`time_step=1`): target = `y_list[k]` (true dc/dt at frame k)
+- Recurrent (`time_step>1`): target = `x_list[k + time_step, :, 3]` (true concentration at frame k + time_step)
+
+**Expected trade-offs:**
+
+| time_step | Stoichiometry R² | Rollout Stability | Training Cost |
+|-----------|------------------|-------------------|---------------|
+| 1 | Best | May overfit short-term | Low |
+| 4 | Good | Better generalization | Moderate |
+| 8-16 | Moderate | Good long-term | High |
+
+**Guidance:**
+
+- Start with `recurrent_training=False` (default) to establish baseline
+- Enable at later epochs: set `recurrent_training=True` + `time_step=4` as first test
+- `noise_recurrent_level=0.01-0.05` helps prevent rollout instability
+- Higher `time_step` costs proportionally more compute — reduce `data_augmentation_loop` to compensate
 
 ### Two-Phase Training (optional)
 

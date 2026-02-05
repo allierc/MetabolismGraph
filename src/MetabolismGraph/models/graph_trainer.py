@@ -120,6 +120,23 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     print(f'xnorm: {to_numpy(xnorm)}')
     logger.info(f'xnorm: {to_numpy(xnorm)}')
 
+    # --- variance-weighted sampling (precompute probabilities) ---
+    variance_weighted_sampling = getattr(train_config, 'variance_weighted_sampling', False)
+    sampling_probs = []
+    if variance_weighted_sampling:
+        print('computing variance-weighted sampling probabilities...')
+        for run in range(n_runs):
+            # compute variance of dc/dt across metabolites at each timepoint
+            y_var = torch.var(y_list[run], dim=1)  # (n_frames,)
+            # add small epsilon to avoid zero weights
+            weights = y_var + 1e-8
+            # normalize to probability distribution (only valid frames)
+            valid_range = n_frames - 4 - time_step
+            probs = weights[:valid_range] / weights[:valid_range].sum()
+            sampling_probs.append(probs)
+        print(f'variance-weighted sampling enabled (80% weighted, 20% uniform)')
+        logger.info('variance_weighted_sampling: True')
+
     # --- load stoichiometric graph ---
     stoich_graph = torch.load(
         f'graphs_data/{dataset_name}/stoich_graph.pt', map_location=device
@@ -272,7 +289,11 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
 
             for batch in range(batch_size):
 
-                k = np.random.randint(n_frames - 4 - time_step)
+                # sample timepoint: 80% variance-weighted, 20% uniform
+                if variance_weighted_sampling and np.random.rand() < 0.8:
+                    k = torch.multinomial(sampling_probs[run], 1).item()
+                else:
+                    k = np.random.randint(n_frames - 4 - time_step)
                 x = x_list[run][k].clone()  # already on GPU
 
                 # inject external input from SIREN (when learning)

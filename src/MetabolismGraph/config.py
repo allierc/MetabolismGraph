@@ -105,6 +105,9 @@ class TrainingConfig(BaseModel):
     recurrent_training: bool = False
     noise_recurrent_level: float = 0.0
 
+    # variance-weighted sampling: prefer timepoints with high target variance
+    variance_weighted_sampling: bool = False
+
     sparsity: Literal["none"] = "none"
 
     learning_rate_start: float = 0.001

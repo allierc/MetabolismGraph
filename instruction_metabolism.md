@@ -173,6 +173,35 @@ When `recurrent_training=True` and `time_step=T`, the model is trained to predic
 
 This allows a warm-up strategy: e.g., train with no L1 first (let S find approximate values), then turn on L1 to sparsify.
 
+### Variance-Weighted Sampling (optional)
+
+| Parameter | Config key | Description | Default |
+|-----------|-----------|-------------|---------|
+| `variance_weighted_sampling` | `variance_weighted_sampling` | Enable variance-weighted timepoint sampling | False |
+
+When enabled, timepoints are sampled with probability proportional to `var(dc/dt)` — the variance of the derivative across all metabolites at each frame. This focuses training on "informative" timepoints where metabolites are changing at different rates, rather than steady-state regions where all derivatives are similar (often near zero).
+
+**Sampling strategy:**
+- **80%** of samples: drawn from variance-weighted distribution (prefer high-variance frames)
+- **20%** of samples: drawn uniformly (ensures coverage of steady-state dynamics)
+
+**Why this helps:**
+
+1. **Efficient gradient signal**: High-variance frames provide stronger gradients for learning stoichiometric coefficients — different metabolites contribute differently to the loss
+2. **Avoid wasted compute**: Steady-state frames (all dc/dt ≈ 0) provide minimal learning signal
+3. **Coverage guarantee**: The 20% uniform sampling ensures the model still learns to predict near-zero derivatives at equilibrium
+
+**When to use:**
+
+- **Enable** when training is slow and many frames appear to be near steady-state
+- **Keep disabled** if the dynamics are always active (no equilibrium regions) or if you observe rollout instability (model fails to predict steady state correctly)
+
+**Example config:**
+```yaml
+training:
+  variance_weighted_sampling: true
+```
+
 ### GNN Architecture (graph_model section)
 
 | Parameter | Config key | Description | Default |

@@ -93,19 +93,21 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
 
     log_dir, logger = create_log_dir(config, erase)
 
-    # --- load data ---
+    # --- load data and move to GPU ---
     x_list = []
     y_list = []
     for run in trange(0, n_runs, ncols=50):
         x = load_simulation_data(f'graphs_data/{dataset_name}/x_list_{run}')
         y = load_simulation_data(f'graphs_data/{dataset_name}/y_list_{run}')
-        x_list.append(x)
-        y_list.append(y)
+        # pre-load to GPU for faster training
+        x_list.append(torch.tensor(x, dtype=torch.float32, device=device))
+        y_list.append(torch.tensor(y, dtype=torch.float32, device=device))
 
     print(f'dataset: {len(x_list)} run, {len(x_list[0])} frames')
+    print(f'data pre-loaded to GPU: {x_list[0].shape[0] * x_list[0].shape[1] * x_list[0].shape[2] * 4 * n_runs / 1024 / 1024:.1f} MB')
 
     # --- normalization ---
-    activity = torch.tensor(x_list[0][:, :, 3:4], device=device).squeeze()
+    activity = x_list[0][:, :, 3:4].squeeze()  # already on GPU
     distrib = activity.flatten()
     valid_distrib = distrib[~torch.isnan(distrib)]
     if len(valid_distrib) > 0:
@@ -271,9 +273,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
             for batch in range(batch_size):
 
                 k = np.random.randint(n_frames - 4 - time_step)
-                x = torch.tensor(
-                    x_list[run][k], dtype=torch.float32, device=device
-                )
+                x = x_list[run][k].clone()  # already on GPU
 
                 # inject external input from SIREN (when learning)
                 if has_visual_field and hasattr(model, 'NNR_f'):
@@ -316,9 +316,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                 if recurrent_training and time_step > 1:
                     # multi-step rollout: predict and feed back for time_step iterations
                     # target: concentration at frame k + time_step
-                    y_target = torch.tensor(
-                        x_list[run][k + time_step, :, 3], device=device, dtype=torch.float32,
-                    )
+                    y_target = x_list[run][k + time_step, :, 3]  # already on GPU
 
                     # current concentration
                     pred_c = x[:, 3].clone()
@@ -343,9 +341,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                 else:
                     # single-step: predict dx/dt directly
                     # target: dx/dt
-                    y = torch.tensor(
-                        y_list[run][k], device=device, dtype=torch.float32,
-                    ) / ynorm
+                    y = y_list[run][k] / ynorm  # already on GPU
 
                     # forward pass (bipartite graph is internal to model)
                     dataset = pyg_Data(x=x, pos=x[:, 1:3])

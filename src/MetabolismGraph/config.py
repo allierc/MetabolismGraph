@@ -101,6 +101,10 @@ class TrainingConfig(BaseModel):
     seed: int = 42
     time_step: int = 1
 
+    # recurrent training: multi-step rollout during training
+    recurrent_training: bool = False
+    noise_recurrent_level: float = 0.0
+
     sparsity: Literal["none"] = "none"
 
     learning_rate_start: float = 0.001

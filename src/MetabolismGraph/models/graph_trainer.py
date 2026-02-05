@@ -82,6 +82,8 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     data_augmentation_loop = train_config.data_augmentation_loop
     batch_size = train_config.batch_size
     time_step = train_config.time_step
+    recurrent_training = train_config.recurrent_training
+    noise_recurrent_level = train_config.noise_recurrent_level
 
     external_input_type = simulation_config.external_input_type
     learn_external_input = train_config.learn_external_input
@@ -311,17 +313,46 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                 if torch.isnan(x).any():
                     continue
 
-                # target: dx/dt
-                y = torch.tensor(
-                    y_list[run][k], device=device, dtype=torch.float32,
-                ) / ynorm
+                if recurrent_training and time_step > 1:
+                    # multi-step rollout: predict and feed back for time_step iterations
+                    # target: concentration at frame k + time_step
+                    y_target = torch.tensor(
+                        x_list[run][k + time_step, :, 3], device=device, dtype=torch.float32,
+                    )
 
-                # forward pass (bipartite graph is internal to model)
-                dataset = pyg_Data(x=x, pos=x[:, 1:3])
-                pred = model(dataset)
+                    # current concentration
+                    pred_c = x[:, 3].clone()
 
-                # prediction loss
-                loss = loss + (pred.squeeze() - y.squeeze()).norm(2)
+                    for step in range(time_step):
+                        # forward pass
+                        dataset = pyg_Data(x=x.clone(), pos=x[:, 1:3])
+                        pred = model(dataset)
+
+                        # update concentration: c_new = c_old + delta_t * dx/dt + noise
+                        pred_c = pred_c + delta_t * pred.squeeze()
+                        if noise_recurrent_level > 0:
+                            pred_c = pred_c + noise_recurrent_level * torch.randn_like(pred_c)
+
+                        # update x for next step (concentrations in column 3)
+                        x = x.clone()
+                        x[:, 3] = pred_c
+
+                    # loss on final concentration vs ground truth
+                    loss = loss + (pred_c - y_target).norm(2) / time_step
+
+                else:
+                    # single-step: predict dx/dt directly
+                    # target: dx/dt
+                    y = torch.tensor(
+                        y_list[run][k], device=device, dtype=torch.float32,
+                    ) / ynorm
+
+                    # forward pass (bipartite graph is internal to model)
+                    dataset = pyg_Data(x=x, pos=x[:, 1:3])
+                    pred = model(dataset)
+
+                    # prediction loss
+                    loss = loss + (pred.squeeze() - y.squeeze()).norm(2)
 
             # S regularization: L1 + integer on learnable stoichiometric coefficients
             if current_L1 > 0:

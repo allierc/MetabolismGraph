@@ -123,8 +123,35 @@ All three are valid physics priors. The challenge is balancing them against the 
 | `data_augmentation_loop` | `data_augmentation_loop` | Multiplier for iterations per epoch. Total iterations ≈ n_frames * data_augmentation_loop / batch_size * 0.2 | 100 to 10000 |
 | `n_runs` | `n_runs` | Number of independent simulation runs used for training | 1 to 5 |
 | `seed` | `seed` | Random seed for training reproducibility | any integer |
+| `time_step` | `time_step` | Number of integration steps for recurrent training (requires `recurrent_training=True`) | 1 to 10 |
 
 **Key insight**: `data_augmentation_loop` controls total training iterations. Higher values = more gradient steps per epoch. With `n_epochs=1` and `data_augmentation_loop=1000`, training does ~72,000 gradient steps (2880 frames * 1000 / 8 batch * 0.2).
+
+### Recurrent Training (optional)
+
+| Parameter | Config key | Description | Default |
+|-----------|-----------|-------------|---------|
+| `recurrent_training` | `recurrent_training` | Enable multi-step rollout during training | False |
+| `noise_recurrent_level` | `noise_recurrent_level` | Noise injected at each rollout step (helps generalization) | 0.0 |
+| `time_step` | `time_step` | Number of rollout steps per training sample | 1 |
+
+When `recurrent_training=True` and `time_step > 1`:
+1. Start at frame k with concentration c(k)
+2. For each step t in [0, time_step):
+   - Predict dc/dt using current concentration
+   - Update: c = c + delta_t * dc/dt + noise
+3. Compute loss between predicted c(k + time_step) and true c(k + time_step)
+
+**Why use recurrent training?**
+- Single-step training only ensures the model predicts correct instantaneous derivatives
+- Recurrent training forces the model to produce stable multi-step trajectories
+- This can improve generalization for long rollouts at test time
+- The `noise_recurrent_level` adds robustness against error accumulation during rollout
+
+**Trade-offs:**
+- Slower training (time_step forward passes per sample instead of 1)
+- May need lower learning rates to avoid instability
+- Recommended: start with single-step training to get a good initialization, then switch to recurrent
 
 ### Two-Phase Training (optional)
 

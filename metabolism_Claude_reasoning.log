@@ -1,0 +1,23 @@
+
+============================================================
+=== Iteration 1 ===
+============================================================
+## Summary - Iteration 1
+
+**Baseline Analysis:**
+- stoichiometry_R2: 0.037 (very poor recovery)
+- test_pearson: 0.205
+- All regularization was disabled (coefficients = 0)
+
+**Changes for Iteration 1:**
+- `coeff_S_L1`: 0 → 0.001 (sparsity regularization)
+- `coeff_S_integer`: 0 → 0.001 (integer penalty)
+- `coeff_mass_conservation`: 0 → 0.001 (mass balance constraint)
+
+**Rationale:** The stoichiometric matrix S has known structure:
+1. ~96% of entries are zero (sparse)
+2. Non-zero entries are integers {-2,-1,+1,+2}
+3. Column sums should be zero (mass conservation)
+
+Adding regularization encodes this prior knowledge, which should help the model recover the true structure rather than arbitrary continuous values that happen to fit the dynamics.
+

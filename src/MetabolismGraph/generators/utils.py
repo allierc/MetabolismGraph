@@ -101,7 +101,8 @@ def plot_loss(loss_dict, log_dir, epoch=None, Niter=None, debug=False,
         ('edge_weight', 'pink', 1.5, 'MLP1 weight regul'),
         ('S_L1', 'r', 1.5, 'S L1 sparsity'),
         ('S_L2', 'darkred', 1.5, 'S L2 regul'),
-        ('mass_conservation', 'navy', 1.5, 'mass conservation'),
+        ('S_integer', 'orange', 1.5, 'S integer penalty'),
+        ('mass_conservation', 'green', 1.5, 'mass conservation'),
     ]
 
     # linear scale

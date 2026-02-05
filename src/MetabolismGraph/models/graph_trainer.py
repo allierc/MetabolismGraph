@@ -235,7 +235,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
 
     list_loss = []
     list_loss_regul = []
-    loss_components = {'loss': [], 'S_L1': [], 'S_integer': [], 'mass_conservation': []}
+    loss_components = {'loss': [], 'regul_total': [], 'S_L1': [], 'S_integer': [], 'mass_conservation': []}
 
     print("start training ...")
     check_and_clear_memory(
@@ -391,6 +391,9 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                 current_loss = loss.item()
                 loss_components['loss'].append(
                     (current_loss - regul_loss_val) / n_metabolites
+                )
+                loss_components['regul_total'].append(
+                    regul_loss_val / n_metabolites
                 )
                 loss_components['S_L1'].append(
                     regul_S_L1.item() / n_metabolites if current_L1 > 0 else 0.0

@@ -239,7 +239,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
         memory_percentage_threshold=0.6,
     )
 
-    for epoch in range(start_epoch, n_epochs + 1):
+    for epoch in range(start_epoch, n_epochs):
 
         Niter = int(n_frames * data_augmentation_loop // batch_size * 0.2)
         plot_frequency = max(1, Niter // 20)
@@ -523,8 +523,8 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
     n_metabolites = simulation_config.n_metabolites
     delta_t = simulation_config.delta_t
 
-    # --- determine log_dir ---
-    log_dir = os.path.join('./log', 'try_{}'.format(dataset_name))
+    # --- determine log_dir (must match training: ./log/{config_file}) ---
+    log_dir = os.path.join('./log', config.config_file)
     print(f'log_dir: {log_dir}')
 
     # --- load data ---
@@ -544,8 +544,8 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
         f'graphs_data/{dataset_name}/stoichiometry.pt', map_location=device
     )
 
-    # --- load normalization ---
-    ynorm = torch.load(os.path.join(log_dir, 'ynorm.pt'), map_location=device)
+    # --- normalization (ynorm=1 always) ---
+    ynorm = torch.tensor(1.0, device=device)
 
     # --- load trained model ---
     from MetabolismGraph.models.Metabolism_Propagation import Metabolism_Propagation

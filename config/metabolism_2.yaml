@@ -1,0 +1,57 @@
+description: "metabolic network with external rate modulation (movie-driven enzyme regulation)"
+dataset: "metabolism_2"
+
+simulation:
+  n_metabolites: 100
+  n_reactions: 256
+  max_metabolites_per_reaction: 4
+  n_input_metabolites: 100 # all metabolites receive external input
+
+  n_frames: 2880 # 2 days in minutes (2 * 24 * 60)
+  delta_t: 1 # 1 minute per step
+  start_frame: 0
+  seed: 42
+
+  external_input_type: "visual"
+  external_input_mode: "multiplicative_substrate"
+  node_value_map: "video_bisons_32.tif"
+
+graph_model:
+  model_name: "PDE_M2"
+  prediction: "first_derivative"
+
+  # substrate_func: input_size=2 (concentration + |stoich|), output_size=msg_dim
+  input_size: 2
+  output_size: 16
+  hidden_dim: 32
+  n_layers: 3
+
+  input_size_update: 3
+  n_layers_update: 3
+  hidden_dim_update: 64
+
+  aggr_type: "add"
+  update_type: "none"
+
+plotting:
+  colormap: "tab20"
+
+training:
+  n_epochs: 10
+  n_runs: 1
+  device: "auto"
+
+  batch_size: 8
+  small_init_batch_size: False
+
+  seed: 42
+
+  learn_external_input: True
+
+  data_augmentation_loop: 100
+
+  sparsity: "none"
+
+  learning_rate_start: 1.0E-3
+  learning_rate_embedding_start: 1.0E-4
+  learning_rate_W_start: 0.0

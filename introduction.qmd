@@ -1,0 +1,198 @@
+---
+title: "Introduction: Metabolic Network Dynamics"
+---
+
+## Metabolic Networks as Bipartite Graphs
+
+A metabolic network can be represented as a **bipartite graph** connecting metabolites to reactions:
+
+```{mermaid}
+%%| fig-width: 8
+flowchart LR
+    subgraph Metabolites
+        A[Glucose]
+        B[ATP]
+        C[Pyruvate]
+        D[ADP]
+    end
+
+    subgraph Reactions
+        R1((R1))
+        R2((R2))
+    end
+
+    A -->|"-1"| R1
+    B -->|"-1"| R1
+    R1 -->|"+2"| C
+    R1 -->|"+1"| D
+
+    C -->|"-1"| R2
+```
+
+Each edge has a **stoichiometric coefficient**:
+
+- **Negative** coefficients: substrates (consumed by the reaction)
+- **Positive** coefficients: products (produced by the reaction)
+
+## The Stoichiometric Matrix
+
+The stoichiometric matrix $\mathbf{S}$ is an $(n_{\text{metabolites}} \times n_{\text{reactions}})$ matrix where entry $S_{ij}$ indicates how metabolite $i$ participates in reaction $j$:
+
+$$
+\mathbf{S} = \begin{pmatrix}
+-1 & 0 & \cdots \\
+-1 & +1 & \cdots \\
++2 & -1 & \cdots \\
++1 & 0 & \cdots \\
+\vdots & \vdots & \ddots
+\end{pmatrix}
+$$
+
+**Properties of S:**
+
+- **Sparse**: most entries are zero (each reaction involves only 2-6 metabolites)
+- **Integer-valued**: entries are typically in $\{-2, -1, 0, +1, +2\}$
+- **Mass conservation**: column sums should be zero for balanced reactions
+
+## Reaction Rate Functions
+
+Each reaction $j$ has a rate $v_j$ that depends on substrate concentrations. In our model, this is computed in two stages:
+
+### Stage 1: Substrate Function
+
+For each substrate edge $(i, j)$ with stoichiometric coefficient $s_{ij}$, we compute a message:
+
+$$\mathbf{m}_{ij} = f_{\text{substrate}}(c_i, |s_{ij}|)$$
+
+where:
+
+- $c_i$ is the concentration of metabolite $i$
+- $|s_{ij}|$ is the absolute stoichiometric coefficient
+- $f_{\text{substrate}}$ is a small MLP: $\mathbb{R}^2 \to \mathbb{R}^{d}$
+
+The substrate function encodes how substrate availability affects reaction propensity.
+
+### Stage 2: Message Aggregation
+
+Messages from all substrates of reaction $j$ are summed:
+
+$$\mathbf{h}_j = \sum_{i \in \text{substrates}(j)} \mathbf{m}_{ij}$$
+
+### Stage 3: Rate Function
+
+The aggregated message is transformed into a scalar reaction rate:
+
+$$v_j = k_j \cdot \text{softplus}(f_{\text{rate}}(\mathbf{h}_j))$$
+
+where:
+
+- $f_{\text{rate}}$ is a small MLP: $\mathbb{R}^d \to \mathbb{R}$
+- $\text{softplus}(\cdot)$ ensures non-negative rates
+- $k_j$ is a learnable per-reaction rate constant
+
+## Complete Forward Pass
+
+The complete dynamics are:
+
+$$\frac{dc_i}{dt} = \sum_j S_{ij} \cdot v_j(\mathbf{c})$$
+
+Expanding the rate function:
+
+$$\frac{dc_i}{dt} = \sum_j S_{ij} \cdot k_j \cdot \text{softplus}\left(f_{\text{rate}}\left(\sum_{k \in \text{sub}(j)} f_{\text{substrate}}(c_k, |S_{kj}|)\right)\right)$$
+
+```{mermaid}
+%%| fig-width: 10
+flowchart LR
+    subgraph Input
+        C1[c₁ concentration]
+        C2[c₂ concentration]
+        S1["|S₁ⱼ|"]
+        S2["|S₂ⱼ|"]
+    end
+
+    subgraph "Substrate Function"
+        F1["f_sub(c₁, |S₁ⱼ|)"]
+        F2["f_sub(c₂, |S₂ⱼ|)"]
+    end
+
+    subgraph Aggregation
+        SUM["Σ messages"]
+    end
+
+    subgraph "Rate Function"
+        RATE["f_rate(h)"]
+        SP["softplus"]
+        K["× kⱼ"]
+    end
+
+    subgraph Output
+        V["vⱼ (reaction rate)"]
+    end
+
+    C1 --> F1
+    S1 --> F1
+    C2 --> F2
+    S2 --> F2
+    F1 --> SUM
+    F2 --> SUM
+    SUM --> RATE
+    RATE --> SP
+    SP --> K
+    K --> V
+```
+
+## Learning Objective
+
+Given observed concentration trajectories $\{c_i(t)\}$, we learn:
+
+1. **Stoichiometric coefficients** $S_{ij}$ (initialized randomly, regularized to be sparse integers)
+2. **Substrate function** $f_{\text{substrate}}$ (MLP parameters)
+3. **Rate function** $f_{\text{rate}}$ (MLP parameters)
+4. **Rate constants** $k_j$ (one per reaction)
+
+### Loss Function
+
+$$\mathcal{L} = \mathcal{L}_{\text{pred}} + \lambda_1 \|\mathbf{S}\|_1 + \lambda_2 \sum_{ij} \sin^2(\pi S_{ij}) + \lambda_3 \sum_j \left(\sum_i S_{ij}\right)^2$$
+
+| Term | Description |
+|------|-------------|
+| $\mathcal{L}_{\text{pred}}$ | MSE between predicted and true $dc/dt$ |
+| $\|\mathbf{S}\|_1$ | L1 sparsity (promotes zeros) |
+| $\sin^2(\pi S_{ij})$ | Integer penalty (zero at integers) |
+| $(\sum_i S_{ij})^2$ | Mass conservation (column sums = 0) |
+
+## Identifiability Considerations
+
+### Scale Ambiguity
+
+Scaling $\mathbf{S}$ by $\alpha$ and $v$ by $1/\alpha$ gives the same dynamics:
+
+$$\frac{dc_i}{dt} = \sum_j (\alpha S_{ij}) \cdot \left(\frac{v_j}{\alpha}\right) = \sum_j S_{ij} \cdot v_j$$
+
+The L1 and integer regularization break this symmetry by preferring small integer values in $\mathbf{S}$.
+
+### Function Compensation
+
+The model can potentially learn incorrect $\mathbf{S}$ values compensated by modified rate functions. Regularization and the constraint that rates must be non-negative help prevent this.
+
+## Simulation: PDE_M1
+
+The ground-truth simulator (PDE_M1) generates concentration dynamics using:
+
+1. **Random stoichiometric matrix**: 256 reactions, each involving 2-6 metabolites
+2. **Random rate functions**: MLPs with random weights
+3. **Random rate constants**: $k_j$ log-uniform in $[0.001, 0.1]$
+4. **Euler integration**: time step $\Delta t = 1$, 2880 frames
+
+The training model has the same architecture but learns $\mathbf{S}$ from scratch.
+
+## Architecture Details
+
+| Component | Architecture |
+|-----------|--------------|
+| `substrate_func` | MLP: [2, 32, 16] with Tanh |
+| `rate_func` | MLP: [16, 32, 1] with Tanh + Softplus |
+| Stoichiometry | Learnable edge weights (nn.Parameter) |
+| Rate constants | Learnable log-scale parameters |
+
+The message dimension (16) controls the information capacity between substrates and rates. Larger values allow more complex rate dependencies but may overfit.

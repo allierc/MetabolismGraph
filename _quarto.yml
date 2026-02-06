@@ -1,0 +1,34 @@
+project:
+  type: website
+  output-dir: docs
+  render:
+    - "*.qmd"
+
+website:
+  title: "MetabolismGraph"
+  navbar:
+    left:
+      - text: "Home"
+        href: index.qmd
+      - text: "Introduction"
+        href: introduction.qmd
+      - text: "Training"
+        href: training.qmd
+    tools:
+      - icon: github
+        href: https://github.com/allierc/MetabolismGraph
+  page-footer: "Copyright 2025, Cédric Allier"
+  repo-url: https://github.com/allierc/MetabolismGraph/
+  site-url: https://allierc.github.io/MetabolismGraph/
+
+format:
+  html:
+    theme:
+      light: flatly
+      dark: darkly
+    css: styles.css
+    toc: true
+    code-fold: show
+    code-overflow: wrap
+    code-tools:
+      source: repo

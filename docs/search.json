@@ -1,0 +1,114 @@
+[
+  {
+    "objectID": "model.html",
+    "href": "model.html",
+    "title": "Model: Metabolic Network Dynamics",
+    "section": "",
+    "text": "A metabolic network can be represented as a bipartite graph connecting metabolites to reactions:\n\n\n\n\n\n%%{init: {'theme': 'neutral'}}%%\nflowchart LR\n    subgraph Metabolites\n        A[Glucose]\n        B[ATP]\n        C[Pyruvate]\n        D[ADP]\n    end\n\n    subgraph Reactions\n        R1((R1))\n        R2((R2))\n    end\n\n    A --&gt;|\"-1\"| R1\n    B --&gt;|\"-1\"| R1\n    R1 --&gt;|\"+2\"| C\n    R1 --&gt;|\"+1\"| D\n\n    C --&gt;|\"-1\"| R2\n    R2 --&gt;|\"+1\"| B\n\n\n\n\n\n\nEach edge has a stoichiometric coefficient:\n\nNegative coefficients: substrates (consumed by the reaction)\nPositive coefficients: products (produced by the reaction)"
+  },
+  {
+    "objectID": "model.html#metabolic-networks-as-bipartite-graphs",
+    "href": "model.html#metabolic-networks-as-bipartite-graphs",
+    "title": "Model: Metabolic Network Dynamics",
+    "section": "",
+    "text": "A metabolic network can be represented as a bipartite graph connecting metabolites to reactions:\n\n\n\n\n\n%%{init: {'theme': 'neutral'}}%%\nflowchart LR\n    subgraph Metabolites\n        A[Glucose]\n        B[ATP]\n        C[Pyruvate]\n        D[ADP]\n    end\n\n    subgraph Reactions\n        R1((R1))\n        R2((R2))\n    end\n\n    A --&gt;|\"-1\"| R1\n    B --&gt;|\"-1\"| R1\n    R1 --&gt;|\"+2\"| C\n    R1 --&gt;|\"+1\"| D\n\n    C --&gt;|\"-1\"| R2\n    R2 --&gt;|\"+1\"| B\n\n\n\n\n\n\nEach edge has a stoichiometric coefficient:\n\nNegative coefficients: substrates (consumed by the reaction)\nPositive coefficients: products (produced by the reaction)"
+  },
+  {
+    "objectID": "model.html#the-stoichiometric-matrix",
+    "href": "model.html#the-stoichiometric-matrix",
+    "title": "Model: Metabolic Network Dynamics",
+    "section": "The Stoichiometric Matrix",
+    "text": "The Stoichiometric Matrix\nThe stoichiometric matrix \\(\\mathbf{S}\\) is an \\((n_{\\text{metabolites}} \\times n_{\\text{reactions}})\\) matrix where entry \\(S_{ij}\\) indicates how metabolite \\(i\\) participates in reaction \\(j\\):\n\\[\n\\mathbf{S} = \\begin{pmatrix}\n-1 & 0 & \\cdots \\\\\n-1 & +1 & \\cdots \\\\\n+2 & -1 & \\cdots \\\\\n+1 & 0 & \\cdots \\\\\n\\vdots & \\vdots & \\ddots\n\\end{pmatrix}\n\\]\nProperties of S:\n\nSparse: most entries are zero (each reaction involves only 2-6 metabolites)\nInteger-valued: entries are typically in \\(\\{-2, -1, 0, +1, +2\\}\\)\nMass conservation: column sums should be zero for balanced reactions\n\nExample:\nConsider the diagram above with 2 reactions:\n\\[\n\\begin{aligned}\n\\text{R1}: \\quad & \\text{Glucose} + \\text{ATP} \\longrightarrow 2\\,\\text{Pyruvate} + \\text{ADP} \\\\\n\\text{R2}: \\quad & \\text{Pyruvate} \\longrightarrow \\text{ATP}\n\\end{aligned}\n\\]\nThe corresponding stoichiometric matrix is:\n\\[\n\\begin{array}{c|cc}\n& \\text{R1} & \\text{R2} \\\\\n\\hline\n\\text{Glucose} & -1 & 0 \\\\\n\\text{ATP} & -1 & +1 \\\\\n\\text{Pyruvate} & +2 & -1 \\\\\n\\text{ADP} & +1 & 0\n\\end{array}\n\\]"
+  },
+  {
+    "objectID": "model.html#model-evolution",
+    "href": "model.html#model-evolution",
+    "title": "Model: Metabolic Network Dynamics",
+    "section": "Model Evolution",
+    "text": "Model Evolution\n\n1. Pure Reaction\nPure reaction dynamics without homeostasis, using additive aggregation:\n\\[\\frac{dc_i}{dt} = \\sum_j S_{ij} \\cdot k_j \\cdot \\sum_{k \\in \\text{sub}(j)} c_k^{s_{kj}}\\]\n\n\n\nParameter\nValue\n\n\n\n\nn_metabolites\n100\n\n\nn_reactions\n64\n\n\nStoichiometry\nRandom\n\n\nAggregation\nSum (additive)\n\n\n\\(\\lambda\\) (homeostatic strength)\n0.0\n\n\nRate constants \\(k_j\\)\n\\([10^{-3}, 10^{-1}]\\)\n\n\nInitial concentrations\n[2.5, 7.5]\n\n\nFlux limiting\nEnabled\n\n\n\n\n\n\n2. Homeostasis\nWith homeostatic regulation pulling concentrations toward baseline, using additive aggregation:\n\\[\\frac{dc_i}{dt} = \\underbrace{-\\lambda_i \\cdot (c_i - c_i^{\\text{baseline}})}_{\\text{homeostasis}} + \\underbrace{\\sum_j S_{ij} \\cdot k_j \\cdot \\sum_{k \\in \\text{sub}(j)} c_k^{s_{kj}}}_{\\text{reactions}}\\]\n\n\n\nParameter\nValue\n\n\n\n\nn_metabolites\n100\n\n\nn_reactions\n64\n\n\nStoichiometry\nRandom\n\n\nAggregation\nSum (additive)\n\n\n\\(\\lambda\\) (homeostatic strength)\n0.01\n\n\n\\(c^{\\text{baseline}}\\)\n5.0\n\n\nRate constants \\(k_j\\)\n\\([10^{-3}, 10^{-1}]\\)\n\n\nInitial concentrations\n[2.5, 7.5]\n\n\nFlux limiting\nEnabled\n\n\n\n\n\n\n3. Oscillatory\nAutocatalytic cycles with mass-action kinetics (multiplicative aggregation) for sustained oscillations:\n\\[\\frac{dc_i}{dt} = \\sum_j S_{ij} \\cdot k_j \\cdot \\prod_{k \\in \\text{sub}(j)} c_k^{s_{kj}}\\]\nExample cycle: \\(A + B \\to 2B, \\quad B + C \\to 2C, \\quad C + A \\to 2A\\)\n\n\n\nParameter\nValue\n\n\n\n\nn_metabolites\n100\n\n\nn_reactions\n256\n\n\nStoichiometry\n100% autocatalytic 3-cycles\n\n\nAggregation\nProduct (multiplicative)\n\n\n\\(\\lambda\\) (homeostatic strength)\n0.0\n\n\nRate constants \\(k_j\\)\n\\([10^{-2.5}, 10^{-1}]\\)\n\n\nInitial concentrations\n[1.0, 9.0]\n\n\nFlux limiting\nDisabled"
+  },
+  {
+    "objectID": "model.html#activity-rank",
+    "href": "model.html#activity-rank",
+    "title": "Model: Metabolic Network Dynamics",
+    "section": "Activity Rank",
+    "text": "Activity Rank\nTo quantify the complexity of concentration dynamics, we compute the activity rank using singular value decomposition (SVD) of the concentration matrix \\(\\mathbf{C} \\in \\mathbb{R}^{T \\times n}\\) (time frames × metabolites).\nThe rank at 99% variance is the number of singular values needed to capture 99% of the total variance:\n\\[\\text{rank}_{99} = \\min \\left\\{ k : \\frac{\\sum_{i=1}^{k} \\sigma_i^2}{\\sum_{i=1}^{n} \\sigma_i^2} \\geq 0.99 \\right\\}\\]\nInterpretation:\n\nLow rank (1-5): concentrations are highly correlated, dynamics are simple (equilibration or uniform decay)\nHigh rank (&gt;20): metabolites evolve independently with rich, complex dynamics"
+  },
+  {
+    "objectID": "model.html#summary-the-full-model",
+    "href": "model.html#summary-the-full-model",
+    "title": "Model: Metabolic Network Dynamics",
+    "section": "Summary: The Full Model",
+    "text": "Summary: The Full Model\nThe complete metabolic dynamics:\n\\[\n\\frac{dc_i}{dt} = \\underbrace{-\\lambda_i \\cdot (c_i - c_i^{\\text{baseline}})}_{\\text{homeostasis}} + \\underbrace{\\sum_{j=1}^{m} S_{ij} \\cdot v_j}_{\\text{reaction dynamics}}\n\\]\nwhere the reaction rate follows mass-action kinetics:\n\\[\nv_j = k_j \\cdot \\prod_{k \\in \\text{sub}(j)} c_k^{s_{kj}}\n\\]\nGiven:\n\nConcentration trajectories \\(\\{c_i(t)\\}_{i=1}^{n}\\)\nStoichiometric matrix \\(\\mathbf{S}\\) (known from biochemistry)\n\nTo learn:\n\nRate constants \\(k_j\\)\nHomeostatic parameters \\(\\lambda_i\\), \\(c_i^{\\text{baseline}}\\)"
+  },
+  {
+    "objectID": "gnn.html",
+    "href": "gnn.html",
+    "title": "GNN: Graph Neural Network",
+    "section": "",
+    "text": "The complete metabolic dynamics:\n\\[\n\\frac{dc_i}{dt} = \\underbrace{-\\lambda_i \\cdot (c_i - c_i^{\\text{baseline}})}_{\\text{homeostasis}} + \\underbrace{\\sum_{j=1}^{m} S_{ij} \\cdot v_j}_{\\text{reaction dynamics}}\n\\]\nwhere the reaction rate \\(v_j\\) depends on aggregation type:\n\n\n\n\n\n\n\n\nAggregation\nRate \\(v_j\\)\nUse case\n\n\n\n\nAdditive\n\\(v_j = k_j \\cdot \\sum_{k \\in \\text{sub}(j)} c_k^{s_{kj}}\\)\nPure reaction, Homeostasis\n\n\nMultiplicative\n\\(v_j = k_j \\cdot \\prod_{k \\in \\text{sub}(j)} c_k^{s_{kj}}\\)\nOscillatory (mass-action)"
+  },
+  {
+    "objectID": "gnn.html#full-model",
+    "href": "gnn.html#full-model",
+    "title": "GNN: Graph Neural Network",
+    "section": "",
+    "text": "The complete metabolic dynamics:\n\\[\n\\frac{dc_i}{dt} = \\underbrace{-\\lambda_i \\cdot (c_i - c_i^{\\text{baseline}})}_{\\text{homeostasis}} + \\underbrace{\\sum_{j=1}^{m} S_{ij} \\cdot v_j}_{\\text{reaction dynamics}}\n\\]\nwhere the reaction rate \\(v_j\\) depends on aggregation type:\n\n\n\n\n\n\n\n\nAggregation\nRate \\(v_j\\)\nUse case\n\n\n\n\nAdditive\n\\(v_j = k_j \\cdot \\sum_{k \\in \\text{sub}(j)} c_k^{s_{kj}}\\)\nPure reaction, Homeostasis\n\n\nMultiplicative\n\\(v_j = k_j \\cdot \\prod_{k \\in \\text{sub}(j)} c_k^{s_{kj}}\\)\nOscillatory (mass-action)"
+  },
+  {
+    "objectID": "gnn.html#the-inverse-problem",
+    "href": "gnn.html#the-inverse-problem",
+    "title": "GNN: Graph Neural Network",
+    "section": "The Inverse Problem",
+    "text": "The Inverse Problem\nGiven:\n\nConcentration trajectories \\(\\{c_i(t)\\}_{i=1}^{n}\\)\nStoichiometric matrix \\(\\mathbf{S}\\) (known)\n\nTo learn:\n\nRate constants \\(k_j\\)\nHomeostatic parameters \\(\\lambda_i\\), \\(c_i^{\\text{baseline}}\\)"
+  },
+  {
+    "objectID": "gnn.html#gnn-parameterization",
+    "href": "gnn.html#gnn-parameterization",
+    "title": "GNN: Graph Neural Network",
+    "section": "GNN Parameterization",
+    "text": "GNN Parameterization\n\\[\n\\frac{dc_i}{dt} = \\underbrace{\\text{MLP}_{\\text{node}}(c_i, a_i)}_{\\text{learns } -\\lambda_i(c_i - c_i^{\\text{baseline}})} + \\underbrace{\\sum_{j=1}^{m} S_{ij} \\cdot k_j \\cdot \\text{aggr}_{k \\in \\text{sub}(j)} \\text{MLP}_{\\text{sub}}(c_k, s_{kj})}_{\\text{learns } c_k^{s_{kj}}}\n\\]\nwhere: - \\(a_i \\in \\mathbb{R}^d\\) is a learnable embedding for metabolite \\(i\\) - \\(k_j\\) are learnable rate constants - \\(\\text{aggr}\\) is sum (additive) or product (multiplicative)\n\nLearnable Parameters\n\n\n\n\n\n\n\n\nParameter\nType\nPurpose\n\n\n\n\n\\(a_i\\)\nEmbedding vectors\nPer-metabolite identity\n\n\n\\(k_j\\)\nScalars\nPer-reaction rate constants\n\n\n\\(\\text{MLP}_{\\text{node}}\\)\nNeural network\nLearns \\(-\\lambda_i(c_i - c_i^{\\text{baseline}})\\)\n\n\n\\(\\text{MLP}_{\\text{sub}}\\)\nNeural network\nLearns \\(c_k^{s_{kj}}\\)\n\n\n\n\n\nConfiguration\ngraph_model:\n  aggr_type: add         # sum (additive) or mul (multiplicative)\n  embedding_dim: 2       # dimension of metabolite embeddings a_i\n  hidden_dim: 32\n\ntraining:\n  learning_rate_start: 0.001\n  freeze_stoichiometry: true   # S given mode\n  training_single_type: false  # learn per-metabolite embeddings"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "MetabolismGraph: Learning Stoichiometric Networks with Graph Neural Networks",
+    "section": "",
+    "text": "MetabolismGraph is a framework for learning the structure of metabolic networks from concentration dynamics using Graph Neural Networks (GNNs). Given time-series measurements of metabolite concentrations, the model recovers:\n\nRate constants \\(k_j\\) — the intrinsic speed of each reaction\nHomeostatic parameters \\(\\lambda_i\\), \\(c_i^{\\text{baseline}}\\) — metabolite regulation"
+  },
+  {
+    "objectID": "index.html#overview",
+    "href": "index.html#overview",
+    "title": "MetabolismGraph: Learning Stoichiometric Networks with Graph Neural Networks",
+    "section": "",
+    "text": "MetabolismGraph is a framework for learning the structure of metabolic networks from concentration dynamics using Graph Neural Networks (GNNs). Given time-series measurements of metabolite concentrations, the model recovers:\n\nRate constants \\(k_j\\) — the intrinsic speed of each reaction\nHomeostatic parameters \\(\\lambda_i\\), \\(c_i^{\\text{baseline}}\\) — metabolite regulation"
+  },
+  {
+    "objectID": "index.html#the-full-model",
+    "href": "index.html#the-full-model",
+    "title": "MetabolismGraph: Learning Stoichiometric Networks with Graph Neural Networks",
+    "section": "The Full Model",
+    "text": "The Full Model\nThe complete metabolic dynamics:\n\\[\n\\frac{dc_i}{dt} = \\underbrace{-\\lambda_i \\cdot (c_i - c_i^{\\text{baseline}})}_{\\text{homeostasis}} + \\underbrace{\\sum_{j=1}^{m} S_{ij} \\cdot v_j}_{\\text{reaction dynamics}}\n\\]\nwhere the reaction rate \\(v_j\\) depends on aggregation type:\n\n\n\n\n\n\n\nAggregation\nRate \\(v_j\\)\n\n\n\n\nAdditive\n\\(v_j = k_j \\cdot \\sum_{k \\in \\text{sub}(j)} c_k^{s_{kj}}\\)\n\n\nMultiplicative\n\\(v_j = k_j \\cdot \\prod_{k \\in \\text{sub}(j)} c_k^{s_{kj}}\\)\n\n\n\nSee Model for detailed equations, diagrams, and model configurations."
+  },
+  {
+    "objectID": "index.html#the-inverse-problem",
+    "href": "index.html#the-inverse-problem",
+    "title": "MetabolismGraph: Learning Stoichiometric Networks with Graph Neural Networks",
+    "section": "The Inverse Problem",
+    "text": "The Inverse Problem\nGiven:\n\nConcentration trajectories \\(\\{c_i(t)\\}_{i=1}^{n}\\)\nStoichiometric matrix \\(\\mathbf{S}\\) (known from biochemistry)\n\nTo learn:\n\nRate constants \\(k_j\\)\nHomeostatic parameters \\(\\lambda_i\\), \\(c_i^{\\text{baseline}}\\)\n\nSee GNN for the GNN parameterization and training configuration."
+  },
+  {
+    "objectID": "index.html#key-features",
+    "href": "index.html#key-features",
+    "title": "MetabolismGraph: Learning Stoichiometric Networks with Graph Neural Networks",
+    "section": "Key Features",
+    "text": "Key Features\n\nBipartite graph representation: metabolites and reactions form a bipartite graph, with stoichiometric coefficients on edges\nLearnable rate constants: per-reaction \\(k_j\\) learned via gradient descent\nLearnable homeostasis: MLP learns \\(-\\lambda_i(c_i - c_i^{\\text{baseline}})\\) per metabolite\nFlexible aggregation: additive (sum) or multiplicative (product) for different dynamics\nMetabolite embeddings: learnable vectors \\(a_i\\) capture per-metabolite identity"
+  },
+  {
+    "objectID": "index.html#citation",
+    "href": "index.html#citation",
+    "title": "MetabolismGraph: Learning Stoichiometric Networks with Graph Neural Networks",
+    "section": "Citation",
+    "text": "Citation\nIf you use MetabolismGraph in your research, please cite:\n@software{metabolismgraph2025,\n  author = {Allier, Cédric},\n  title = {MetabolismGraph: Learning Stoichiometric Networks with GNNs},\n  year = {2025},\n  url = {https://github.com/allierc/MetabolismGraph}\n}"
+  }
+]

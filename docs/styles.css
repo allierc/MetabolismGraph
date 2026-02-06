@@ -1,0 +1,70 @@
+/* Custom styles for MetabolismGraph documentation */
+
+/* Equation styling */
+.math {
+    font-size: 1.1em;
+}
+
+/* Code block styling */
+pre code {
+    font-size: 0.9em;
+}
+
+/* Table styling */
+table {
+    margin: 1em 0;
+}
+
+table th {
+    background-color: #f8f9fa;
+}
+
+/* Mermaid diagram styling */
+.mermaid {
+    margin: 2em 0;
+    text-align: center;
+}
+
+/* Force white backgrounds on all Mermaid elements */
+.mermaid .cluster rect,
+.mermaid .cluster-label,
+.mermaid .flowchart-label,
+.mermaid .node rect,
+.mermaid .node circle,
+.mermaid .node ellipse,
+.mermaid .node polygon,
+.mermaid .label-container,
+.mermaid .edgeLabel,
+.mermaid rect.actor,
+.mermaid .loopLine {
+    fill: #ffffff !important;
+}
+
+.mermaid .cluster rect {
+    stroke: #333333 !important;
+}
+
+.mermaid .edgeLabel rect {
+    fill: #ffffff !important;
+    opacity: 1 !important;
+}
+
+/* Header styling */
+h2 {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5em;
+    margin-top: 2em;
+}
+
+/* Callout boxes */
+.callout-note {
+    border-left-color: #0d6efd;
+}
+
+.callout-warning {
+    border-left-color: #ffc107;
+}
+
+.callout-tip {
+    border-left-color: #198754;
+}

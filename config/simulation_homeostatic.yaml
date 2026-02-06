@@ -1,0 +1,47 @@
+description: homeostatic regulation (steady state c=5)
+dataset: simulation_homeostatic
+
+simulation:
+  n_metabolites: 100
+  n_reactions: 256
+  max_metabolites_per_reaction: 4
+  n_frames: 2880
+  delta_t: 1
+  start_frame: 0
+  seed: 42
+  # initial concentration range
+  concentration_min: 2.5
+  concentration_max: 7.5
+  # homeostatic dynamics pulls all concentrations toward c=5
+  homeostatic_strength: 0.05
+  baseline_mode: fixed
+  baseline_concentration: 5.0
+  kinograph_range: 1.0
+  circadian_amplitude: 0.0
+  circadian_period: 1440
+
+graph_model:
+  model_name: PDE_M1
+  prediction: first_derivative
+  input_size: 2
+  output_size: 1
+  hidden_dim: 32
+  n_layers: 3
+  aggr_type: add
+  update_type: none
+
+plotting:
+  colormap: tab20
+
+training:
+  n_epochs: 1
+  n_runs: 1
+  device: auto
+  batch_size: 8
+  seed: 42
+  data_augmentation_loop: 1000
+  learning_rate_start: 0.001
+  learning_rate_S_start: 0.0005
+  coeff_S_L1: 0.001
+  coeff_S_integer: 0.001
+  coeff_mass_conservation: 0.001

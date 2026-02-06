@@ -4,57 +4,49 @@ title: "MetabolismGraph: Learning Stoichiometric Networks with Graph Neural Netw
 
 ## Overview
 
-**MetabolismGraph** is a framework for learning the structure of metabolic networks from concentration dynamics using Graph Neural Networks (GNNs). Given time-series measurements of metabolite concentrations, the model jointly recovers:
+**MetabolismGraph** is a framework for learning the structure of metabolic networks from concentration dynamics using Graph Neural Networks (GNNs). Given time-series measurements of metabolite concentrations, the model recovers:
 
-1. **Stoichiometric coefficients** — which metabolites participate in which reactions, and with what stoichiometry
-2. **Reaction rate functions** — how substrate concentrations determine reaction velocities
-3. **Rate constants** — the intrinsic speed of each reaction
+1. **Rate constants** $k_j$ — the intrinsic speed of each reaction
+2. **Homeostatic parameters** $\lambda_i$, $c_i^{\text{baseline}}$ — metabolite regulation
 
-## The Problem
+## The Full Model
 
-In metabolic networks, enzymes catalyze reactions that convert substrates into products. The dynamics of metabolite concentrations are governed by the stoichiometric matrix $\mathbf{S}$ and reaction rate functions:
+The complete metabolic dynamics:
 
-$$\frac{dc_i}{dt} = \sum_j S_{ij} \cdot v_j(\mathbf{c})$$
+$$
+\frac{dc_i}{dt} = \underbrace{-\lambda_i \cdot (c_i - c_i^{\text{baseline}})}_{\text{homeostasis}} + \underbrace{\sum_{j=1}^{m} S_{ij} \cdot v_j}_{\text{reaction dynamics}}
+$$
 
-where:
+where the reaction rate $v_j$ depends on aggregation type:
 
-- $c_i$ is the concentration of metabolite $i$
-- $S_{ij}$ is the stoichiometric coefficient (negative for substrates, positive for products)
-- $v_j(\mathbf{c})$ is the rate of reaction $j$
+| Aggregation | Rate $v_j$ |
+|-------------|------------|
+| Additive | $v_j = k_j \cdot \sum_{k \in \text{sub}(j)} c_k^{s_{kj}}$ |
+| Multiplicative | $v_j = k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{s_{kj}}$ |
 
-The challenge is to recover $\mathbf{S}$ and the rate functions $v_j$ from observed concentration trajectories.
+See [Model](model.qmd) for detailed equations, diagrams, and model configurations.
+
+## The Inverse Problem
+
+**Given:**
+
+- Concentration trajectories $\{c_i(t)\}_{i=1}^{n}$
+- Stoichiometric matrix $\mathbf{S}$ (known from biochemistry)
+
+**To learn:**
+
+- Rate constants $k_j$
+- Homeostatic parameters $\lambda_i$, $c_i^{\text{baseline}}$
+
+See [GNN](gnn.qmd) for the GNN parameterization and training configuration.
 
 ## Key Features
 
 - **Bipartite graph representation**: metabolites and reactions form a bipartite graph, with stoichiometric coefficients on edges
-- **Learnable stoichiometry**: the model directly learns the stoichiometric coefficients as edge weights
-- **Physics-informed regularization**: L1 sparsity, integer penalties, and mass conservation constraints
-- **Interpretable functions**: substrate and rate functions are small MLPs that can be visualized
-
-## Documentation
-
-- [Introduction](introduction.qmd) — Detailed explanation of the model with equations and diagrams
-- [Training Guide](training.qmd) — How to train models and tune hyperparameters
-
-## Quick Start
-
-```python
-from MetabolismGraph.config import MetabolismGraphConfig
-from MetabolismGraph.generators.data_generator import data_generate
-from MetabolismGraph.models.graph_trainer import data_train, data_test
-
-# Load configuration
-config = MetabolismGraphConfig.from_yaml("config/metabolism.yaml")
-
-# Generate synthetic data
-data_generate(config, visualize=True, device="cuda", bSave=True)
-
-# Train the model
-data_train(config, erase=True, device="cuda")
-
-# Evaluate
-data_test(config, best_model="best", device="cuda")
-```
+- **Learnable rate constants**: per-reaction $k_j$ learned via gradient descent
+- **Learnable homeostasis**: MLP learns $-\lambda_i(c_i - c_i^{\text{baseline}})$ per metabolite
+- **Flexible aggregation**: additive (sum) or multiplicative (product) for different dynamics
+- **Metabolite embeddings**: learnable vectors $a_i$ capture per-metabolite identity
 
 ## Citation
 

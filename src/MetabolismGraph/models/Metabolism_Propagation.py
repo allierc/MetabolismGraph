@@ -70,6 +70,17 @@ class Metabolism_Propagation(nn.Module):
         self.n_input_metabolites = simulation_config.n_input_metabolites
         self.dimension = simulation_config.dimension
 
+        # aggregation type: 'add' (sum) or 'mul' (product in log-space)
+        self.aggr_type = getattr(model_config, 'aggr_type', 'add')
+
+        # metabolite embeddings a_i
+        embedding_dim = getattr(model_config, 'embedding_dim', 2)
+        self.embedding_dim = embedding_dim
+        self.a = nn.Parameter(torch.randn(n_met, embedding_dim) * 0.1)
+
+        # node function: MLP_node(c_i, a_i) -> homeostasis term
+        self.node_func = mlp([1 + embedding_dim, hidden, 1], activation=nn.Tanh)
+
         # learnable functions (same architecture as PDE_M2)
         self.substrate_func = mlp([2, hidden, msg_dim], activation=nn.Tanh)
         self.rate_func = mlp([msg_dim, hidden, 1], activation=nn.Tanh)
@@ -203,6 +214,10 @@ class Metabolism_Propagation(nn.Module):
         concentrations = x[:, 3]
         external_input = x[:, 4]
 
+        # 0. homeostasis term: MLP_node(c_i, a_i)
+        node_in = torch.cat([concentrations.unsqueeze(-1), self.a], dim=-1)
+        homeostasis = self.node_func(node_in).squeeze(-1)
+
         # 1. gather substrate concentrations; derive |stoich| from sto_all
         x_src = concentrations[self.met_sub].unsqueeze(-1)
         s_abs = self.sto_all[self.sub_to_all].abs().unsqueeze(-1)
@@ -212,10 +227,21 @@ class Metabolism_Propagation(nn.Module):
         msg = self.substrate_func(msg_in)
 
         # 3. aggregate messages per reaction
-        h_rxn = torch.zeros(
-            self.n_rxn, msg.shape[1], dtype=msg.dtype, device=msg.device
-        )
-        h_rxn.index_add_(0, self.rxn_sub, msg)
+        if self.aggr_type == 'mul':
+            # multiplicative aggregation in log-space for numerical stability
+            eps = 1e-8
+            log_msg = torch.log(msg.clamp(min=eps))
+            log_sum = torch.zeros(
+                self.n_rxn, msg.shape[1], dtype=msg.dtype, device=msg.device
+            )
+            log_sum.index_add_(0, self.rxn_sub, log_msg)
+            h_rxn = torch.exp(log_sum)
+        else:
+            # additive aggregation (default)
+            h_rxn = torch.zeros(
+                self.n_rxn, msg.shape[1], dtype=msg.dtype, device=msg.device
+            )
+            h_rxn.index_add_(0, self.rxn_sub, msg)
 
         # 4. compute base reaction rates
         k = torch.pow(10.0, self.log_k)
@@ -248,7 +274,10 @@ class Metabolism_Propagation(nn.Module):
         )
         dxdt.index_add_(0, self.met_all, contrib)
 
-        # 7. additive external input
+        # 7. add homeostasis term
+        dxdt = dxdt + homeostasis
+
+        # 8. additive external input
         if self.external_input_mode == "additive":
             dxdt = dxdt + external_input
 

@@ -167,6 +167,27 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     model.load_stoich_graph(stoich_graph)
     model = model.to(device)
 
+    # --- freeze stoichiometry if configured (S given case) ---
+    freeze_stoichiometry = getattr(train_config, 'freeze_stoichiometry', False)
+    if freeze_stoichiometry:
+        # initialize sto_all from ground truth
+        gt_sto_all = stoich_graph['all'][2]
+        with torch.no_grad():
+            model.sto_all.data.copy_(gt_sto_all)
+        model.sto_all.requires_grad = False
+        print('stoichiometry frozen (S given mode)')
+        logger.info('freeze_stoichiometry: True (S given mode)')
+
+    # --- freeze embeddings if training_single_type (single metabolite type) ---
+    training_single_type = getattr(train_config, 'training_single_type', False)
+    if training_single_type:
+        # set all embeddings to same value (single type)
+        with torch.no_grad():
+            model.a.data.zero_()
+        model.a.requires_grad = False
+        print('embeddings frozen (single type mode)')
+        logger.info('training_single_type: True (embeddings frozen)')
+
     n_total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'total parameters: {n_total_params:,}')
     logger.info(f'total parameters: {n_total_params:,}')
@@ -218,7 +239,8 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     other_params = []
     for name, p in model.named_parameters():
         if 'sto_' in name:
-            stoich_params.append(p)
+            if not freeze_stoichiometry:
+                stoich_params.append(p)
         elif 'NNR_f' in name:
             continue  # handled by optimizer_f
         else:
@@ -433,12 +455,19 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                     total_loss=total_loss, total_loss_regul=total_loss_regul,
                 )
 
-                # plot learned stoichiometry vs ground truth (scatter + heatmaps)
+                # plot comparison: S (if learning) or k_j (if S frozen)
                 with torch.no_grad():
-                    last_S_r2 = _plot_stoichiometry_comparison(
-                        model, gt_S, stoich_graph, n_metabolites, log_dir,
-                        epoch, N,
-                    )
+                    if freeze_stoichiometry and gt_model is not None:
+                        # S is given, plot k_j comparison
+                        last_S_r2 = _plot_rate_constants_comparison(
+                            model, gt_model, log_dir, epoch, N,
+                        )
+                    else:
+                        # S is learned, plot stoichiometry comparison
+                        last_S_r2 = _plot_stoichiometry_comparison(
+                            model, gt_S, stoich_graph, n_metabolites, log_dir,
+                            epoch, N,
+                        )
 
                 # plot substrate_func and rate_func learned functions
                 _plot_metabolism_mlp_functions(
@@ -456,8 +485,9 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                         r2_color = '\033[38;5;208m'  # orange
                     else:
                         r2_color = '\033[91m'   # red
+                    r2_label = 'k' if freeze_stoichiometry else 'S'
                     pbar.set_postfix_str(
-                        f'{r2_color}R\u00b2={last_S_r2:.3f}\033[0m'
+                        f'{r2_color}{r2_label} R\u00b2={last_S_r2:.3f}\033[0m'
                     )
 
                 # save checkpoint
@@ -538,10 +568,17 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
 
     # --- final analysis: compute R2 and write to log ---
     with torch.no_grad():
-        final_r2 = _plot_stoichiometry_comparison(
-            model, gt_S, stoich_graph, n_metabolites, log_dir,
-            epoch='final', N=0,
-        )
+        if freeze_stoichiometry and gt_model is not None:
+            final_r2 = _plot_rate_constants_comparison(
+                model, gt_model, log_dir, epoch='final', N=0,
+            )
+            r2_name = "rate_constants"
+        else:
+            final_r2 = _plot_stoichiometry_comparison(
+                model, gt_S, stoich_graph, n_metabolites, log_dir,
+                epoch='final', N=0,
+            )
+            r2_name = "stoichiometry"
     final_loss = list_loss[-1] if list_loss else 0.0
 
     # --- compare learned vs GT functions ---
@@ -549,17 +586,17 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
 
     print(f"\n=== training complete ===")
     print(f"  final prediction loss: {final_loss:.6f}")
-    print(f"  stoichiometry R2: {final_r2:.4f}")
+    print(f"  {r2_name} R2: {final_r2:.4f}")
     print(f"  substrate_func R2: {func_metrics['substrate_func_r2']:.4f}")
     print(f"  rate_func R2: {func_metrics['rate_func_r2']:.4f}")
     logger.info(f"final prediction loss: {final_loss:.6f}")
-    logger.info(f"stoichiometry R2: {final_r2:.4f}")
+    logger.info(f"{r2_name} R2: {final_r2:.4f}")
     logger.info(f"substrate_func R2: {func_metrics['substrate_func_r2']:.4f}")
     logger.info(f"rate_func R2: {func_metrics['rate_func_r2']:.4f}")
 
     if log_file is not None:
         log_file.write(f"final_loss: {final_loss:.6f}\n")
-        log_file.write(f"stoichiometry_R2: {final_r2:.4f}\n")
+        log_file.write(f"{r2_name}_R2: {final_r2:.4f}\n")
         log_file.write(f"substrate_func_R2: {func_metrics['substrate_func_r2']:.4f}\n")
         log_file.write(f"substrate_func_corr: {func_metrics['substrate_func_corr']:.4f}\n")
         log_file.write(f"rate_func_R2: {func_metrics['rate_func_r2']:.4f}\n")
@@ -1008,6 +1045,68 @@ def _plot_stoichiometry_comparison(model, gt_S, stoich_graph, n_metabolites,
         f"{out_dir}/comparison_{epoch}_{N}.png", dpi=150,
         bbox_inches='tight',
     )
+    plt.close()
+
+    return r_squared
+
+
+def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N):
+    """plot learned vs ground-truth rate constants k_j.
+
+    returns
+    -------
+    r_squared : float
+        R2 between true and learned rate constants (in log space).
+    """
+    out_dir = f"./{log_dir}/tmp_training/rate_constants"
+    os.makedirs(out_dir, exist_ok=True)
+
+    with torch.no_grad():
+        gt_log_k = to_numpy(gt_model.log_k.detach().cpu())
+        learned_log_k = to_numpy(model.log_k.detach().cpu())
+        n_rxn = len(gt_log_k)
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+    # panel 1: histogram of log_k values
+    axes[0].hist(gt_log_k, bins=20, alpha=0.5, label='GT', color='blue')
+    axes[0].hist(learned_log_k, bins=20, alpha=0.5, label='Learned', color='orange')
+    axes[0].set_xlabel(r'$\log_{10}(k_j)$', fontsize=14)
+    axes[0].set_ylabel('count', fontsize=14)
+    axes[0].legend(fontsize=12)
+    axes[0].set_title(f'Rate constants (epoch {epoch}, iter {N})', fontsize=14)
+
+    # panel 2: scatter plot true vs learned
+    axes[1].scatter(gt_log_k, learned_log_k, s=20, c='k', alpha=0.6)
+    axes[1].set_xlabel(r'true $\log_{10}(k_j)$', fontsize=14)
+    axes[1].set_ylabel(r'learned $\log_{10}(k_j)$', fontsize=14)
+
+    r_squared = 0.0
+    try:
+        lin_fit, _ = curve_fit(linear_model, gt_log_k, learned_log_k)
+        residuals = learned_log_k - linear_model(gt_log_k, *lin_fit)
+        ss_res = np.sum(residuals ** 2)
+        ss_tot = np.sum((learned_log_k - np.mean(learned_log_k)) ** 2)
+        r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
+        axes[1].text(0.05, 0.96, f'$R^2$: {r_squared:.3f}', transform=axes[1].transAxes,
+                     fontsize=12, verticalalignment='top')
+        axes[1].text(0.05, 0.90, f'slope: {lin_fit[0]:.3f}', transform=axes[1].transAxes,
+                     fontsize=12, verticalalignment='top')
+    except Exception:
+        pass
+
+    axes[1].text(0.05, 0.84, f'n={n_rxn} reactions', transform=axes[1].transAxes,
+                 fontsize=12, verticalalignment='top')
+
+    lims = [min(gt_log_k.min(), learned_log_k.min()) - 0.2,
+            max(gt_log_k.max(), learned_log_k.max()) + 0.2]
+    axes[1].plot(lims, lims, 'r--', alpha=0.5, linewidth=1)
+    axes[1].set_xlim(lims)
+    axes[1].set_ylim(lims)
+    axes[1].set_aspect('equal')
+
+    plt.tight_layout()
+    plt.savefig(f"{out_dir}/comparison_{epoch}_{N}.png", dpi=150, bbox_inches='tight')
     plt.close()
 
     return r_squared

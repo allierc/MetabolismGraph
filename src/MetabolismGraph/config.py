@@ -15,11 +15,43 @@ class SimulationConfig(BaseModel):
 
     # metabolism parameters
     n_metabolites: int = 100
+    n_metabolite_types: int = 1  # number of metabolite types (for per-type homeostasis)
     n_reactions: int = 64
     max_metabolites_per_reaction: int = 5
     n_input_metabolites: int = 0
 
+    # concentration initialization
+    concentration_min: float = 2.5
+    concentration_max: float = 7.5
+
+    # cyclic structures for oscillatory dynamics
+    cycle_fraction: float = 0.0  # fraction of reactions in cycles (0.0 to 1.0)
+    cycle_length: int = 4  # number of metabolites per cycle
+
+    # mass-action kinetics: v = k * Π(c^s) (multiplicative, needed for oscillations)
+    use_mass_action: bool = False
+
+    # reaction rate constants: k in [10^log_k_min, 10^log_k_max]
+    log_k_min: float = -3.0  # default: k_min = 0.001
+    log_k_max: float = -1.0  # default: k_max = 0.1
+
+    # flux limiting: prevent negative concentrations (disable for freer oscillations)
+    flux_limit: bool = True
+
+    # kinograph visualization
+    kinograph_range: float = 1.0  # range around baseline for vmin/vmax
+
     noise_model_level: float = 0.0
+
+    # homeostatic dynamics: prevents equilibration by pulling concentrations toward baseline
+    # dc/dt += -homeostatic_strength * (c - c_baseline)
+    homeostatic_strength: float = 0.0  # λ (0 = disabled)
+    baseline_mode: Literal["initial", "fixed"] = "initial"  # "initial" uses c(t=0), "fixed" uses baseline_concentration
+    baseline_concentration: float = 1.0  # c_baseline when baseline_mode="fixed"
+
+    # circadian modulation: c_baseline(t) = c_baseline * (1 + A * sin(2π*t/T))
+    circadian_amplitude: float = 0.0  # A (0 = no oscillation)
+    circadian_period: float = 1440.0  # T in frames (1440 = 24h if delta_t=1min)
 
     # external input configuration
     external_input_type: Literal["none", "visual", "modulation"] = "none"
@@ -49,6 +81,7 @@ class GraphModelConfig(BaseModel):
     prediction: Literal["first_derivative"] = "first_derivative"
 
     aggr_type: str = "add"
+    embedding_dim: int = 2  # dimension of metabolite embeddings a_i
 
     field_type: str = ""
 
@@ -112,10 +145,12 @@ class TrainingConfig(BaseModel):
 
     learning_rate_start: float = 0.001
     learning_rate_embedding_start: float = 0.001
+    training_single_type: bool = False  # if True, fix embeddings to single type (no a_i learning)
     learning_rate_NNR_f: float = 0.0001
 
     # stoichiometry learning rate and regularization
     learning_rate_S_start: float = 0.0
+    freeze_stoichiometry: bool = False  # if True, S is fixed (not learned)
     coeff_S_L1: float = 0.0
     coeff_S_integer: float = 0.0
     coeff_mass_conservation: float = 0.0

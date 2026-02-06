@@ -1,0 +1,180 @@
+---
+title: "Model: Metabolic Network Dynamics"
+---
+
+## Metabolic Networks as Bipartite Graphs
+
+A metabolic network can be represented as a **bipartite graph** connecting metabolites to reactions:
+
+```{mermaid}
+%%| fig-width: 8
+%%{init: {'theme': 'neutral'}}%%
+flowchart LR
+    subgraph Metabolites
+        A[Glucose]
+        B[ATP]
+        C[Pyruvate]
+        D[ADP]
+    end
+
+    subgraph Reactions
+        R1((R1))
+        R2((R2))
+    end
+
+    A -->|"-1"| R1
+    B -->|"-1"| R1
+    R1 -->|"+2"| C
+    R1 -->|"+1"| D
+
+    C -->|"-1"| R2
+    R2 -->|"+1"| B
+```
+
+Each edge has a **stoichiometric coefficient**:
+
+- **Negative** coefficients: substrates (consumed by the reaction)
+- **Positive** coefficients: products (produced by the reaction)
+
+## The Stoichiometric Matrix
+
+The stoichiometric matrix $\mathbf{S}$ is an $(n_{\text{metabolites}} \times n_{\text{reactions}})$ matrix where entry $S_{ij}$ indicates how metabolite $i$ participates in reaction $j$:
+
+$$
+\mathbf{S} = \begin{pmatrix}
+-1 & 0 & \cdots \\
+-1 & +1 & \cdots \\
++2 & -1 & \cdots \\
++1 & 0 & \cdots \\
+\vdots & \vdots & \ddots
+\end{pmatrix}
+$$
+
+**Properties of S:**
+
+- **Sparse**: most entries are zero (each reaction involves only 2-6 metabolites)
+- **Integer-valued**: entries are typically in $\{-2, -1, 0, +1, +2\}$
+- **Mass conservation**: column sums should be zero for balanced reactions
+
+**Example:**
+
+Consider the diagram above with 2 reactions:
+
+$$
+\begin{aligned}
+\text{R1}: \quad & \text{Glucose} + \text{ATP} \longrightarrow 2\,\text{Pyruvate} + \text{ADP} \\
+\text{R2}: \quad & \text{Pyruvate} \longrightarrow \text{ATP}
+\end{aligned}
+$$
+
+The corresponding stoichiometric matrix is:
+
+$$
+\begin{array}{c|cc}
+ & \text{R1} & \text{R2} \\
+\hline
+\text{Glucose} & -1 & 0 \\
+\text{ATP} & -1 & +1 \\
+\text{Pyruvate} & +2 & -1 \\
+\text{ADP} & +1 & 0
+\end{array}
+$$
+
+## Model Evolution
+
+### 1. Pure Reaction
+
+Pure reaction dynamics without homeostasis, using **additive aggregation**:
+
+$$\frac{dc_i}{dt} = \sum_j S_{ij} \cdot k_j \cdot \sum_{k \in \text{sub}(j)} c_k^{s_{kj}}$$
+
+| Parameter | Value |
+|-----------|-------|
+| n_metabolites | 100 |
+| n_reactions | 64 |
+| Stoichiometry | Random |
+| Aggregation | Sum (additive) |
+| $\lambda$ (homeostatic strength) | 0.0 |
+| Rate constants $k_j$ | $[10^{-3}, 10^{-1}]$ |
+| Initial concentrations | [2.5, 7.5] |
+| Flux limiting | Enabled |
+
+![](graphs_data/simulation_pure/concentrations.png){width=100%}
+
+### 2. Homeostasis
+
+With homeostatic regulation pulling concentrations toward baseline, using **additive aggregation**:
+
+$$\frac{dc_i}{dt} = \underbrace{-\lambda_i \cdot (c_i - c_i^{\text{baseline}})}_{\text{homeostasis}} + \underbrace{\sum_j S_{ij} \cdot k_j \cdot \sum_{k \in \text{sub}(j)} c_k^{s_{kj}}}_{\text{reactions}}$$
+
+| Parameter | Value |
+|-----------|-------|
+| n_metabolites | 100 |
+| n_reactions | 64 |
+| Stoichiometry | Random |
+| Aggregation | Sum (additive) |
+| $\lambda$ (homeostatic strength) | 0.01 |
+| $c^{\text{baseline}}$ | 5.0 |
+| Rate constants $k_j$ | $[10^{-3}, 10^{-1}]$ |
+| Initial concentrations | [2.5, 7.5] |
+| Flux limiting | Enabled |
+
+![](graphs_data/simulation_homeostatic/concentrations.png){width=100%}
+
+### 3. Oscillatory
+
+Autocatalytic cycles with **mass-action kinetics** (multiplicative aggregation) for sustained oscillations:
+
+$$\frac{dc_i}{dt} = \sum_j S_{ij} \cdot k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{s_{kj}}$$
+
+Example cycle: $A + B \to 2B, \quad B + C \to 2C, \quad C + A \to 2A$
+
+| Parameter | Value |
+|-----------|-------|
+| n_metabolites | 100 |
+| n_reactions | 256 |
+| Stoichiometry | 100% autocatalytic 3-cycles |
+| Aggregation | Product (multiplicative) |
+| $\lambda$ (homeostatic strength) | 0.0 |
+| Rate constants $k_j$ | $[10^{-2.5}, 10^{-1}]$ |
+| Initial concentrations | [1.0, 9.0] |
+| Flux limiting | Disabled |
+
+![](graphs_data/simulation_oscillatory/concentrations.png){width=100%}
+
+## Activity Rank
+
+To quantify the complexity of concentration dynamics, we compute the **activity rank** using singular value decomposition (SVD) of the concentration matrix $\mathbf{C} \in \mathbb{R}^{T \times n}$ (time frames × metabolites).
+
+The **rank at 99% variance** is the number of singular values needed to capture 99% of the total variance:
+
+$$\text{rank}_{99} = \min \left\{ k : \frac{\sum_{i=1}^{k} \sigma_i^2}{\sum_{i=1}^{n} \sigma_i^2} \geq 0.99 \right\}$$
+
+**Interpretation:**
+
+- **Low rank** (1-5): concentrations are highly correlated, dynamics are simple (equilibration or uniform decay)
+- **High rank** (>20): metabolites evolve independently with rich, complex dynamics
+
+## Summary: The Full Model
+
+The complete metabolic dynamics:
+
+$$
+\frac{dc_i}{dt} = \underbrace{-\lambda_i \cdot (c_i - c_i^{\text{baseline}})}_{\text{homeostasis}} + \underbrace{\sum_{j=1}^{m} S_{ij} \cdot v_j}_{\text{reaction dynamics}}
+$$
+
+where the reaction rate follows mass-action kinetics:
+
+$$
+v_j = k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{s_{kj}}
+$$
+
+**Given:**
+
+- Concentration trajectories $\{c_i(t)\}_{i=1}^{n}$
+- Stoichiometric matrix $\mathbf{S}$ (known from biochemistry)
+
+**To learn:**
+
+- Rate constants $k_j$
+- Homeostatic parameters $\lambda_i$, $c_i^{\text{baseline}}$

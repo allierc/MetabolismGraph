@@ -1,4 +1,5 @@
 
+import math
 import torch
 import torch.nn as nn
 
@@ -28,7 +29,7 @@ class PDE_M1(nn.Module):
     Forward pass:
       1. For each substrate edge, build message from [concentration, |stoich|]
       2. Aggregate messages per reaction via sum
-      3. Compute rate v_j = softplus(rate_func(h_j))  (non-negative rates)
+      3. Compute rate v_j = k_j * rate_func(h_j)
       4. dx/dt = sum over edges: s_ij * v_j
 
     X tensor layout:
@@ -61,15 +62,21 @@ class PDE_M1(nn.Module):
         self.n_rxn = n_rxn
         self.device = device
 
+        # mass-action kinetics: v = k * Π(c^s) (multiplicative rates for oscillations)
+        self.use_mass_action = getattr(config.simulation, 'use_mass_action', False)
+
+        # flux limiting: prevent negative concentrations (can dampen oscillations)
+        self.flux_limit_enabled = getattr(config.simulation, 'flux_limit', True)
+
         # learnable functions (larger init for diverse outputs)
         self.substrate_func = mlp([2, hidden, msg_dim], activation=nn.Tanh)
         self.rate_func = mlp([msg_dim, hidden, 1], activation=nn.Tanh)
-        self.softplus = nn.Softplus(beta=1.0)
 
-        # per-reaction rate constants: log-uniform in [0.001, 0.1]
-        # 2 orders of magnitude variation, slow enough to fill 2880-frame window
+        # per-reaction rate constants: log-uniform in configurable range
+        log_k_min = getattr(config.simulation, 'log_k_min', -3.0)
+        log_k_max = getattr(config.simulation, 'log_k_max', -1.0)
         log_k = torch.empty(n_rxn)
-        log_k.uniform_(-3.0, -1.0)  # log10 in [-3, -1]  =>  k in [0.001, 0.1]
+        log_k.uniform_(log_k_min, log_k_max)  # k in [10^min, 10^max]
         self.log_k = nn.Parameter(log_k)
 
         # store stoichiometric graph (fixed, not learned)
@@ -83,37 +90,92 @@ class PDE_M1(nn.Module):
         self.register_buffer('rxn_all', rxn_all)
         self.register_buffer('sto_all', sto_all)
 
-        self.p = torch.zeros(1)
+        # homeostatic dynamics parameters
+        sim_cfg = config.simulation
+        self.homeostatic_strength = sim_cfg.homeostatic_strength
+        self.baseline_mode = sim_cfg.baseline_mode
+        self.baseline_concentration = sim_cfg.baseline_concentration
+        self.circadian_amplitude = sim_cfg.circadian_amplitude
+        self.circadian_period = sim_cfg.circadian_period
+
+        # metabolite types for per-type homeostasis
+        self.n_metabolite_types = getattr(sim_cfg, 'n_metabolite_types', 1)
+
+        # per-type parameters: p[type, :] = [lambda, c_baseline]
+        # initialize with same values for all types (can be randomized later)
+        p = torch.zeros(self.n_metabolite_types, 2)
+        p[:, 0] = self.homeostatic_strength  # lambda per type
+        p[:, 1] = self.baseline_concentration  # c_baseline per type
+        self.p = nn.Parameter(p, requires_grad=False)  # fixed parameters
+
+        # baseline will be set on first forward pass if baseline_mode="initial"
+        self.register_buffer('c_baseline', None)
 
     def forward(self, data=None, has_field=False, frame=None, dt=None):
         """Compute dx/dt for all metabolites."""
         x = data.x
         concentrations = x[:, 3]
 
-        # 1. gather substrate concentrations and stoichiometric coefficients
-        x_src = concentrations[self.met_sub].unsqueeze(-1)
-        s_abs = self.sto_sub.unsqueeze(-1)
-        msg_in = torch.cat([x_src, s_abs], dim=-1)
+        # initialize baseline on first call if using "initial" mode
+        if self.c_baseline is None:
+            if self.baseline_mode == "initial":
+                self.c_baseline = concentrations.clone().detach()
+            else:  # "fixed"
+                self.c_baseline = torch.full_like(concentrations, self.baseline_concentration)
 
-        # 2. compute messages
-        msg = self.substrate_func(msg_in)
-
-        # 3. aggregate messages per reaction
-        h_rxn = torch.zeros(self.n_rxn, msg.shape[1], dtype=msg.dtype, device=msg.device)
-        h_rxn.index_add_(0, self.rxn_sub, msg)
-
-        # 4. compute non-negative reaction rates, scaled by per-reaction k_j
+        # compute reaction rates
         k = torch.pow(10.0, self.log_k)
-        v = k * self.softplus(self.rate_func(h_rxn).squeeze(-1))
+
+        if self.use_mass_action:
+            # True mass-action kinetics: v_j = k_j * Π_{substrates} c_i^|s_ij|
+            # Use log-space for numerical stability: log(Π c^s) = Σ s*log(c)
+            eps = 1e-8
+            log_c = torch.log(concentrations[self.met_sub].clamp(min=eps))
+            log_contrib = log_c * self.sto_sub  # s * log(c)
+            log_prod = torch.zeros(self.n_rxn, dtype=log_c.dtype, device=log_c.device)
+            log_prod.index_add_(0, self.rxn_sub, log_contrib)
+            v = k * torch.exp(log_prod)
+        else:
+            # GNN message-passing rate computation (additive aggregation)
+            # 1. gather substrate concentrations and stoichiometric coefficients
+            x_src = concentrations[self.met_sub].unsqueeze(-1)
+            s_abs = self.sto_sub.unsqueeze(-1)
+            msg_in = torch.cat([x_src, s_abs], dim=-1)
+
+            # 2. compute messages
+            msg = self.substrate_func(msg_in)
+
+            # 3. aggregate messages per reaction
+            h_rxn = torch.zeros(self.n_rxn, msg.shape[1], dtype=msg.dtype, device=msg.device)
+            h_rxn.index_add_(0, self.rxn_sub, msg)
+
+            # 4. compute reaction rates
+            v = k * self.rate_func(h_rxn).squeeze(-1)
 
         # 5. flux limiting: scale rates so no substrate goes negative
-        if dt is not None and dt > 0:
+        if self.flux_limit_enabled and dt is not None and dt > 0:
             v = self._flux_limit(v, concentrations, dt)
 
         # 6. compute dx/dt via stoichiometric matrix: dx_i/dt = sum_j S_ij * v_j
         contrib = self.sto_all * v[self.rxn_all]
         dxdt = torch.zeros(self.n_met, dtype=contrib.dtype, device=contrib.device)
         dxdt.index_add_(0, self.met_all, contrib)
+
+        # 7. homeostatic term: -λ_i * (c_i - c_baseline_i(t))
+        # use per-type parameters from self.p
+        if self.homeostatic_strength > 0 or self.n_metabolite_types > 1:
+            metabolite_type = x[:, 6].long()
+            lambda_i = self.p[metabolite_type, 0]  # per-metabolite homeostatic strength
+            c_baseline_i = self.p[metabolite_type, 1]  # per-metabolite baseline
+
+            # compute time-dependent baseline with circadian modulation
+            if self.circadian_amplitude > 0 and frame is not None:
+                phase = 2 * math.pi * frame / self.circadian_period
+                modulation = 1 + self.circadian_amplitude * math.sin(phase)
+                c_target = c_baseline_i * modulation
+            else:
+                c_target = c_baseline_i
+            dxdt = dxdt - lambda_i * (concentrations - c_target)
 
         return dxdt.unsqueeze(-1)
 
@@ -154,5 +216,5 @@ class PDE_M1(nn.Module):
         h_rxn.index_add_(0, self.rxn_sub, msg)
 
         k = torch.pow(10.0, self.log_k)
-        v = k * self.softplus(self.rate_func(h_rxn).squeeze(-1))
+        v = k * self.rate_func(h_rxn).squeeze(-1)
         return v

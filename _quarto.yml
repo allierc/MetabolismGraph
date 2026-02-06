@@ -10,10 +10,10 @@ website:
     left:
       - text: "Home"
         href: index.qmd
-      - text: "Introduction"
-        href: introduction.qmd
-      - text: "Training"
-        href: training.qmd
+      - text: "Model"
+        href: model.qmd
+      - text: "GNN"
+        href: gnn.qmd
     tools:
       - icon: github
         href: https://github.com/allierc/MetabolismGraph
@@ -23,12 +23,12 @@ website:
 
 format:
   html:
-    theme:
-      light: flatly
-      dark: darkly
+    theme: flatly
     css: styles.css
     toc: true
     code-fold: show
     code-overflow: wrap
     code-tools:
       source: repo
+    mermaid:
+      theme: neutral

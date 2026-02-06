@@ -1061,7 +1061,8 @@ def _compare_functions(model, gt_model, device):
 
         # --- rate_func comparison ---
         # Create grid of inputs in message space
-        msg_dim = model.substrate_func[-2].out_features  # output dim of substrate_func
+        # Get msg_dim from rate_func's input layer (more reliable than substrate_func output)
+        msg_dim = model.rate_func[0].in_features
         n_msg_pts = 100
         # Random inputs spanning typical message range
         msg_inputs = torch.randn(n_msg_pts, msg_dim, device=device) * 2

@@ -6,8 +6,9 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
+<meta name="dcterms.date" content="2026-02-07">
 
-<title>MetabolismGraph: Learning Metabolism Dynamics with Graph Neural Networks – MetabolismGraph</title>
+<title>Application: From Synthetic to Real Metabolomics – MetabolismGraph</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -19,40 +20,6 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -100,6 +67,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-label": "Search"
   }
 }</script>
+<meta name="mermaid-theme" content="neutral">
+<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
 
   <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
@@ -152,7 +123,7 @@ window.Quarto = {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
+    <a class="nav-link" href="./index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
@@ -168,7 +139,7 @@ window.Quarto = {
 <span class="menu-text">Results</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./application.html"> 
+    <a class="nav-link active" href="./application.html" aria-current="page"> 
 <span class="menu-text">Application</span></a>
   </li>  
   <li class="nav-item">
@@ -192,16 +163,19 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">Overview</a></li>
-  <li><a href="#the-full-model" id="toc-the-full-model" class="nav-link" data-scroll-target="#the-full-model">The Full Model</a></li>
-  <li><a href="#the-inverse-problem" id="toc-the-inverse-problem" class="nav-link" data-scroll-target="#the-inverse-problem">The Inverse Problem</a>
+  <li><a href="#motivation" id="toc-motivation" class="nav-link active" data-scroll-target="#motivation">Motivation</a></li>
+  <li><a href="#chronic-jugular-microdialysis-in-freely-moving-mice" id="toc-chronic-jugular-microdialysis-in-freely-moving-mice" class="nav-link" data-scroll-target="#chronic-jugular-microdialysis-in-freely-moving-mice">Chronic Jugular Microdialysis in Freely Moving Mice</a>
   <ul class="collapse">
-  <li><a href="#gnn-parameterization" id="toc-gnn-parameterization" class="nav-link" data-scroll-target="#gnn-parameterization">GNN Parameterization</a></li>
-  <li><a href="#learnable-parameters" id="toc-learnable-parameters" class="nav-link" data-scroll-target="#learnable-parameters">Learnable Parameters</a></li>
-  <li><a href="#configuration" id="toc-configuration" class="nav-link" data-scroll-target="#configuration">Configuration</a></li>
+  <li><a href="#low-rank-physiological-state-space" id="toc-low-rank-physiological-state-space" class="nav-link" data-scroll-target="#low-rank-physiological-state-space">Low-Rank Physiological State Space</a></li>
   </ul></li>
-  <li><a href="#key-features" id="toc-key-features" class="nav-link" data-scroll-target="#key-features">Key Features</a></li>
-  <li><a href="#citation" id="toc-citation" class="nav-link" data-scroll-target="#citation">Citation</a></li>
+  <li><a href="#applying-metabolismgraph-to-microdialysis-data" id="toc-applying-metabolismgraph-to-microdialysis-data" class="nav-link" data-scroll-target="#applying-metabolismgraph-to-microdialysis-data">Applying MetabolismGraph to Microdialysis Data</a>
+  <ul class="collapse">
+  <li><a href="#what-changes" id="toc-what-changes" class="nav-link" data-scroll-target="#what-changes">What changes</a></li>
+  <li><a href="#what-stays-the-same" id="toc-what-stays-the-same" class="nav-link" data-scroll-target="#what-stays-the-same">What stays the same</a></li>
+  <li><a href="#proposed-workflow" id="toc-proposed-workflow" class="nav-link" data-scroll-target="#proposed-workflow">Proposed workflow</a></li>
+  </ul></li>
+  <li><a href="#challenges-and-open-questions" id="toc-challenges-and-open-questions" class="nav-link" data-scroll-target="#challenges-and-open-questions">Challenges and Open Questions</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
   </ul>
 </nav>
     </div>
@@ -210,7 +184,7 @@ window.Quarto = {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<div class="quarto-title-block"><div><h1 class="title">MetabolismGraph: Learning Metabolism Dynamics with Graph Neural Networks</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source" data-quarto-source-url="https://github.com/allierc/MetabolismGraph/blob/main/index.qmd"><i class="bi"></i> Code</button></div></div>
+<div class="quarto-title-block"><div><h1 class="title">Application: From Synthetic to Real Metabolomics</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source" data-quarto-source-url="https://github.com/allierc/MetabolismGraph/blob/main/application.qmd"><i class="bi"></i> Code</button></div></div>
 </div>
 
 
@@ -218,6 +192,12 @@ window.Quarto = {
 <div class="quarto-title-meta">
 
     
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">February 7, 2026</p>
+    </div>
+  </div>
   
     
   </div>
@@ -227,144 +207,166 @@ window.Quarto = {
 </header>
 
 
-<section id="overview" class="level2">
-<h2 class="anchored" data-anchor-id="overview">Overview</h2>
-<p><strong>MetabolismGraph</strong> is a framework for learning the structure of metabolic networks from concentration dynamics using Graph Neural Networks (GNNs). Given time-series measurements of metabolite concentrations, the model recovers:</p>
-<ol type="1">
-<li><strong>Rate constants</strong> <span class="math inline">\(k_j\)</span> — the intrinsic speed of each reaction</li>
-<li><strong>Homeostatic parameters</strong> <span class="math inline">\(\lambda_i\)</span>, <span class="math inline">\(c_i^{\text{baseline}}\)</span> — metabolite regulation</li>
-</ol>
+<section id="motivation" class="level2">
+<h2 class="anchored" data-anchor-id="motivation">Motivation</h2>
+<p>MetabolismGraph is developed and validated on synthetic data where ground truth is known. But the ultimate goal is to apply the GNN framework to <strong>real metabolomic time series</strong> — recovering reaction rate constants and network structure from experimentally measured concentration dynamics.</p>
+<p>A recent study by Nardin et al.&nbsp;(2025) provides exactly the kind of data this framework is designed to analyze.</p>
 </section>
-<section id="the-full-model" class="level2">
-<h2 class="anchored" data-anchor-id="the-full-model">The Full Model</h2>
-<p>The complete metabolic dynamics:</p>
-<p><span class="math display">\[
-\frac{dc_i}{dt} = \underbrace{-\lambda_i \cdot (c_i - c_i^{\text{baseline}})}_{\text{homeostasis}} + \underbrace{\sum_{j=1}^{m} S_{ij} \cdot v_j}_{\text{reaction dynamics}}
-\]</span></p>
-<p>where the reaction rate <span class="math inline">\(v_j\)</span> depends on aggregation type:</p>
+<section id="chronic-jugular-microdialysis-in-freely-moving-mice" class="level2">
+<h2 class="anchored" data-anchor-id="chronic-jugular-microdialysis-in-freely-moving-mice">Chronic Jugular Microdialysis in Freely Moving Mice</h2>
+<p>Nardin et al.&nbsp;developed a workflow combining <strong>chronic jugular microdialysis</strong> with chemical isotope labeling LC-MS to continuously measure bloodborne metabolites in freely moving mice:</p>
 <table class="caption-top table">
-<colgroup>
-<col style="width: 52%">
-<col style="width: 48%">
-</colgroup>
 <thead>
 <tr class="header">
-<th>Aggregation</th>
-<th>Rate <span class="math inline">\(v_j\)</span></th>
+<th>Property</th>
+<th>Value</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Additive</td>
-<td><span class="math inline">\(v_j = k_j \cdot \sum_{k \in \text{sub}(j)} c_k^{|S_{kj}|}\)</span></td>
+<td><strong>Compounds measured</strong></td>
+<td>~123 high-quality amines and small peptides</td>
 </tr>
 <tr class="even">
-<td>Multiplicative</td>
-<td><span class="math inline">\(v_j = k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{|S_{kj}|}\)</span></td>
+<td><strong>Sampling cadence</strong></td>
+<td>7.5 minutes</td>
+</tr>
+<tr class="odd">
+<td><strong>Recording duration</strong></td>
+<td>~8 hours per session</td>
+</tr>
+<tr class="even">
+<td><strong>Time frames</strong></td>
+<td>~64 per session</td>
+</tr>
+<tr class="odd">
+<td><strong>Animals</strong></td>
+<td>3 mice, implants patent for &gt;7 days</td>
 </tr>
 </tbody>
 </table>
-<p>See <a href="./model.html">Model</a> for detailed equations, diagrams, and model configurations.</p>
-</section>
-<section id="the-inverse-problem" class="level2">
-<h2 class="anchored" data-anchor-id="the-inverse-problem">The Inverse Problem</h2>
-<p>The forward model describes how concentrations evolve given all parameters. In practice, the parameters themselves are unknown. The <strong>inverse problem</strong> is to recover them from observed dynamics.</p>
-<p><strong>Given:</strong></p>
-<ul>
-<li>Concentration trajectories <span class="math inline">\(\{c_i(t)\}_{i=1}^{n}\)</span> measured over time</li>
-<li>Stoichiometric matrix <span class="math inline">\(\mathbf{S}\)</span> (known from biochemistry)</li>
-</ul>
-<p><strong>To learn:</strong></p>
-<ul>
-<li><strong>Substrate function</strong> <span class="math inline">\(\text{MLP}_{\text{sub}}(c_k, |S_{kj}|)\)</span> — discovers the mass-action power law <span class="math inline">\(c_k^{|S_{kj}|}\)</span></li>
-<li><strong>Homeostasis function</strong> <span class="math inline">\(\text{MLP}_{\text{node}}(c_i)\)</span> — discovers per-metabolite regulation <span class="math inline">\(-\lambda_i(c_i - c_i^{\text{baseline}})\)</span></li>
-<li><strong>Rate constants</strong> <span class="math inline">\(k_j\)</span> — per-reaction speed scalars</li>
-</ul>
-<p>This is challenging because the system is high-dimensional (<span class="math inline">\(n\)</span> metabolites, <span class="math inline">\(m\)</span> reactions), the mapping from parameters to dynamics is nonlinear, and multiple parameter combinations can produce similar trajectories (identifiability). Classical optimization approaches struggle with this combinatorial landscape.</p>
-<p>We address this by casting the inverse problem as a <strong>Graph Neural Network</strong> learning task. The metabolic network is naturally a bipartite graph (metabolites <span class="math inline">\(\leftrightarrow\)</span> reactions), and we replace the unknown functions with learnable MLPs that operate on this graph structure. The GNN is trained end-to-end by minimizing the prediction error on <span class="math inline">\(dc/dt\)</span>, recovering the rate constants and homeostatic functions simultaneously. An LLM-driven closed-loop exploration engine systematically searches the hyperparameter space — see <a href="./gnn-llm-memory.html">GNN-LLM-Memory</a> for the training scheme, regularization terms, and exploration loop.</p>
-<section id="gnn-parameterization" class="level3">
-<h3 class="anchored" data-anchor-id="gnn-parameterization">GNN Parameterization</h3>
-<p><span class="math display">\[
-\frac{dc_i}{dt} = \underbrace{\text{MLP}_{\text{node}}(c_i, a_i)}_{\text{learns } -\lambda_i(c_i - c_i^{\text{baseline}})} + \sum_{j=1}^{m} S_{ij} \cdot \underbrace{k_j \cdot \underset{k \in \text{sub}(j)}{\text{aggr}} \; \text{MLP}_{\text{sub}}(c_k, |S_{kj}|)}_{\text{learns } k_j \text{ and } c_k^{|S_{kj}|}}
-\]</span></p>
-<p>where:</p>
-<ul>
-<li><span class="math inline">\(a_i \in \mathbb{R}^d\)</span> is a <strong>learnable embedding</strong> for metabolite <span class="math inline">\(i\)</span></li>
-<li><span class="math inline">\(k_j\)</span> are <strong>learnable rate constants</strong></li>
-<li><span class="math inline">\(\text{aggr}\)</span> is sum (additive) or product (multiplicative)</li>
-</ul>
-</section>
-<section id="learnable-parameters" class="level3">
-<h3 class="anchored" data-anchor-id="learnable-parameters">Learnable Parameters</h3>
+<p>The data captures real metabolic dynamics: purine turnover correlating with movement, delayed histamine/5-HIAA changes, coordinated amino-acid dynamics, and state-dependent metabolic shifts between locomotion and rest.</p>
+<section id="low-rank-physiological-state-space" class="level3">
+<h3 class="anchored" data-anchor-id="low-rank-physiological-state-space">Low-Rank Physiological State Space</h3>
+<p>A key finding: <strong>10 principal components explain 73% of the variance</strong> across all measured compounds. The first component alone (rPC1) captures 35.5% and is strongly correlated with locomotion (Spearman <span class="math inline">\(r = -0.59\)</span>, peaking at 7.5 min lag).</p>
+<p>This low-rank structure is consistent with what we observe in our simulations:</p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 42%">
-<col style="width: 23%">
-<col style="width: 34%">
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
 </colgroup>
 <thead>
 <tr class="header">
-<th>Parameter</th>
-<th>Type</th>
-<th>Purpose</th>
+<th></th>
+<th>Nardin et al.</th>
+<th>MetabolismGraph simulations</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><span class="math inline">\(a_i\)</span></td>
-<td>Embedding vectors</td>
-<td>Per-metabolite identity</td>
+<td><strong>n_metabolites</strong></td>
+<td>~123</td>
+<td>100</td>
 </tr>
 <tr class="even">
-<td><span class="math inline">\(k_j\)</span></td>
-<td>Scalars</td>
-<td>Per-reaction rate constants</td>
+<td><strong>Rank at 70% variance</strong></td>
+<td>~10</td>
+<td>~5–15 (estimated)</td>
 </tr>
 <tr class="odd">
-<td><span class="math inline">\(\text{MLP}_{\text{node}}\)</span></td>
-<td>Neural network</td>
-<td>Learns <span class="math inline">\(-\lambda_i(c_i - c_i^{\text{baseline}})\)</span></td>
+<td><strong>Rank at 99% variance</strong></td>
+<td>—</td>
+<td>24–50</td>
 </tr>
 <tr class="even">
-<td><span class="math inline">\(\text{MLP}_{\text{sub}}\)</span></td>
-<td>Neural network</td>
-<td>Learns <span class="math inline">\(c_k^{|S_{kj}|}\)</span></td>
+<td><strong>Dominant mode</strong></td>
+<td>Locomotion-driven amino acid metabolism</td>
+<td>Autocatalytic cycle oscillations</td>
 </tr>
 </tbody>
 </table>
-</section>
-<section id="configuration" class="level3">
-<h3 class="anchored" data-anchor-id="configuration">Configuration</h3>
-<div class="sourceCode" id="cb1"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">graph_model</span><span class="kw">:</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">aggr_type</span><span class="kw">:</span><span class="at"> add</span><span class="co">         # sum (additive) or mul (multiplicative)</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">embedding_dim</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span><span class="co">       # dimension of metabolite embeddings a_i</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hidden_dim</span><span class="kw">:</span><span class="at"> </span><span class="dv">32</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">training</span><span class="kw">:</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">learning_rate_start</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.001</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">freeze_stoichiometry</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span><span class="co">   # S given mode</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">training_single_type</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span><span class="co">  # learn per-metabolite embeddings</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The paper concludes that “endocrine and metabolic control may operate over a compact set of latent variables” — the same low-rank assumption that underlies our activity rank analysis via SVD.</p>
 </section>
 </section>
-<section id="key-features" class="level2">
-<h2 class="anchored" data-anchor-id="key-features">Key Features</h2>
+<section id="applying-metabolismgraph-to-microdialysis-data" class="level2">
+<h2 class="anchored" data-anchor-id="applying-metabolismgraph-to-microdialysis-data">Applying MetabolismGraph to Microdialysis Data</h2>
+<section id="what-changes" class="level3">
+<h3 class="anchored" data-anchor-id="what-changes">What changes</h3>
+<p>Moving from synthetic to real data introduces several differences:</p>
+<p><strong>1. The stoichiometric matrix S is partially known</strong></p>
+<p>In simulation, <span class="math inline">\(\mathbf{S}\)</span> is either generated (ground truth) or learned from data. For real metabolomics, the reaction network connecting measured compounds can be partially reconstructed from biochemical databases (KEGG, Recon3D, HMDB). However:</p>
 <ul>
-<li><strong>Bipartite graph representation</strong>: metabolites and reactions form a bipartite graph, with stoichiometric coefficients on edges</li>
-<li><strong>Learnable rate constants</strong>: per-reaction <span class="math inline">\(k_j\)</span> learned via gradient descent</li>
-<li><strong>Learnable homeostasis</strong>: MLP learns <span class="math inline">\(-\lambda_i(c_i - c_i^{\text{baseline}})\)</span> per metabolite</li>
-<li><strong>Flexible aggregation</strong>: additive (sum) or multiplicative (product) for different dynamics</li>
-<li><strong>Metabolite embeddings</strong>: learnable vectors <span class="math inline">\(a_i\)</span> capture per-metabolite identity</li>
+<li>Not all reactions are known</li>
+<li>Not all participants in a reaction are measured (the 123 compounds are a subset of the full metabolome)</li>
+<li>Some measured compounds participate in multiple pathways</li>
+</ul>
+<p>This suggests an intermediate mode between “S given” and “S learning”: <strong>initialize S from database knowledge, then refine with data</strong>.</p>
+<p><strong>2. Observation is incomplete</strong></p>
+<p>The microdialysis probe measures only the free (unbound) fraction of molecules below the 6 kDa molecular weight cutoff. Many metabolites, enzymes, and signaling molecules are invisible. The GNN must learn dynamics from a partial observation of the full system — analogous to learning neural dynamics from a subset of recorded neurons.</p>
+<p><strong>3. External drivers exist</strong></p>
+<p>The synthetic model is autonomous: <span class="math inline">\(dc/dt\)</span> depends only on current concentrations and the network. Real metabolic dynamics are driven by external inputs — feeding, locomotion, circadian rhythms, stress — that are not part of the reaction network. The paper shows locomotion is a dominant driver (rPC1).</p>
+<p>This maps to extensions of the current model:</p>
+<p><span class="math display">\[
+\frac{dc_i}{dt} = \underbrace{-\lambda_i \cdot (c_i - c_i^{\text{baseline}})}_{\text{homeostasis}} + \underbrace{\sum_j S_{ij} \cdot v_j}_{\text{reactions}} + \underbrace{f_{\text{ext}}(x_{\text{locomotion}}, t)}_{\text{external drive}}
+\]</span></p>
+<p>The <code>circadian_amplitude</code> and <code>circadian_period</code> parameters already in the simulation config are a first step toward modeling time-varying external inputs.</p>
+<p><strong>4. Kinetics may not be mass-action</strong></p>
+<p>Enzyme-mediated reactions follow Michaelis-Menten or Hill kinetics rather than pure mass-action. The flexible MLP<span class="math inline">\(_{\text{sub}}\)</span> architecture is well-suited here — it can discover the true functional form without assuming <span class="math inline">\(c^{|S|}\)</span> a priori. The additive aggregation mode may be more appropriate for enzyme-mediated reactions where substrates contribute more independently.</p>
+</section>
+<section id="what-stays-the-same" class="level3">
+<h3 class="anchored" data-anchor-id="what-stays-the-same">What stays the same</h3>
+<p>The core framework transfers directly:</p>
+<ul>
+<li><strong>Bipartite graph structure</strong>: metabolites connected to reactions through stoichiometric edges</li>
+<li><strong>GNN message passing</strong>: substrate concentrations aggregated per reaction, then distributed back to metabolites</li>
+<li><strong>Function discovery</strong>: MLP<span class="math inline">\(_{\text{sub}}\)</span> learns the concentration-to-rate mapping, MLP<span class="math inline">\(_{\text{node}}\)</span> learns homeostatic regulation</li>
+<li><strong>Rate constant recovery</strong>: per-reaction <span class="math inline">\(k_j\)</span> learned in log-space</li>
+<li><strong>Identifiability challenges</strong>: scale ambiguity, function compensation, and homeostasis absorption are equally present (and harder to diagnose without ground truth)</li>
 </ul>
 </section>
-<section id="citation" class="level2">
-<h2 class="anchored" data-anchor-id="citation">Citation</h2>
-<p>If you use MetabolismGraph in your research, please cite:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">@software{metabolismgraph2025,</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">  author = {Allier, Cédric},</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">  title = {MetabolismGraph: Learning Metabolism Dynamics with GNNs},</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">  url = {https://github.com/allierc/MetabolismGraph}</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">}</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="proposed-workflow" class="level3">
+<h3 class="anchored" data-anchor-id="proposed-workflow">Proposed workflow</h3>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">%%{init: {'theme': 'neutral'}}%%
+flowchart TD
+    A[Microdialysis time series&lt;br/&gt;123 compounds × 64 frames] --&gt; B[Construct bipartite graph&lt;br/&gt;from KEGG/Recon3D]
+    B --&gt; C[Initialize S from&lt;br/&gt;database stoichiometry]
+    C --&gt; D[Train GNN&lt;br/&gt;predict dc/dt]
+    D --&gt; E{Evaluate}
+    E --&gt;|test R² &gt; 0.9| F[Extract learned parameters]
+    E --&gt;|test R² &lt; 0.9| G[Refine: unfreeze S,&lt;br/&gt;add external inputs]
+    G --&gt; D
+    F --&gt; H[Rate constants k_j]
+    F --&gt; I[Learned kinetics&lt;br/&gt;MLP_sub shape]
+    F --&gt; J[Homeostatic regulation&lt;br/&gt;MLP_node per metabolite type]
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p><strong>Step 1.</strong> Build the metabolite-reaction bipartite graph from KEGG pathway maps for the 123 identified compounds. Estimate the number of reactions linking measured metabolites.</p>
+<p><strong>Step 2.</strong> Initialize <span class="math inline">\(\mathbf{S}\)</span> from known stoichiometry (S given mode). Train the GNN to predict <span class="math inline">\(dc/dt\)</span> from concentration snapshots, learning <span class="math inline">\(k_j\)</span>, MLP<span class="math inline">\(_{\text{sub}}\)</span>, and MLP<span class="math inline">\(_{\text{node}}\)</span>.</p>
+<p><strong>Step 3.</strong> Evaluate prediction quality on held-out time frames. If prediction R<span class="math inline">\(^2\)</span> is high but the learned MLP<span class="math inline">\(_{\text{sub}}\)</span> does not match expected kinetics (mass-action or Michaelis-Menten), investigate degeneracy.</p>
+<p><strong>Step 4.</strong> Optionally unfreeze <span class="math inline">\(\mathbf{S}\)</span> to discover missing reactions or correct database errors (S learning mode). Compare learned stoichiometry against biochemical databases.</p>
+<p><strong>Step 5.</strong> Incorporate locomotion and other behavioral covariates as external inputs to account for the dominant non-metabolic drivers of concentration change.</p>
+</section>
+</section>
+<section id="challenges-and-open-questions" class="level2">
+<h2 class="anchored" data-anchor-id="challenges-and-open-questions">Challenges and Open Questions</h2>
+<p><strong>Temporal resolution.</strong> The 7.5-minute sampling cadence gives ~64 frames per session. Our simulations use 2880 frames. With fewer time points, the GNN has less data to disentangle rate constants from MLP functions, exacerbating identifiability issues. Multi-session data across the 7+ days of implant patency could help.</p>
+<p><strong>Missing metabolites.</strong> The 123 measured compounds are a fraction of the full metabolome. Reactions involving unmeasured substrates will appear as unexplained variance. The MLP<span class="math inline">\(_{\text{node}}\)</span> may absorb some of this as apparent “homeostasis.”</p>
+<p><strong>Non-stationarity.</strong> Real metabolic dynamics are non-stationary — circadian rhythms, feeding cycles, and adaptation shift the baseline over hours. The current model assumes fixed <span class="math inline">\(c^{\text{baseline}}\)</span> and <span class="math inline">\(\lambda\)</span>. Time-varying homeostatic parameters may be needed.</p>
+<p><strong>Validation without ground truth.</strong> In simulation, we validate against known <span class="math inline">\(k_j\)</span> values (rate constants R<span class="math inline">\(^2\)</span>). With real data, validation must rely on: (1) held-out prediction accuracy, (2) consistency with known biochemistry, (3) perturbation experiments (the paper notes microdialysis can also <em>deliver</em> molecules), and (4) cross-animal reproducibility.</p>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<p>Nardin, M., Wang, N., Elziny, S., Boyer, C., Pjanovic, V., Schuster, L., Boklund, P., Lindo, S., Morris, K., Ilanges, A., Voigts, J., &amp; Dennis, E.J. (2025). Reconstructing a physiological state space via chronic jugular microdialysis in freely moving mice. <em>bioRxiv</em>. <a href="https://doi.org/10.64898/2025.12.08.692974">doi:10.64898/2025.12.08.692974</a></p>
 
 
 </section>

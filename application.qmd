@@ -1,0 +1,127 @@
+---
+title: "Application: From Synthetic to Real Metabolomics"
+date: last-modified
+date-format: "MMMM D, YYYY"
+---
+
+## Motivation
+
+MetabolismGraph is developed and validated on synthetic data where ground truth is known. But the ultimate goal is to apply the GNN framework to **real metabolomic time series** — recovering reaction rate constants and network structure from experimentally measured concentration dynamics.
+
+A recent study by Nardin et al. (2025) provides exactly the kind of data this framework is designed to analyze.
+
+## Chronic Jugular Microdialysis in Freely Moving Mice
+
+Nardin et al. developed a workflow combining **chronic jugular microdialysis** with chemical isotope labeling LC-MS to continuously measure bloodborne metabolites in freely moving mice:
+
+| Property | Value |
+|----------|-------|
+| **Compounds measured** | ~123 high-quality amines and small peptides |
+| **Sampling cadence** | 7.5 minutes |
+| **Recording duration** | ~8 hours per session |
+| **Time frames** | ~64 per session |
+| **Animals** | 3 mice, implants patent for >7 days |
+
+The data captures real metabolic dynamics: purine turnover correlating with movement, delayed histamine/5-HIAA changes, coordinated amino-acid dynamics, and state-dependent metabolic shifts between locomotion and rest.
+
+### Low-Rank Physiological State Space
+
+A key finding: **10 principal components explain 73% of the variance** across all measured compounds. The first component alone (rPC1) captures 35.5% and is strongly correlated with locomotion (Spearman $r = -0.59$, peaking at 7.5 min lag).
+
+This low-rank structure is consistent with what we observe in our simulations:
+
+| | Nardin et al. | MetabolismGraph simulations |
+|--|--|--|
+| **n_metabolites** | ~123 | 100 |
+| **Rank at 70% variance** | ~10 | ~5–15 (estimated) |
+| **Rank at 99% variance** | — | 24–50 |
+| **Dominant mode** | Locomotion-driven amino acid metabolism | Autocatalytic cycle oscillations |
+
+The paper concludes that "endocrine and metabolic control may operate over a compact set of latent variables" — the same low-rank assumption that underlies our activity rank analysis via SVD.
+
+## Applying MetabolismGraph to Microdialysis Data
+
+### What changes
+
+Moving from synthetic to real data introduces several differences:
+
+**1. The stoichiometric matrix S is partially known**
+
+In simulation, $\mathbf{S}$ is either generated (ground truth) or learned from data. For real metabolomics, the reaction network connecting measured compounds can be partially reconstructed from biochemical databases (KEGG, Recon3D, HMDB). However:
+
+- Not all reactions are known
+- Not all participants in a reaction are measured (the 123 compounds are a subset of the full metabolome)
+- Some measured compounds participate in multiple pathways
+
+This suggests an intermediate mode between "S given" and "S learning": **initialize S from database knowledge, then refine with data**.
+
+**2. Observation is incomplete**
+
+The microdialysis probe measures only the free (unbound) fraction of molecules below the 6 kDa molecular weight cutoff. Many metabolites, enzymes, and signaling molecules are invisible. The GNN must learn dynamics from a partial observation of the full system — analogous to learning neural dynamics from a subset of recorded neurons.
+
+**3. External drivers exist**
+
+The synthetic model is autonomous: $dc/dt$ depends only on current concentrations and the network. Real metabolic dynamics are driven by external inputs — feeding, locomotion, circadian rhythms, stress — that are not part of the reaction network. The paper shows locomotion is a dominant driver (rPC1).
+
+This maps to extensions of the current model:
+
+$$
+\frac{dc_i}{dt} = \underbrace{-\lambda_i \cdot (c_i - c_i^{\text{baseline}})}_{\text{homeostasis}} + \underbrace{\sum_j S_{ij} \cdot v_j}_{\text{reactions}} + \underbrace{f_{\text{ext}}(x_{\text{locomotion}}, t)}_{\text{external drive}}
+$$
+
+The `circadian_amplitude` and `circadian_period` parameters already in the simulation config are a first step toward modeling time-varying external inputs.
+
+**4. Kinetics may not be mass-action**
+
+Enzyme-mediated reactions follow Michaelis-Menten or Hill kinetics rather than pure mass-action. The flexible MLP$_{\text{sub}}$ architecture is well-suited here — it can discover the true functional form without assuming $c^{|S|}$ a priori. The additive aggregation mode may be more appropriate for enzyme-mediated reactions where substrates contribute more independently.
+
+### What stays the same
+
+The core framework transfers directly:
+
+- **Bipartite graph structure**: metabolites connected to reactions through stoichiometric edges
+- **GNN message passing**: substrate concentrations aggregated per reaction, then distributed back to metabolites
+- **Function discovery**: MLP$_{\text{sub}}$ learns the concentration-to-rate mapping, MLP$_{\text{node}}$ learns homeostatic regulation
+- **Rate constant recovery**: per-reaction $k_j$ learned in log-space
+- **Identifiability challenges**: scale ambiguity, function compensation, and homeostasis absorption are equally present (and harder to diagnose without ground truth)
+
+### Proposed workflow
+
+```{mermaid}
+%%{init: {'theme': 'neutral'}}%%
+flowchart TD
+    A[Microdialysis time series<br/>123 compounds × 64 frames] --> B[Construct bipartite graph<br/>from KEGG/Recon3D]
+    B --> C[Initialize S from<br/>database stoichiometry]
+    C --> D[Train GNN<br/>predict dc/dt]
+    D --> E{Evaluate}
+    E -->|test R² > 0.9| F[Extract learned parameters]
+    E -->|test R² < 0.9| G[Refine: unfreeze S,<br/>add external inputs]
+    G --> D
+    F --> H[Rate constants k_j]
+    F --> I[Learned kinetics<br/>MLP_sub shape]
+    F --> J[Homeostatic regulation<br/>MLP_node per metabolite type]
+```
+
+**Step 1.** Build the metabolite-reaction bipartite graph from KEGG pathway maps for the 123 identified compounds. Estimate the number of reactions linking measured metabolites.
+
+**Step 2.** Initialize $\mathbf{S}$ from known stoichiometry (S given mode). Train the GNN to predict $dc/dt$ from concentration snapshots, learning $k_j$, MLP$_{\text{sub}}$, and MLP$_{\text{node}}$.
+
+**Step 3.** Evaluate prediction quality on held-out time frames. If prediction R$^2$ is high but the learned MLP$_{\text{sub}}$ does not match expected kinetics (mass-action or Michaelis-Menten), investigate degeneracy.
+
+**Step 4.** Optionally unfreeze $\mathbf{S}$ to discover missing reactions or correct database errors (S learning mode). Compare learned stoichiometry against biochemical databases.
+
+**Step 5.** Incorporate locomotion and other behavioral covariates as external inputs to account for the dominant non-metabolic drivers of concentration change.
+
+## Challenges and Open Questions
+
+**Temporal resolution.** The 7.5-minute sampling cadence gives ~64 frames per session. Our simulations use 2880 frames. With fewer time points, the GNN has less data to disentangle rate constants from MLP functions, exacerbating identifiability issues. Multi-session data across the 7+ days of implant patency could help.
+
+**Missing metabolites.** The 123 measured compounds are a fraction of the full metabolome. Reactions involving unmeasured substrates will appear as unexplained variance. The MLP$_{\text{node}}$ may absorb some of this as apparent "homeostasis."
+
+**Non-stationarity.** Real metabolic dynamics are non-stationary — circadian rhythms, feeding cycles, and adaptation shift the baseline over hours. The current model assumes fixed $c^{\text{baseline}}$ and $\lambda$. Time-varying homeostatic parameters may be needed.
+
+**Validation without ground truth.** In simulation, we validate against known $k_j$ values (rate constants R$^2$). With real data, validation must rely on: (1) held-out prediction accuracy, (2) consistency with known biochemistry, (3) perturbation experiments (the paper notes microdialysis can also *deliver* molecules), and (4) cross-animal reproducibility.
+
+## References
+
+Nardin, M., Wang, N., Elziny, S., Boyer, C., Pjanovic, V., Schuster, L., Boklund, P., Lindo, S., Morris, K., Ilanges, A., Voigts, J., & Dennis, E.J. (2025). Reconstructing a physiological state space via chronic jugular microdialysis in freely moving mice. *bioRxiv*. [doi:10.64898/2025.12.08.692974](https://doi.org/10.64898/2025.12.08.692974)

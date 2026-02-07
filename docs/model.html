@@ -138,6 +138,10 @@ window.Quarto = {
 <span class="menu-text">Results</span></a>
   </li>  
   <li class="nav-item">
+    <a class="nav-link" href="./application.html"> 
+<span class="menu-text">Application</span></a>
+  </li>  
+  <li class="nav-item">
     <a class="nav-link" href="./references.html"> 
 <span class="menu-text">References</span></a>
   </li>  
@@ -160,6 +164,11 @@ window.Quarto = {
   <ul>
   <li><a href="#metabolic-networks-as-bipartite-graphs" id="toc-metabolic-networks-as-bipartite-graphs" class="nav-link active" data-scroll-target="#metabolic-networks-as-bipartite-graphs">Metabolic Networks as Bipartite Graphs</a></li>
   <li><a href="#the-stoichiometric-matrix" id="toc-the-stoichiometric-matrix" class="nav-link" data-scroll-target="#the-stoichiometric-matrix">The Stoichiometric Matrix</a></li>
+  <li><a href="#reaction-kinetics" id="toc-reaction-kinetics" class="nav-link" data-scroll-target="#reaction-kinetics">Reaction Kinetics</a>
+  <ul class="collapse">
+  <li><a href="#mass-action-law" id="toc-mass-action-law" class="nav-link" data-scroll-target="#mass-action-law">Mass-Action Law</a></li>
+  <li><a href="#substrate-aggregation" id="toc-substrate-aggregation" class="nav-link" data-scroll-target="#substrate-aggregation">Substrate Aggregation</a></li>
+  </ul></li>
   <li><a href="#model-evolution" id="toc-model-evolution" class="nav-link" data-scroll-target="#model-evolution">Model Evolution</a>
   <ul class="collapse">
   <li><a href="#pure-reaction" id="toc-pure-reaction" class="nav-link" data-scroll-target="#pure-reaction">1. Pure Reaction</a></li>
@@ -173,8 +182,8 @@ window.Quarto = {
   <li><a href="#summary-the-full-model" id="toc-summary-the-full-model" class="nav-link" data-scroll-target="#summary-the-full-model">Summary: The Full Model</a></li>
   <li><a href="#the-inverse-problem" id="toc-the-inverse-problem" class="nav-link" data-scroll-target="#the-inverse-problem">The Inverse Problem</a>
   <ul class="collapse">
-  <li><a href="#learned-components" id="toc-learned-components" class="nav-link" data-scroll-target="#learned-components">Learned Components</a></li>
-  <li><a href="#gnn-forward-pass" id="toc-gnn-forward-pass" class="nav-link" data-scroll-target="#gnn-forward-pass">GNN Forward Pass</a></li>
+  <li><a href="#what-the-gnn-learns" id="toc-what-the-gnn-learns" class="nav-link" data-scroll-target="#what-the-gnn-learns">What the GNN Learns</a></li>
+  <li><a href="#identifiability-challenges" id="toc-identifiability-challenges" class="nav-link" data-scroll-target="#identifiability-challenges">Identifiability Challenges</a></li>
   <li><a href="#learning-modes" id="toc-learning-modes" class="nav-link" data-scroll-target="#learning-modes">Learning Modes</a></li>
   </ul></li>
   </ul>
@@ -281,12 +290,53 @@ flowchart LR
 \end{array}
 \]</span></p>
 </section>
+<section id="reaction-kinetics" class="level2">
+<h2 class="anchored" data-anchor-id="reaction-kinetics">Reaction Kinetics</h2>
+<section id="mass-action-law" class="level3">
+<h3 class="anchored" data-anchor-id="mass-action-law">Mass-Action Law</h3>
+<p>The rate of a chemical reaction is proportional to the product of the concentrations of its substrates, each raised to the power of its stoichiometric coefficient. For a reaction <span class="math inline">\(j\)</span> with substrates <span class="math inline">\(k\)</span>:</p>
+<p><span class="math display">\[v_j = k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{|S_{kj}|}\]</span></p>
+<p>This is the <strong>law of mass action</strong> (Guldberg &amp; Waage, 1864): a reaction proceeds faster when its substrates are more abundant. The exponent <span class="math inline">\(|S_{kj}|\)</span> reflects how many molecules of substrate <span class="math inline">\(k\)</span> are consumed — a reaction requiring 2 molecules of ATP depends quadratically on ATP concentration (<span class="math inline">\(c_{\text{ATP}}^2\)</span>), while a reaction consuming 1 molecule depends linearly (<span class="math inline">\(c_{\text{ATP}}^1\)</span>).</p>
+</section>
+<section id="substrate-aggregation" class="level3">
+<h3 class="anchored" data-anchor-id="substrate-aggregation">Substrate Aggregation</h3>
+<p>Each reaction consumes multiple substrates. The <strong>aggregation rule</strong> determines how substrate contributions combine to form the reaction rate:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 23%">
+<col style="width: 43%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Aggregation</th>
+<th>Formula</th>
+<th>Physical meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Multiplicative</strong> (product)</td>
+<td><span class="math inline">\(v_j = k_j \cdot \prod_k c_k^{\|S_{kj}\|}\)</span></td>
+<td>True mass-action: all substrates must be present simultaneously. Rate drops to zero if any substrate is absent.</td>
+</tr>
+<tr class="even">
+<td><strong>Additive</strong> (sum)</td>
+<td><span class="math inline">\(v_j = k_j \cdot \sum_k c_k^{\|S_{kj}\|}\)</span></td>
+<td>Approximate: substrates contribute independently. Useful when reactions are not strictly mass-action (e.g., enzyme-mediated).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Multiplicative aggregation</strong> is the physically correct form for mass-action kinetics — it encodes the requirement that a reaction can only proceed if <em>all</em> its substrates are available. It also produces richer dynamics: multiplicative coupling between metabolites creates nonlinear feedback loops that can sustain oscillations.</p>
+<p><strong>Additive aggregation</strong> is a simplification where each substrate contributes independently to the rate. It cannot produce sustained oscillations from autocatalytic cycles because it lacks the multiplicative coupling needed for positive feedback.</p>
+</section>
+</section>
 <section id="model-evolution" class="level2">
 <h2 class="anchored" data-anchor-id="model-evolution">Model Evolution</h2>
 <section id="pure-reaction" class="level3">
 <h3 class="anchored" data-anchor-id="pure-reaction">1. Pure Reaction</h3>
 <p>Pure reaction dynamics without homeostasis, using <strong>additive aggregation</strong>:</p>
-<p><span class="math display">\[\frac{dc_i}{dt} = \sum_j S_{ij} \cdot k_j \cdot \sum_{k \in \text{sub}(j)} c_k^{s_{kj}}\]</span></p>
+<p><span class="math display">\[\frac{dc_i}{dt} = \sum_j S_{ij} \cdot k_j \cdot \sum_{k \in \text{sub}(j)} c_k^{|S_{kj}|}\]</span></p>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -334,7 +384,7 @@ flowchart LR
 <section id="homeostasis" class="level3">
 <h3 class="anchored" data-anchor-id="homeostasis">2. Homeostasis</h3>
 <p>With homeostatic regulation pulling concentrations toward baseline, using <strong>additive aggregation</strong>:</p>
-<p><span class="math display">\[\frac{dc_i}{dt} = \underbrace{-\lambda_i \cdot (c_i - c_i^{\text{baseline}})}_{\text{homeostasis}} + \underbrace{\sum_j S_{ij} \cdot k_j \cdot \sum_{k \in \text{sub}(j)} c_k^{s_{kj}}}_{\text{reactions}}\]</span></p>
+<p><span class="math display">\[\frac{dc_i}{dt} = \underbrace{-\lambda_i \cdot (c_i - c_i^{\text{baseline}})}_{\text{homeostasis}} + \underbrace{\sum_j S_{ij} \cdot k_j \cdot \sum_{k \in \text{sub}(j)} c_k^{|S_{kj}|}}_{\text{reactions}}\]</span></p>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -386,8 +436,8 @@ flowchart LR
 <section id="oscillatory" class="level3">
 <h3 class="anchored" data-anchor-id="oscillatory">3. Oscillatory</h3>
 <p>Autocatalytic cycles with <strong>mass-action kinetics</strong> (multiplicative aggregation) for sustained oscillations:</p>
-<p><span class="math display">\[\frac{dc_i}{dt} = \sum_j S_{ij} \cdot k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{s_{kj}}\]</span></p>
-<p>Example cycle: <span class="math inline">\(A + B \to 2B, \quad B + C \to 2C, \quad C + A \to 2A\)</span></p>
+<p><span class="math display">\[\frac{dc_i}{dt} = \sum_j S_{ij} \cdot k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{|S_{kj}|}\]</span></p>
+<p>With multiplicative aggregation, autocatalytic cycles create positive feedback: in <span class="math inline">\(A + B \to 2B\)</span>, the rate <span class="math inline">\(v = k \cdot c_A \cdot c_B\)</span> increases with both <span class="math inline">\(A\)</span> and <span class="math inline">\(B\)</span>, so producing more <span class="math inline">\(B\)</span> accelerates the reaction — a nonlinear feedback loop that sustains oscillations when cycles are closed (<span class="math inline">\(A \to B \to C \to A\)</span>).</p>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -524,34 +574,42 @@ flowchart LR
 \]</span></p>
 <p>where the reaction rate follows mass-action kinetics:</p>
 <p><span class="math display">\[
-v_j = k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{s_{kj}}
+v_j = k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{|S_{kj}|}
 \]</span></p>
 </section>
 <section id="the-inverse-problem" class="level2">
 <h2 class="anchored" data-anchor-id="the-inverse-problem">The Inverse Problem</h2>
-<p>Given observed concentration time series <span class="math inline">\(\mathbf{C}(t)\)</span> and the bipartite graph structure, the goal is to recover the model parameters that generated the dynamics. A <strong>graph neural network</strong> (GNN) operates on the bipartite metabolite–reaction graph and learns three components:</p>
-<section id="learned-components" class="level3">
-<h3 class="anchored" data-anchor-id="learned-components">Learned Components</h3>
-<p><strong>1. Substrate function — <span class="math inline">\(\text{MLP}_{\text{sub}}(c_k, |S_{kj}|)\)</span></strong></p>
-<p>An MLP that maps each substrate concentration <span class="math inline">\(c_k\)</span> and its stoichiometric coefficient <span class="math inline">\(|S_{kj}|\)</span> to the substrate’s contribution to the reaction rate. In the ground truth, this function computes the power-law <span class="math inline">\(c_k^{|S_{kj}|}\)</span>. The learned MLP should recover this mapping:</p>
+<p>Given observed concentration time series <span class="math inline">\(\mathbf{C}(t)\)</span> and the bipartite graph structure, the goal is to recover the model components that generated the dynamics. A <strong>graph neural network</strong> (GNN) operates on the bipartite metabolite–reaction graph and learns <strong>two functions and a set of scalar parameters</strong>:</p>
+<section id="what-the-gnn-learns" class="level3">
+<h3 class="anchored" data-anchor-id="what-the-gnn-learns">What the GNN Learns</h3>
+<p>The forward model is:</p>
 <p><span class="math display">\[
-\text{MLP}_{\text{sub}}(c_k, |S_{kj}|) \approx c_k^{|S_{kj}|}
+\frac{dc_i}{dt} = \underbrace{\text{MLP}_{\text{node}}(c_i, a_i)}_{\text{learns } -\lambda_i(c_i - c_i^{\text{baseline}})} + \sum_{j=1}^{m} S_{ij} \cdot \underbrace{k_j \cdot \underset{k \in \text{sub}(j)}{\text{aggr}} \; \text{MLP}_{\text{sub}}(c_k, |S_{kj}|)}_{\text{learns } k_j \text{ and } c_k^{|S_{kj}|}}
 \]</span></p>
-<p><strong>2. Homeostasis function — <span class="math inline">\(\text{MLP}_{\text{node}}(c_i)\)</span></strong></p>
-<p>An MLP that maps each metabolite’s concentration to a per-metabolite correction term, capturing homeostatic regulation. In the ground truth, this is a linear function with small magnitude:</p>
+<p>The GNN replaces the known functions with learnable MLPs, and the rate constants with learnable parameters. It must recover all three simultaneously from concentration data alone:</p>
+<p><strong>1. Substrate function</strong> <span class="math inline">\(f_{\text{sub}} \to \text{MLP}_{\text{sub}}(c_k, |S_{kj}|)\)</span></p>
+<p>A neural network that learns how each substrate concentration contributes to the reaction rate. The ground-truth function is the mass-action power law <span class="math inline">\(c_k^{|S_{kj}|}\)</span>, but the GNN does not know this — it must discover the functional form from data:</p>
 <p><span class="math display">\[
-\text{MLP}_{\text{node}}(c_i) \approx -\lambda_{\text{type}(i)} \cdot (c_i - c_i^{\text{baseline}})
+\text{MLP}_{\text{sub}}(c_k, |S_{kj}|) \;\overset{?}{\approx}\; c_k^{|S_{kj}|}
 \]</span></p>
-<p><strong>3. Rate constants — <span class="math inline">\(k_j\)</span></strong></p>
-<p>A vector of 256 learnable per-reaction rate constants (in log-space). These scale the reaction fluxes and must be recovered up to the correct global scale.</p>
+<p>This is a <strong>function discovery</strong> problem: the MLP receives concentration and stoichiometric coefficient as inputs and must learn to output the correct power-law relationship. Since the stoichiometric coefficients are typically 1 or 2, the MLP must learn to distinguish between linear (<span class="math inline">\(c^1\)</span>) and quadratic (<span class="math inline">\(c^2\)</span>) dependencies.</p>
+<p><strong>2. Homeostasis function</strong> <span class="math inline">\(f_{\text{node}} \to \text{MLP}_{\text{node}}(c_i)\)</span></p>
+<p>A neural network that learns the per-metabolite self-regulation term. The ground truth is a linear function <span class="math inline">\(-\lambda_{\text{type}(i)} (c_i - c_i^{\text{baseline}})\)</span> with small magnitude, but the GNN must discover this from data:</p>
+<p><span class="math display">\[
+\text{MLP}_{\text{node}}(c_i) \;\overset{?}{\approx}\; -\lambda_{\text{type}(i)} \cdot (c_i - c_i^{\text{baseline}})
+\]</span></p>
+<p>This function captures how each metabolite is regulated independently of reactions — pulling concentrations back toward a baseline level. The challenge is that homeostatic forces are small compared to reaction rates, so <span class="math inline">\(\text{MLP}_{\text{node}}\)</span> must learn a subtle signal without absorbing information that belongs to the reaction terms.</p>
+<p><strong>3. Rate constants</strong> <span class="math inline">\(k_j\)</span> <strong>(256 learnable scalars)</strong></p>
+<p>Per-reaction rate constants learned in log-space. Unlike the MLPs, these are not functions but a vector of 256 scalar parameters — one per reaction — that scale the reaction fluxes.</p>
 </section>
-<section id="gnn-forward-pass" class="level3">
-<h3 class="anchored" data-anchor-id="gnn-forward-pass">GNN Forward Pass</h3>
-<p>The GNN assembles these learned components into the full dynamics prediction on the bipartite graph:</p>
-<p><span class="math display">\[
-\widehat{\frac{dc_i}{dt}} = \text{MLP}_{\text{node}}(c_i) + \sum_{j=1}^{m} S_{ij} \cdot k_j \cdot \underset{k \in \text{sub}(j)}{\text{aggr}} \; \text{MLP}_{\text{sub}}(c_k, |S_{kj}|)
-\]</span></p>
-<p>where <span class="math inline">\(\text{aggr}\)</span> is either sum (additive) or product (multiplicative, for mass-action kinetics). The model is trained by minimizing the prediction error on <span class="math inline">\(dc/dt\)</span> computed from the observed concentration trajectories.</p>
+<section id="identifiability-challenges" class="level3">
+<h3 class="anchored" data-anchor-id="identifiability-challenges">Identifiability Challenges</h3>
+<p>The three components interact and can compensate for each other:</p>
+<ul>
+<li><p><strong>Scale ambiguity</strong>: <span class="math inline">\(k_j \cdot \text{MLP}_{\text{sub}}\)</span> is invariant under <span class="math inline">\(k \to \alpha k\)</span>, <span class="math inline">\(\text{MLP}_{\text{sub}} \to \text{MLP}_{\text{sub}} / \alpha\)</span>. Without anchoring, the MLP can absorb a global scale factor and shift all <span class="math inline">\(k\)</span> values. Regularization (<span class="math inline">\(\texttt{coeff\_k\_center}\)</span>) anchors <span class="math inline">\(\text{mean}(\log k)\)</span> to the known range center.</p></li>
+<li><p><strong>Function compensation</strong>: If <span class="math inline">\(\text{MLP}_{\text{sub}}\)</span> learns a wrong functional form (e.g., <span class="math inline">\(c^{1.5}\)</span> instead of <span class="math inline">\(c^2\)</span>), the rate constants can partially compensate by adjusting their values. This leads to degenerate solutions with high prediction accuracy but poor parameter recovery.</p></li>
+<li><p><strong>Homeostasis absorption</strong>: <span class="math inline">\(\text{MLP}_{\text{node}}\)</span> can grow large and absorb dynamics that should be explained by the reaction terms, masking the true rate constants.</p></li>
+</ul>
 </section>
 <section id="learning-modes" class="level3">
 <h3 class="anchored" data-anchor-id="learning-modes">Learning Modes</h3>
@@ -585,7 +643,6 @@ v_j = k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{s_{kj}}
 </tr>
 </tbody>
 </table>
-<p>A key challenge is <strong>scale ambiguity</strong>: the product <span class="math inline">\(k_j \cdot \text{MLP}_{\text{sub}}\)</span> is invariant under <span class="math inline">\(k \to \alpha k\)</span>, <span class="math inline">\(\text{MLP}_{\text{sub}} \to \text{MLP}_{\text{sub}} / \alpha\)</span>. Regularization (<span class="math inline">\(\texttt{coeff\_k\_center}\)</span>) anchors the global scale of <span class="math inline">\(k\)</span> to break this degeneracy.</p>
 
 
 </section>
@@ -1067,7 +1124,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Copyright 2025, Cédric Allier</p>
+<p>© 2026 Cédric Allier · <span style="color: #999; font-size: 0.85em;">Generated with <a href="https://claude.ai" style="color: #999;">Claude</a> · Reviewed by Cédric Allier</span></p>
 </div>
     <div class="nav-footer-right">
       &nbsp;

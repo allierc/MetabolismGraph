@@ -16,12 +16,16 @@ website:
         href: gnn-llm-memory.qmd
       - text: "Results"
         href: results.qmd
+      - text: "Application"
+        href: application.qmd
       - text: "References"
         href: references.qmd
     tools:
       - icon: github
         href: https://github.com/allierc/MetabolismGraph
-  page-footer: "Copyright 2025, Cédric Allier"
+  page-footer:
+    center: |
+      &copy; 2026 Cédric Allier &middot; <span style="color: #999; font-size: 0.85em;">Generated with <a href="https://claude.ai" style="color: #999;">Claude</a> &middot; Reviewed by Cédric Allier</span>
   repo-url: https://github.com/allierc/MetabolismGraph/
   site-url: https://allierc.github.io/MetabolismGraph/
 

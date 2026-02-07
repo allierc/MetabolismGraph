@@ -67,6 +67,35 @@ ul.task-list li input[type="checkbox"] {
   }
 }</script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -105,6 +134,10 @@ ul.task-list li input[type="checkbox"] {
 <span class="menu-text">Results</span></a>
   </li>  
   <li class="nav-item">
+    <a class="nav-link" href="./application.html"> 
+<span class="menu-text">Application</span></a>
+  </li>  
+  <li class="nav-item">
     <a class="nav-link active" href="./references.html" aria-current="page"> 
 <span class="menu-text">References</span></a>
   </li>  
@@ -128,6 +161,11 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#context" id="toc-context" class="nav-link active" data-scroll-target="#context">Context</a></li>
   <li><a href="#graph-neural-networks-for-physical-and-biological-systems" id="toc-graph-neural-networks-for-physical-and-biological-systems" class="nav-link" data-scroll-target="#graph-neural-networks-for-physical-and-biological-systems">Graph Neural Networks for Physical and Biological Systems</a></li>
   <li><a href="#neural-differential-equations-and-scientific-ml" id="toc-neural-differential-equations-and-scientific-ml" class="nav-link" data-scroll-target="#neural-differential-equations-and-scientific-ml">Neural Differential Equations and Scientific ML</a></li>
+  <li><a href="#symbolic-regression-for-network-dynamics" id="toc-symbolic-regression-for-network-dynamics" class="nav-link" data-scroll-target="#symbolic-regression-for-network-dynamics">Symbolic Regression for Network Dynamics</a>
+  <ul class="collapse">
+  <li><a href="#comparison-with-metabolismgraph" id="toc-comparison-with-metabolismgraph" class="nav-link" data-scroll-target="#comparison-with-metabolismgraph">Comparison with MetabolismGraph</a></li>
+  </ul></li>
+  <li><a href="#in-vivo-metabolomics-and-physiological-state-spaces" id="toc-in-vivo-metabolomics-and-physiological-state-spaces" class="nav-link" data-scroll-target="#in-vivo-metabolomics-and-physiological-state-spaces">In Vivo Metabolomics and Physiological State Spaces</a></li>
   <li><a href="#llm-driven-scientific-discovery" id="toc-llm-driven-scientific-discovery" class="nav-link" data-scroll-target="#llm-driven-scientific-discovery">LLM-Driven Scientific Discovery</a></li>
   </ul>
 </nav>
@@ -175,9 +213,73 @@ ul.task-list li input[type="checkbox"] {
 <li><p><strong>Rackauckas, C., Ma, Y., Martensen, J., Warner, C., Zubov, K., Supekar, R., Skinner, D., Ramadhan, A., &amp; Edelman, A.</strong> (2020). <em>Universal differential equations for scientific machine learning.</em> <a href="https://arxiv.org/abs/2001.04385">arXiv:2001.04385</a> — Framework combining differential equations with neural networks for scientific modeling. The UDE approach of embedding learnable components within known differential equation structure is conceptually similar to how MetabolismGraph embeds learnable MLPs within the known stoichiometric framework.</p></li>
 </ol>
 </section>
+<section id="symbolic-regression-for-network-dynamics" class="level2">
+<h2 class="anchored" data-anchor-id="symbolic-regression-for-network-dynamics">Symbolic Regression for Network Dynamics</h2>
+<ol start="6" type="1">
+<li><strong>Yu, Z., Ding, J., &amp; Li, Y.</strong> (2025). <em>Discovering network dynamics with neural symbolic regression.</em> Nature Computational Science. <a href="https://doi.org/10.1038/s43588-025-00893-8">DOI:10.1038/s43588-025-00893-8</a> — ND2: neural symbolic regression that discovers governing equations of network dynamics directly from data. Applied to gene regulatory networks, the method corrects the classical Hill equation model by replacing per-neighbor nonlinear terms with a logistic function applied to the aggregate neighbor sum (see comparison below).</li>
+</ol>
+<section id="comparison-with-metabolismgraph" class="level3">
+<h3 class="anchored" data-anchor-id="comparison-with-metabolismgraph">Comparison with MetabolismGraph</h3>
+<p>Yu et al.’s corrected gene regulation model (their Eq. 2) and MetabolismGraph share the same general ODE structure — self-dynamics plus interaction dynamics — but differ in how neighbor contributions are aggregated:</p>
+<p><strong>Yu et al.&nbsp;— Gene regulation (ND2 corrected):</strong></p>
+<p><span class="math display">\[\frac{dx_i}{dt} = \underbrace{s_i - \gamma_i x_i}_{\text{self-dynamics}} + \underbrace{\beta \, \tilde{S}\!\left(\sum_j A_{ij}\, x_j\right)}_{\text{interaction}}\]</span></p>
+<p>where <span class="math inline">\(\tilde{S}(x) = (1 + e^{-x})^{-1}\)</span> is the logistic function. The nonlinearity acts on the <strong>sum</strong> of weighted neighbor states — no per-edge rate constants, no multiplicative aggregation.</p>
+<p><strong>MetabolismGraph — Metabolic kinetics:</strong></p>
+<p><span class="math display">\[\frac{dc_i}{dt} = \underbrace{-\lambda_i(c_i - c_i^{\text{baseline}})}_{\text{self-dynamics}} + \underbrace{\sum_j S_{ij} \cdot k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{s_{kj}}}_{\text{interaction}}\]</span></p>
+<p><strong>Key differences:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>Yu et al.&nbsp;(gene regulation)</th>
+<th>MetabolismGraph (metabolism)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Graph</td>
+<td>Monopartite (gene → gene)</td>
+<td>Bipartite (metabolite ↔︎ reaction)</td>
+</tr>
+<tr class="even">
+<td>Aggregation</td>
+<td><span class="math inline">\(\tilde{S}(\sum_j A_{ij} x_j)\)</span> — logistic of sum</td>
+<td><span class="math inline">\(\sum_j S_{ij} k_j \prod_k c_k^{s_{kj}}\)</span> — sum of products</td>
+</tr>
+<tr class="odd">
+<td>Rate constants</td>
+<td>Single global <span class="math inline">\(\beta\)</span></td>
+<td>Per-reaction <span class="math inline">\(k_j\)</span> (256 parameters)</td>
+</tr>
+<tr class="even">
+<td>Nonlinearity</td>
+<td>Bounded logistic <span class="math inline">\(\tilde{S} \in [0,1]\)</span></td>
+<td>Unbounded power law <span class="math inline">\(c^s\)</span></td>
+</tr>
+<tr class="odd">
+<td>Higher-order</td>
+<td>Implicit: <span class="math inline">\(\partial \dot{x}_i / \partial x_j\)</span> depends on all neighbors via <span class="math inline">\(\tilde{S}\)</span></td>
+<td>Explicit: mass-action products couple substrates within each reaction</td>
+</tr>
+</tbody>
+</table>
+<p>The gene regulation model has <strong>no per-reaction aggregation step</strong> — it sums all neighbor states into a single scalar, then applies a saturating nonlinearity. MetabolismGraph instead computes a separate rate for each reaction (multiplicative aggregation of substrate concentrations), then sums the stoichiometric contributions. This reflects a fundamental difference between gene regulation (bounded transcriptional response) and metabolism (unbounded mass-action kinetics).</p>
+</section>
+</section>
+<section id="in-vivo-metabolomics-and-physiological-state-spaces" class="level2">
+<h2 class="anchored" data-anchor-id="in-vivo-metabolomics-and-physiological-state-spaces">In Vivo Metabolomics and Physiological State Spaces</h2>
+<ol start="10" type="1">
+<li><strong>Nardin, M., Wang, N., Elziny, S., Boyer, C., Pjanovic, V., Schuster, L., Boklund, P., Lindo, S., Morris, K., Ilanges, A., Voigts, J., &amp; Dennis, E.J.</strong> (2025). <em>Reconstructing a physiological state space via chronic jugular microdialysis in freely moving mice.</em> bioRxiv. <a href="https://doi.org/10.64898/2025.12.08.692974">doi:10.64898/2025.12.08.692974</a> — Chronic jugular microdialysis paired with LC-MS measures ~123 bloodborne compounds at 7.5-min cadence in freely moving mice. PCA reveals a low-rank physiological manifold: 10 components explain 73% of variance, with rPC1 aligned to locomotion. Provides the real-world metabolomic time series that MetabolismGraph’s inverse problem framework is designed to analyze. See <a href="./application.html">Application</a> for how the GNN framework maps to this data.</li>
+</ol>
+</section>
 <section id="llm-driven-scientific-discovery" class="level2">
 <h2 class="anchored" data-anchor-id="llm-driven-scientific-discovery">LLM-Driven Scientific Discovery</h2>
-<ol start="6" type="1">
+<ol start="7" type="1">
 <li><p><strong>Romera-Paredes, B., et al.</strong> (2024). <em>Mathematical discoveries from program search with large language models.</em> Nature, 625, 468-475. <a href="https://doi.org/10.1038/s41586-023-06924-6">DOI:10.1038/s41586-023-06924-6</a> — FunSearch: uses LLMs to discover new mathematical constructions through evolutionary program search. Pioneering demonstration that LLMs can make genuine scientific contributions when embedded in a search loop.</p></li>
 <li><p><strong>Novikov, A., et al.</strong> (2025). <em>AlphaEvolve: A coding agent for scientific and algorithmic exploration.</em> Google DeepMind. — Extends the LLM-driven exploration paradigm to broader scientific and algorithmic discovery tasks. The closed-loop LLM exploration engine in MetabolismGraph draws inspiration from this line of work.</p></li>
 <li><p><strong>Lu, C., Lu, C., Lange, R. T., Foerster, J., Clune, J., &amp; Ha, D.</strong> (2024). <em>The AI Scientist: Towards fully automated open-ended scientific discovery.</em> <a href="https://arxiv.org/abs/2408.06292">arXiv:2408.06292</a> — End-to-end autonomous research agent that generates hypotheses, runs experiments, and writes papers.</p></li>
@@ -662,7 +764,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Copyright 2025, Cédric Allier</p>
+<p>© 2026 Cédric Allier · <span style="color: #999; font-size: 0.85em;">Generated with <a href="https://claude.ai" style="color: #999;">Claude</a> · Reviewed by Cédric Allier</span></p>
 </div>
     <div class="nav-footer-right">
       &nbsp;

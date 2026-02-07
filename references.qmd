@@ -66,6 +66,12 @@ $$\frac{dc_i}{dt} = \underbrace{-\lambda_i(c_i - c_i^{\text{baseline}})}_{\text{
 
 The gene regulation model has **no per-reaction aggregation step** — it sums all neighbor states into a single scalar, then applies a saturating nonlinearity. MetabolismGraph instead computes a separate rate for each reaction (multiplicative aggregation of substrate concentrations), then sums the stoichiometric contributions. This reflects a fundamental difference between gene regulation (bounded transcriptional response) and metabolism (unbounded mass-action kinetics).
 
+## In Vivo Metabolomics and Physiological State Spaces
+
+10. **Nardin, M., Wang, N., Elziny, S., Boyer, C., Pjanovic, V., Schuster, L., Boklund, P., Lindo, S., Morris, K., Ilanges, A., Voigts, J., & Dennis, E.J.** (2025). *Reconstructing a physiological state space via chronic jugular microdialysis in freely moving mice.* bioRxiv.
+   [doi:10.64898/2025.12.08.692974](https://doi.org/10.64898/2025.12.08.692974)
+   — Chronic jugular microdialysis paired with LC-MS measures ~123 bloodborne compounds at 7.5-min cadence in freely moving mice. PCA reveals a low-rank physiological manifold: 10 components explain 73% of variance, with rPC1 aligned to locomotion. Provides the real-world metabolomic time series that MetabolismGraph's inverse problem framework is designed to analyze. See [Application](application.qmd) for how the GNN framework maps to this data.
+
 ## LLM-Driven Scientific Discovery
 
 7. **Romera-Paredes, B., et al.** (2024). *Mathematical discoveries from program search with large language models.* Nature, 625, 468-475.

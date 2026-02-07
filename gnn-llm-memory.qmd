@@ -143,6 +143,7 @@ The reported `rate_constants_R2` is computed on these corrected values against t
 | `test_R2` | R² on held-out test frames | > 0.9 |
 | `test_pearson` | Pearson correlation on test frames | > 0.95 |
 | `final_loss` | Final prediction loss (MSE on $dc/dt$) | Lower is better |
+| `alpha` | MLP$_{\text{sub}}$ scale factor $\alpha = \|\text{MLP}_{\text{sub}}(c{=}1, |s|{=}1)\|$. Ideal value is 1.0 — indicates MLP$_{\text{sub}}$ has learned the correct scale. Deviations from 1 indicate residual scale ambiguity that the scalar correction must compensate for. | $\approx 1.0$ |
 
 ### Diagnostic Interpretation
 

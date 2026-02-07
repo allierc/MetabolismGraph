@@ -1040,6 +1040,13 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
             except Exception as e:
                 print(f'  rate_constants R2: skipped ({e})')
 
+    # --- compute alpha (MLP_sub scale factor) ---
+    alpha_val = None
+    if hasattr(model, 'substrate_func'):
+        with torch.no_grad():
+            c_ref = torch.tensor([[1.0, 1.0]], device=device)
+            alpha_val = model.substrate_func(c_ref).norm().item()
+
     # --- write to analysis log ---
     if log_file is not None:
         if not freeze_stoichiometry:
@@ -1048,6 +1055,8 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
         log_file.write(f"test_pearson: {test_pearson:.4f}\n")
         if freeze_stoichiometry:
             log_file.write(f"rate_constants_R2: {rate_constants_r2:.4f}\n")
+        if alpha_val is not None:
+            log_file.write(f"alpha: {alpha_val:.4f}\n")
 
 
 def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,

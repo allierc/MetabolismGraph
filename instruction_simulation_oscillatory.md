@@ -125,6 +125,7 @@ The following metrics are written to `analysis.log` at the end of training:
 | `rate_constants_R2` | R² between learned and true rate constants k (after MLP_sub scalar correction) | > 0.9 |
 | `test_R2` | R² on held-out test frames | > 0.9 |
 | `test_pearson` | Pearson correlation on test frames | > 0.95 |
+| `alpha` | MLP_sub scale factor α = ‖substrate_func(c=1, \|s\|=1)‖. Measures how far MLP_sub deviates from unit normalization. α > 1 means MLP_sub is amplifying, α < 1 means compressing. The scalar correction adjusts k by α^{n_substrates} | ~1.0 |
 
 ### Interpretation
 
@@ -148,6 +149,7 @@ Read `{config}_memory.md` to recall:
 - `test_R2`: Dynamics prediction quality
 - `test_pearson`: Correlation on test frames
 - `final_loss`: Training loss
+- `alpha`: MLP_sub scale factor (ideal: 1.0). If α ≫ 1 or α ≪ 1, MLP_sub has absorbed a global scale factor and k values are shifted. Increase `coeff_MLP_sub_norm` to push α toward 1.
 
 **Classification:**
 - **Converged**: rate_constants_R2 > 0.9
@@ -189,7 +191,7 @@ Append to Full Log (`{config}_analysis.md`) and Working Memory (`{config}_memory
 Node: id=N, parent=P
 Mode/Strategy: [exploit/explore/boundary]
 Config: seed=S, lr_k=X, lr_node=Y, lr_sub=Z, batch_size=B, n_epochs=E, data_augmentation_loop=A, coeff_MLP_node_L1=L, coeff_MLP_sub_norm=N, coeff_k_floor=K
-Metrics: rate_constants_R2=C, test_R2=A, test_pearson=B, final_loss=E
+Metrics: rate_constants_R2=C, test_R2=A, test_pearson=B, final_loss=E, alpha=A
 Visual: MLP_sub=[good/partial/bad: brief description], MLP_node=[good/partial/bad: brief description], k_scatter=[good/partial/bad: brief description]
 Mutation: [param]: [old] -> [new]
 Parent rule: [one line]

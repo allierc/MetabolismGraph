@@ -452,6 +452,11 @@ window.Quarto = {
 <td>Final prediction loss (MSE on <span class="math inline">\(dc/dt\)</span>)</td>
 <td>Lower is better</td>
 </tr>
+<tr class="odd">
+<td><code>alpha</code></td>
+<td>MLP<span class="math inline">\(_{\text{sub}}\)</span> scale factor <span class="math inline">\(\alpha = \|\text{MLP}_{\text{sub}}(c{=}1, |s|{=}1)\|\)</span>. Ideal value is 1.0 — indicates MLP<span class="math inline">\(_{\text{sub}}\)</span> has learned the correct scale. Deviations from 1 indicate residual scale ambiguity that the scalar correction must compensate for.</td>
+<td><span class="math inline">\(\approx 1.0\)</span></td>
+</tr>
 </tbody>
 </table>
 <section id="diagnostic-interpretation" class="level3">

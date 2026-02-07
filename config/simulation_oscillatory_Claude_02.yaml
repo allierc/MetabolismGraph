@@ -45,23 +45,23 @@ training:
   n_runs: 1
   device: auto
   batch_size: 8
-  seed: 42
-  data_augmentation_loop: 100
+  seed: 56
+  data_augmentation_loop: 2000
   learning_rate_start: 0.001
-  learning_rate_k: 0.001
-  learning_rate_node: 0.0005
-  learning_rate_sub: 0.001
+  learning_rate_k: 0.005
+  learning_rate_node: 0.001
+  learning_rate_sub: 0.0005
   freeze_stoichiometry: true
   learning_rate_S_start: 0.0
   coeff_S_L1: 0.0
   coeff_S_integer: 0.0
   coeff_mass_conservation: 0.0
-  coeff_MLP_sub_diff: 10
-  coeff_MLP_node_L1: 1.0
-  coeff_k_center: 1.0
+  coeff_MLP_sub_diff: 5
+  coeff_MLP_node_L1: 0.5
+  coeff_k_center: 5.0
 claude:
   n_epochs: 1
-  data_augmentation_loop: 100
+  data_augmentation_loop: 1000
   n_iter_block: 24
   ucb_c: 1.414
   node_name: a100

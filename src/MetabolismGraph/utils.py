@@ -121,8 +121,8 @@ def create_log_dir(config=[], erase=True):
     return log_dir, logger
 
 
-def fig_init(fontsize=48, formatx='%.2f', formaty='%.2f'):
-    fig = plt.figure(figsize=(12, 12))
+def fig_init(fontsize=12, formatx='%.2f', formaty='%.2f'):
+    fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(1, 1, 1)
     plt.xticks([])
     plt.yticks([])

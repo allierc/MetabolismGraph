@@ -786,9 +786,9 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
         os.makedirs(out_dir, exist_ok=True)
 
         fig, ax = plt.subplots(figsize=(8, 8))
-        ax.scatter(gt_edges, learned_edges, s=2, c='k', alpha=0.5)
-        ax.set_xlabel(r'true $S_{ij}$', fontsize=18)
-        ax.set_ylabel(r'learned $S_{ij}$', fontsize=18)
+        ax.scatter(gt_edges, learned_edges, s=2, c='k', alpha=0.5, edgecolors=None)
+        ax.set_xlabel(r'true $S_{ij}$', fontsize=14)
+        ax.set_ylabel(r'learned $S_{ij}$', fontsize=14)
         ax.text(0.05, 0.96, f'$R^2$: {stoich_r2:.3f}', transform=ax.transAxes,
                 fontsize=12, verticalalignment='top')
         if lin_fit is not None:
@@ -903,49 +903,45 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
     residual = activity_true - activity_pred
     vmax_res = np.abs(residual).max()
 
-    fig, axes = plt.subplots(2, 2, figsize=(24, 16))
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     ax_gt, ax_pred, ax_res, ax_scat = axes[0, 0], axes[0, 1], axes[1, 0], axes[1, 1]
 
     # Top-left: GT
     im_gt = ax_gt.imshow(activity_true, aspect='auto', cmap='viridis', vmin=vmin_true, vmax=vmax_true, origin='lower')
-    ax_gt.set_ylabel('metabolites', fontsize=28)
-    ax_gt.set_title('ground truth', fontsize=24)
-    ax_gt.set_xticks([0, n_test_frames - 1]); ax_gt.set_xticklabels([0, n_test_frames], fontsize=20)
-    ax_gt.set_yticks([0, n_metabolites - 1]); ax_gt.set_yticklabels([1, n_metabolites], fontsize=20)
-    fig.colorbar(im_gt, ax=ax_gt, fraction=0.046, pad=0.04).ax.tick_params(labelsize=16)
+    ax_gt.set_ylabel('metabolites', fontsize=14)
+    ax_gt.set_xticks([0, n_test_frames - 1]); ax_gt.set_xticklabels([0, n_test_frames], fontsize=12)
+    ax_gt.set_yticks([0, n_metabolites - 1]); ax_gt.set_yticklabels([1, n_metabolites], fontsize=12)
+    fig.colorbar(im_gt, ax=ax_gt, fraction=0.046, pad=0.04).ax.tick_params(labelsize=12)
 
     # Top-right: GNN prediction (use same color scale as GT for comparison)
     im_pred = ax_pred.imshow(activity_pred, aspect='auto', cmap='viridis', vmin=vmin_true, vmax=vmax_true, origin='lower')
-    ax_pred.set_title('GNN prediction', fontsize=24)
-    ax_pred.set_xticks([0, n_test_frames - 1]); ax_pred.set_xticklabels([0, n_test_frames], fontsize=20)
-    ax_pred.set_yticks([0, n_metabolites - 1]); ax_pred.set_yticklabels([1, n_metabolites], fontsize=20)
-    fig.colorbar(im_pred, ax=ax_pred, fraction=0.046, pad=0.04).ax.tick_params(labelsize=16)
+    ax_pred.set_xticks([0, n_test_frames - 1]); ax_pred.set_xticklabels([0, n_test_frames], fontsize=12)
+    ax_pred.set_yticks([0, n_metabolites - 1]); ax_pred.set_yticklabels([1, n_metabolites], fontsize=12)
+    fig.colorbar(im_pred, ax=ax_pred, fraction=0.046, pad=0.04).ax.tick_params(labelsize=12)
 
     # Bottom-left: Residual
     im_res = ax_res.imshow(residual, aspect='auto', cmap='RdBu_r', vmin=-vmax_res, vmax=vmax_res, origin='lower')
-    ax_res.set_ylabel('metabolites', fontsize=28)
-    ax_res.set_xlabel('time', fontsize=28)
-    ax_res.set_title('residuals', fontsize=24)
-    ax_res.set_xticks([0, n_test_frames - 1]); ax_res.set_xticklabels([0, n_test_frames], fontsize=20)
-    ax_res.set_yticks([0, n_metabolites - 1]); ax_res.set_yticklabels([1, n_metabolites], fontsize=20)
-    fig.colorbar(im_res, ax=ax_res, fraction=0.046, pad=0.04).ax.tick_params(labelsize=16)
+    ax_res.set_ylabel('metabolites', fontsize=14)
+    ax_res.set_xlabel('time', fontsize=14)
+    ax_res.set_xticks([0, n_test_frames - 1]); ax_res.set_xticklabels([0, n_test_frames], fontsize=12)
+    ax_res.set_yticks([0, n_metabolites - 1]); ax_res.set_yticklabels([1, n_metabolites], fontsize=12)
+    fig.colorbar(im_res, ax=ax_res, fraction=0.046, pad=0.04).ax.tick_params(labelsize=12)
 
     # Bottom-right: Scatter true vs predicted (use true concentration range)
     gt_flat = activity_true.flatten()
     pred_flat = activity_pred.flatten()
-    ax_scat.scatter(gt_flat, pred_flat, s=1, alpha=0.1, c='k', rasterized=True)
+    ax_scat.scatter(gt_flat, pred_flat, s=1, alpha=0.1, c='k', rasterized=True, edgecolors=None)
     lims = [vmin_true, vmax_true]
     ax_scat.plot(lims, lims, 'r--', linewidth=2)
     ax_scat.set_xlim(lims); ax_scat.set_ylim(lims)
-    ax_scat.set_xlabel('ground truth concentration', fontsize=28)
-    ax_scat.set_ylabel('predicted concentration', fontsize=28)
-    ax_scat.set_title('true vs predicted', fontsize=24)
-    ax_scat.tick_params(labelsize=18)
+    ax_scat.set_xlabel('ground truth concentration', fontsize=14)
+    ax_scat.set_ylabel('predicted concentration', fontsize=14)
+    ax_scat.tick_params(labelsize=12)
     ax_scat.text(0.05, 0.95, f'R²={test_r2:.3f}\nPearson={test_pearson:.3f}',
-                 transform=ax_scat.transAxes, fontsize=20, va='top')
+                 transform=ax_scat.transAxes, fontsize=12, va='top')
 
     plt.tight_layout()
-    plt.savefig(os.path.join(results_dir, 'kinograph_montage.png'), dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join(results_dir, 'kinograph_montage.png'), dpi=150, bbox_inches='tight')
     plt.close()
 
     # --- concentration traces plot (like concentrations.png but with GT overlay) ---
@@ -962,7 +958,7 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
         r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
         r2_per_trace.append(r2)
 
-    fig, ax = plt.subplots(1, 1, figsize=(20, 12))
+    fig, ax = plt.subplots(1, 1, figsize=(16, 10))
 
     # compute offset based on data range
     offset = np.abs(activity_true[trace_ids]).max() * 1.5
@@ -987,8 +983,8 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
 
     ax.set_xlim([-n_test_frames * 0.05, n_test_frames * 1.1])
     ax.set_ylim([-offset, n_traces * offset])
-    ax.set_xlabel('frame', fontsize=24)
-    ax.set_ylabel('metabolite', fontsize=24)
+    ax.set_xlabel('frame', fontsize=14)
+    ax.set_ylabel('metabolite', fontsize=14)
     ax.spines['left'].set_visible(False)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -999,11 +995,7 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
     from matplotlib.lines import Line2D
     legend_elements = [Line2D([0], [0], color='green', lw=3, label='ground truth'),
                        Line2D([0], [0], color='red', lw=1, label='GNN prediction')]
-    ax.legend(handles=legend_elements, loc='upper right', fontsize=14)
-
-    # Add overall R² in title
-    mean_r2 = np.mean(r2_per_trace)
-    ax.set_title(f'Concentration traces (n={n_traces} of {n_metabolites} metabolites) | mean R²={mean_r2:.3f}', fontsize=20)
+    ax.legend(handles=legend_elements, loc='upper right', fontsize=10)
 
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, 'concentrations.png'), dpi=150)
@@ -1101,10 +1093,10 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
                     linewidth=2, color=color, linestyle='--', alpha=0.5,
                     label=f'$c^{{{s_val}}}$ (scaled)')
 
-    ax.set_xlabel('concentration', fontsize=24)
-    ax.set_ylabel('MLP_sub output', fontsize=24)
-    ax.legend(fontsize=12)
-    ax.tick_params(labelsize=16)
+    ax.set_xlabel('concentration', fontsize=14)
+    ax.set_ylabel('MLP_sub output', fontsize=14)
+    ax.legend(fontsize=10)
+    ax.tick_params(labelsize=12)
     plt.tight_layout()
     plt.savefig(f"{sub_dir}/MLP_sub_{epoch}_{N}.png", dpi=87)
     plt.close()
@@ -1118,7 +1110,7 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
         n_met = model.a.shape[0]
         cmap = plt.cm.get_cmap('tab10')
 
-        fig, ax = plt.subplots(figsize=(10, 8))
+        fig, ax = plt.subplots(figsize=(8, 8))
 
         # plot MLP_node for each individual metabolite
         for i in range(n_met):
@@ -1147,10 +1139,10 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
                                alpha=0.3)
 
         ax.axhline(y=0, color='gray', linestyle='-', alpha=0.3)
-        ax.set_xlabel('concentration $c$', fontsize=24)
-        ax.set_ylabel(r'$\mathrm{MLP_{node}}(c, a)$', fontsize=24)
-        ax.legend(fontsize=12, loc='best')
-        ax.tick_params(labelsize=16)
+        ax.set_xlabel('concentration $c$', fontsize=14)
+        ax.set_ylabel(r'$\mathrm{MLP_{node}}(c, a)$', fontsize=14)
+        ax.legend(fontsize=10, loc='best')
+        ax.tick_params(labelsize=12)
         ax.grid(True, linestyle='--', alpha=0.3)
 
         # set y-axis limits from ground truth range (with margin)
@@ -1187,8 +1179,8 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
             ax.scatter(a_np[pos_np, 0], a_np[pos_np, 1], s=50, color=cmap(t),
                        alpha=0.7, edgecolors=None)
 
-        ax.set_xlabel('embedding 0', fontsize=18)
-        ax.set_ylabel('embedding 1', fontsize=18)
+        ax.set_xlabel('embedding 0', fontsize=14)
+        ax.set_ylabel('embedding 1', fontsize=14)
         ax.tick_params(labelsize=12)
 
     plt.tight_layout()
@@ -1224,7 +1216,6 @@ def _plot_stoichiometry_comparison(model, gt_S, stoich_graph, n_metabolites,
     im0 = axes[0].imshow(
         to_numpy(gt_S_cpu), aspect='auto', cmap='bwr', vmin=-3, vmax=3,
     )
-    axes[0].set_title('Ground Truth', fontsize=12)
     axes[0].set_xlabel('reactions')
     axes[0].set_ylabel('metabolites')
     plt.colorbar(im0, ax=axes[0], fraction=0.046)
@@ -1232,15 +1223,14 @@ def _plot_stoichiometry_comparison(model, gt_S, stoich_graph, n_metabolites,
     im1 = axes[1].imshow(
         to_numpy(learned_S), aspect='auto', cmap='bwr', vmin=-3, vmax=3,
     )
-    axes[1].set_title(f'Learned (epoch {epoch}, iter {N})', fontsize=12)
     axes[1].set_xlabel('reactions')
     axes[1].set_ylabel('metabolites')
     plt.colorbar(im1, ax=axes[1], fraction=0.046)
 
     # panel 3: scatter plot true vs learned
-    axes[2].scatter(gt_edges, learned_edges, s=2, c='k', alpha=0.5)
-    axes[2].set_xlabel(r'true $S_{ij}$', fontsize=12)
-    axes[2].set_ylabel(r'learned $S_{ij}$', fontsize=12)
+    axes[2].scatter(gt_edges, learned_edges, s=2, c='k', alpha=0.5, edgecolors=None)
+    axes[2].set_xlabel(r'true $S_{ij}$', fontsize=14)
+    axes[2].set_ylabel(r'learned $S_{ij}$', fontsize=14)
 
     r_squared = 0.0
     try:
@@ -1299,8 +1289,8 @@ def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N):
 
     # scatter plot true vs learned (log scale)
     ax.scatter(gt_log_k, learned_log_k, s=20, c='k', alpha=0.6, edgecolors=None)
-    ax.set_xlabel(r'true $\log_{10}(k_j)$', fontsize=18)
-    ax.set_ylabel(r'learned $\log_{10}(k_j)$', fontsize=18)
+    ax.set_xlabel(r'true $\log_{10}(k_j)$', fontsize=14)
+    ax.set_ylabel(r'learned $\log_{10}(k_j)$', fontsize=14)
 
     r_squared = 0.0
     r_squared_shifted = 0.0
@@ -1319,16 +1309,16 @@ def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N):
         r_squared_shifted = 1 - (ss_res_shifted / ss_tot_gt) if ss_tot_gt > 0 else 0.0
 
         ax.text(0.05, 0.96, f'$R^2$: {r_squared:.3f}', transform=ax.transAxes,
-                fontsize=14, verticalalignment='top')
+                fontsize=12, verticalalignment='top')
         ax.text(0.05, 0.89, f'$R^2_{{shift}}$: {r_squared_shifted:.3f}', transform=ax.transAxes,
-                fontsize=14, verticalalignment='top')
+                fontsize=12, verticalalignment='top')
         ax.text(0.05, 0.82, f'slope: {lin_fit[0]:.3f}', transform=ax.transAxes,
-                fontsize=14, verticalalignment='top')
+                fontsize=12, verticalalignment='top')
     except Exception:
         pass
 
     ax.text(0.05, 0.75, f'n={n_rxn} reactions', transform=ax.transAxes,
-            fontsize=14, verticalalignment='top')
+            fontsize=12, verticalalignment='top')
 
     # axis limits based on GT data range with small margin
     margin = 0.1 * (gt_log_k.max() - gt_log_k.min())
@@ -1341,7 +1331,7 @@ def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N):
     ax.plot(lims, lims, 'r--', alpha=0.5, linewidth=1)
     ax.set_xlim([x_min, x_max])
     ax.set_ylim(lims)
-    ax.tick_params(labelsize=14)
+    ax.tick_params(labelsize=12)
 
     plt.tight_layout()
     plt.savefig(f"{out_dir}/comparison_{epoch}_{N}.png", dpi=150, bbox_inches='tight')

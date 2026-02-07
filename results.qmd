@@ -4,39 +4,239 @@ date: last-modified
 date-format: "MMMM D, YYYY"
 ---
 
-## Oscillatory Simulation — S Given Mode
+## High-Rank Oscillatory Regime — Rate Constant Recovery
 
-The LLM-driven exploration engine ran 68 iterations (3 blocks of 24, with 4 parallel slots) on the oscillatory simulation regime: 100 metabolites, 256 reactions, 2880 time frames, mass-action kinetics with stoichiometry frozen from ground truth. The goal was to recover the 256 rate constants $k_j$ by optimizing training hyperparameters through UCB tree search.
+The LLM-driven exploration engine is running on the **high-rank oscillatory regime** (activity rank $\sim$50): 100 metabolites, 256 reactions, 2880 time frames, mass-action kinetics with the stoichiometric matrix $\mathbf{S}$ frozen from ground truth. The goal is to recover the 256 rate constants $k_j$ by optimizing training hyperparameters through UCB tree search with 4 parallel slots.
 
-The best rate constant recovery reached $R^2 = 0.58$ (shift-corrected), achieved with the following optimal configuration:
+**16 iterations completed** across 2 blocks. The exploration is ongoing.
 
-| Parameter | Optimal value |
-|-----------|--------------|
-| `lr_k` | 0.005 |
+### Simulation Setup
+
+::: {layout-ncol=2}
+
+![Concentration dynamics of 100 metabolites over 2880 time frames. Activity rank = 48, confirming a high-rank regime where most reactions actively contribute to the dynamics.](figures/rank_50/concentrations.png){#fig-concentrations}
+
+![Stoichiometric matrix $\mathbf{S}$ (100 metabolites $\times$ 256 reactions). Red = products (+1), blue = substrates (--1). The matrix is sparse with autocatalytic cycle motifs.](figures/rank_50/stoichiometry.png){#fig-stoichiometry}
+
+:::
+
+### Best Configuration
+
+The best rate constant recovery reached $R^2 = 0.54$ (iteration 5), with:
+
+| Parameter | Value |
+|-----------|-------|
+| `lr_k` | 0.001 |
 | `lr_node` | 0.001 |
 | `lr_sub` | 0.0005 |
 | `batch_size` | 8 |
 | `n_epochs` | 1 |
-| `data_augmentation_loop` | 2000 |
+| `data_augmentation_loop` | 1000 |
 | `coeff_k_center` | 5.0 |
-| `coeff_MLP_sub_diff` | 3–5 |
-| `coeff_MLP_node_L1` | 0.5–1.0 |
+| `coeff_MLP_sub_diff` | 5 |
+| `coeff_MLP_node_L1` | 1.0 |
+
+### Best Result — Rate Constants Recovery
+
+::: {layout-ncol=2}
+
+![**Iteration 5** (best, $R^2 = 0.54$): Scatter plot of learned vs true $\log_{10}(k_j)$ for 256 reactions. The main cluster follows the diagonal but ~40 outlier reactions collapse to $\log k \approx -7$, far from the true range $[-2, -1]$.](figures/rank_50/rate_constants_best.png){#fig-k-best}
+
+![**Iteration 1** (baseline, $R^2 = 0.09$): With `lr_k=0.005` (from prior low-rank exploration), the rate constants barely separate. This established that the high-rank regime requires lower `lr_k`.](figures/rank_50/rate_constants_baseline.png){#fig-k-baseline}
+
+:::
+
+### Learned MLP Functions
+
+![**Best result (iter 5)** — **Left**: MLP$_\text{sub}$ (substrate function) learns $c^1$ well (solid blue vs dashed GT) but deviates from $c^2$ (solid orange vs dashed). **Right**: MLP$_\text{node}$ (homeostasis) stays flat at zero (solid lines) despite the ground truth showing linear decreasing functions (dashed). This MLP$_\text{node}$ learning failure persists across all 16 iterations.](figures/rank_50/mlp_best.png){#fig-mlp-best}
+
+### Dynamics Prediction
+
+![**Kinograph comparison (iter 5)**: Ground truth (left) vs GNN prediction (right). Despite recovering rate constants ($R^2 = 0.54$), the dynamics prediction is poor (Pearson = 0.016). The GNN produces saturated flat bands, indicating the learned model does not capture the oscillatory dynamics. The residuals (bottom left) and scatter (bottom right) confirm the mismatch.](figures/rank_50/kinograph_best.png){#fig-kinograph}
+
+### Full Iteration History
+
+```{python}
+#| code-fold: true
+#| label: fig-iterations
+#| fig-cap: "Rate constants R² across 16 iterations. Color: green (R² ≥ 0.5), orange (0.3–0.5), red (< 0.3). Dashed line marks the best result."
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+iters = list(range(1, 17))
+r2 = [0.094, 0.478, 0.081, 0.363, 0.537, 0.059, 0.417, 0.040,
+      0.291, 0.124, 0.469, 0.062, 0.523, 0.251, 0.335, 0.428]
+
+labels = [
+    'baseline\nlr_k=0.005',
+    'lr_k=0.002',
+    'lr_node=0.002',
+    'lr_sub=0.001',
+    'lr_k=0.001\n(BEST)',
+    'lr_k=0.0005',
+    'lr_sub=0.001',
+    'lr_k=0.003',
+    'aug=1500',
+    'lr_node=0.002',
+    'L1_node=0.5',
+    'lr_k=0.0015',
+    'L1_node=0.0',
+    'recurrent\nts=4',
+    'seed=56\n(replication)',
+    'k_center=10',
+]
+
+colors = []
+for r in r2:
+    if r >= 0.5:
+        colors.append('#2ecc71')
+    elif r >= 0.3:
+        colors.append('#f39c12')
+    else:
+        colors.append('#e74c3c')
+
+fig, ax = plt.subplots(figsize=(14, 5))
+bars = ax.bar(iters, r2, color=colors, edgecolor='white', linewidth=0.5)
+ax.axhline(y=0.537, color='#2ecc71', linestyle='--', alpha=0.5, label='Best R² = 0.54')
+ax.axvspan(0.5, 4.5, alpha=0.05, color='blue', label='Batch 1')
+ax.axvspan(4.5, 8.5, alpha=0.05, color='orange', label='Batch 2')
+ax.axvspan(8.5, 12.5, alpha=0.05, color='green', label='Batch 3')
+ax.axvspan(12.5, 16.5, alpha=0.05, color='purple', label='Batch 4')
+
+for i, (it, v, lab) in enumerate(zip(iters, r2, labels)):
+    ax.text(it, v + 0.015, f'{v:.2f}', ha='center', va='bottom', fontsize=7, fontweight='bold')
+    ax.text(it, -0.06, lab, ha='center', va='top', fontsize=5.5, rotation=0)
+
+ax.set_xlabel('Iteration')
+ax.set_ylabel('rate_constants_R²')
+ax.set_ylim(-0.15, 0.65)
+ax.set_xticks(iters)
+ax.legend(loc='upper right', fontsize=8)
+ax.set_title('UCB Exploration: Rate Constant Recovery (High-Rank Regime)')
+plt.tight_layout()
+plt.show()
+```
 
 ### Key Findings
 
-**Sharp optima.** Several hyperparameters have narrow optimal ranges. `lr_k = 0.005` is a sharp optimum — both 0.004 and 0.006 degrade $R^2$ by 10$\times$. Similarly, `coeff_k_center = 5.0` is strictly optimal; values of 4.0 or 6.0 cause significant regression.
+#### 1. Sharp learning rate optimum
 
-**Scale ambiguity regularization matters.** The `coeff_k_center` regularization anchoring $\text{mean}(\log k)$ to the ground-truth range center was essential. Without it, the learned rate constants absorb a multiplicative offset into the MLP$_\text{sub}$ output, making the scatter plot slope deviate from 1.
+`lr_k = 0.001` is an extremely narrow optimum for the rate constant learning rate. Even a 50% perturbation destroys performance:
 
-**Regularization interactions.** `coeff_MLP_sub_diff` and `coeff_MLP_node_L1` interact: the combination (diff=5, node\_L1=0.5) and (diff=3, node\_L1=1.0) both work, but (diff=3, node\_L1=0.5) fails. Reducing `coeff_MLP_node_L1` below 0.5 causes the MLP$_\text{sub}$ to learn an inverse (negative correlation) function.
+| `lr_k` | $R^2$ | Status |
+|---------|-------|--------|
+| 0.0005 | 0.06 | failed |
+| **0.001** | **0.54** | **best** |
+| 0.0015 | 0.06 | failed |
+| 0.002 | 0.48 | partial |
+| 0.003 | 0.04 | failed |
+| 0.005 | 0.09 | failed |
 
-**Non-reproducibility.** Results are highly sensitive to random seed. The same configuration can yield $R^2$ ranging from 0.09 to 0.57 across different seeds. Working seeds identified: 45, 48, 49, 50, 52, 55. This suggests the optimization landscape has many local minima.
+This sharp peak suggests the optimization landscape has a narrow valley: too high and $k$ values overshoot, too low and the MLPs compensate before $k$ can converge.
 
-**MLP$_\text{node}$ limitation.** Across all runs, the MLP$_\text{node}$ (homeostasis) did not learn the true homeostatic function $-\lambda_i(c_i - c_i^{\text{baseline}})$. It consistently shows a flat or weakly decreasing pattern, suggesting the architecture may need modification to better capture per-metabolite homeostatic regulation.
+#### 2. MLP$_\text{node}$ does not learn homeostasis
+
+Across all 16 iterations, MLP$_\text{node}$ (the homeostatic regulation function) stays flat at zero (@fig-mlp-best, right panel). This persists regardless of:
+
+- Higher `lr_node` (0.002): no effect
+- Reduced L1 penalty (`coeff_MLP_node_L1` = 0.5): no effect
+- Removed L1 penalty (`coeff_MLP_node_L1` = 0.0): no effect
+
+The homeostatic terms ($\lambda \sim 0.001$--$0.002$) are small relative to the reaction rate terms ($k \sim 0.01$--$0.1$), so the gradient signal flowing to MLP$_\text{node}$ may be insufficient to escape the zero initialization.
+
+#### 3. Persistent rate constant outliers
+
+Approximately 40 out of 256 reactions consistently learn incorrect $\log_{10}(k)$ values (at $-6$ to $-8$, far from the true range $[-2, -1]$). These outliers are visible in @fig-k-best and are not reduced by:
+
+- Stronger `coeff_k_center` (10.0 vs 5.0)
+- Longer training (`data_augmentation_loop` = 1500)
+
+They may correspond to reactions whose substrate concentrations provide insufficient gradient signal, or reactions involved in particular network motifs where the loss landscape has degenerate solutions.
+
+#### 4. Recurrent rollout training
+
+::: {layout-ncol=2}
+
+![**Iter 13** ($R^2 = 0.52$, `L1_node=0`): Similar pattern to best result. Removing MLP$_\text{node}$ L1 penalty entirely did not help homeostasis learning.](figures/rank_50/rate_constants_iter13.png){#fig-k-iter13}
+
+![**Iter 14** ($R^2 = 0.25$, `recurrent, ts=4`): Multi-step rollout training with `time_step=4` worsened recovery. More outlier reactions and weaker main cluster.](figures/rank_50/rate_constants_recurrent.png){#fig-k-recurrent}
+
+:::
+
+Multi-step rollout training (`recurrent_training=true`, `time_step=4`) was tested to break the degeneracy between correct and incorrect $k$ values. With `lr_k=0.001`, it worsened $R^2$ from 0.54 to 0.25. The 4-step integration amplified gradients too aggressively.
+
+A gentler approach (`time_step=2`, `lr_k=0.0007`) is currently being tested.
+
+#### 5. High seed variance
+
+The same configuration yields $R^2$ from 0.34 to 0.54 depending on the random seed ($\Delta R^2 \sim 0.2$). This implies the optimization landscape has many local minima, and results must be interpreted with caution.
+
+### Exploration Strategies Tested
+
+```{python}
+#| code-fold: true
+#| label: fig-strategies
+#| fig-cap: "Parameter sensitivity analysis across 16 iterations. Each panel shows R² vs one parameter dimension. Green: R² ≥ 0.5, orange: 0.3–0.5, red: < 0.3."
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+strategies = {
+    'lr_k': [(0.005, 0.094), (0.002, 0.478), (0.001, 0.537), (0.0005, 0.059), (0.003, 0.040), (0.0015, 0.062)],
+    'lr_node': [(0.001, 0.537), (0.002, 0.081), (0.002, 0.124)],
+    'lr_sub': [(0.0005, 0.537), (0.001, 0.363), (0.001, 0.417)],
+    'coeff_node_L1': [(1.0, 0.537), (0.5, 0.469), (0.0, 0.523)],
+    'coeff_k_center': [(5.0, 0.537), (10.0, 0.428)],
+    'data_aug_loop': [(1000, 0.537), (1500, 0.291)],
+    'recurrent (ts)': [(1, 0.537), (4, 0.251)],
+    'seed only': [(46, 0.537), (56, 0.335)],
+}
+
+fig, axes = plt.subplots(2, 4, figsize=(14, 6))
+axes = axes.flatten()
+
+for idx, (param, points) in enumerate(strategies.items()):
+    ax = axes[idx]
+    xs = [p[0] for p in points]
+    ys = [p[1] for p in points]
+    colors = ['#2ecc71' if y >= 0.5 else '#f39c12' if y >= 0.3 else '#e74c3c' for y in ys]
+    ax.scatter(xs, ys, c=colors, s=60, edgecolors='black', linewidth=0.5, zorder=3)
+    ax.axhline(y=0.537, color='gray', linestyle='--', alpha=0.3)
+    ax.set_title(param, fontsize=9)
+    ax.set_ylabel('R²', fontsize=8)
+    ax.set_ylim(-0.05, 0.65)
+    ax.tick_params(labelsize=7)
+    if param == 'lr_k':
+        ax.set_xscale('log')
+
+plt.suptitle('Parameter Sensitivity Analysis', fontsize=12, y=1.02)
+plt.tight_layout()
+plt.show()
+```
+
+### Current Exploration Status
+
+The exploration is entering **batch 5** (iterations 17--20) with four new strategies:
+
+| Slot | Strategy | Mutation |
+|------|----------|----------|
+| 0 | exploit | `lr_node`: 0.001 $\to$ 0.005, `L1_node`=0 (force MLP$_\text{node}$ activation) |
+| 1 | exploit | `recurrent_training`=true, `time_step`=2, `lr_k`=0.0007 (gentler rollout) |
+| 2 | explore | seed replication (seed=60, baseline config) |
+| 3 | principle-test | `coeff_MLP_sub_diff`: 5 $\to$ 10 (stronger monotonicity), `L1_node`=0 |
+
+### Unexplored Dimensions
+
+The following parameter dimensions have not yet been tested and represent the next frontier:
+
+- **MLP architecture**: `hidden_dim_sub`, `n_layers_sub`, `hidden_dim_node`, `n_layers_node` (all at default 64/3). Smaller MLPs could act as implicit regularization.
+- **Batch size**: All runs used `batch_size=8`. Larger batches (16, 32) may give smoother gradients.
+- **n_epochs > 1**: Multi-epoch training has not been tested in the high-rank regime.
 
 ### Open Questions
 
-- Can $R^2$ be pushed above 0.6 with architectural changes?
-- Is the non-reproducibility inherent to the optimization landscape or addressable with better initialization?
-- Can the MLP$_\text{node}$ architecture be modified to learn homeostasis (e.g., explicit linear bias term)?
-- Will unfreezing the stoichiometry matrix $\mathbf{S}$ improve or degrade rate constant recovery?
+1. **MLP$_\text{node}$ learning failure**: Is the homeostatic signal too weak relative to reaction terms, or is there an architectural barrier? Would `lr_node` = 0.005--0.01 finally activate it?
+2. **Outlier reactions**: What structural property do the ~40 outlier reactions share? Are they in specific network motifs?
+3. **Recurrent training**: Can a gentler rollout (`time_step=2`, reduced `lr_k`) break the degeneracy without destabilizing training?
+4. **Seed dependence**: Is the $\Delta R^2 \sim 0.2$ variance inherent to the loss landscape, or can better initialization reduce it?

@@ -7,7 +7,7 @@ title: "MetabolismGraph: Learning Metabolism Dynamics with Graph Neural Networks
 **MetabolismGraph** is a framework for learning the structure of metabolic networks from concentration dynamics using Graph Neural Networks (GNNs). Given time-series measurements of metabolite concentrations, the model recovers:
 
 1. **Rate constants** $k_j$ — the intrinsic speed of each reaction
-2. **Homeostatic parameters** $\lambda_i$, $c_i^{\text{baseline}}$ — metabolite regulation
+2. **Functional forms** $f_{\text{sub}}(c, s)$, $f_{\text{node}}(c)$ — how substrates drive reactions and how metabolites self-regulate
 
 ## The Full Model
 

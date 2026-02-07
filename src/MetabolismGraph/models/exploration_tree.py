@@ -246,7 +246,7 @@ def plot_exploration_tree(nodes: list[ExperimentNode],
             marker = 'o'
 
         ax1.scatter(x, y, c=color, s=size, marker=marker,
-                   edgecolors='black', linewidths=0.5, zorder=2)
+                   edgecolors=None, zorder=2)
 
         # Add iteration number
         ax1.annotate(str(node.iteration), (x, y),
@@ -256,16 +256,16 @@ def plot_exploration_tree(nodes: list[ExperimentNode],
     ax1.axhline(y=0.9, color='green', linestyle=':', alpha=0.5, label='Converged (0.9)')
     ax1.axhline(y=0.1, color='red', linestyle=':', alpha=0.5, label='Failed (0.1)')
 
-    ax1.set_xlabel('Iteration', fontsize=11)
-    ax1.set_ylabel(primary_metric_label, fontsize=11)
-    ax1.set_title('Convergence Trajectory', fontsize=12)
+    ax1.set_xlabel('Iteration', fontsize=14)
+    ax1.set_ylabel(primary_metric_label, fontsize=14)
+    ax1.tick_params(axis='both', labelsize=12)
     ax1.set_ylim(-0.05, 1.05)
     ax1.grid(True, alpha=0.3)
 
     # Add legend for status colors
     legend_patches = [mpatches.Patch(color=c, label=s.capitalize())
                      for s, c in status_colors.items() if s in [n.status for n in nodes]]
-    ax1.legend(handles=legend_patches, loc='lower right', fontsize=8)
+    ax1.legend(handles=legend_patches, loc='lower right', fontsize=10)
 
     # --- Top right: Parameter space exploration (2D) ---
     x_vals = []
@@ -299,23 +299,22 @@ def plot_exploration_tree(nodes: list[ExperimentNode],
 
         # Scatter plot
         ax2.scatter(x_vals, y_vals, c=colors, s=sizes,
-                   edgecolors='black', linewidths=0.5, alpha=0.8)
+                   edgecolors=None, alpha=0.8)
 
         # Add iteration labels
         for i, (x, y, label) in enumerate(zip(x_vals, y_vals, labels)):
             ax2.annotate(str(label), (x, y), ha='center', va='center',
                         fontsize=6, fontweight='bold')
 
-        ax2.set_xlabel(param_x, fontsize=11)
-        ax2.set_ylabel(param_y, fontsize=11)
-        ax2.set_title(f'Parameter Space: {param_x} vs {param_y}', fontsize=12)
+        ax2.set_xlabel(param_x, fontsize=14)
+        ax2.set_ylabel(param_y, fontsize=14)
+        ax2.tick_params(axis='both', labelsize=12)
         ax2.set_xscale('log')
         ax2.set_yscale('log')
         ax2.grid(True, alpha=0.3)
     else:
         ax2.text(0.5, 0.5, f'Parameters {param_x} and {param_y}\nnot found in config',
-                ha='center', va='center', transform=ax2.transAxes)
-        ax2.set_title(f'Parameter Space: {param_x} vs {param_y}', fontsize=12)
+                ha='center', va='center', fontsize=12, transform=ax2.transAxes)
 
     # --- Bottom: Parameter changes timeline ---
     param_names = set()
@@ -340,7 +339,7 @@ def plot_exploration_tree(nodes: list[ExperimentNode],
             if node.changed_param and node.changed_param in y_positions:
                 y = y_positions[node.changed_param]
                 color = status_colors.get(node.status, '#95a5a6')
-                ax3.scatter(x, y, c=color, s=80, marker='>', zorder=2)
+                ax3.scatter(x, y, c=color, s=80, marker='>', zorder=2, edgecolors=None)
 
                 # Add value annotation
                 if node.new_value:
@@ -349,19 +348,17 @@ def plot_exploration_tree(nodes: list[ExperimentNode],
 
         ax3.set_yticks(range(len(key_params)))
         ax3.set_yticklabels(key_params)
-        ax3.set_xlabel('Iteration', fontsize=11)
-        ax3.set_ylabel('Changed Parameter', fontsize=11)
-        ax3.set_title('Parameter Changes Over Time', fontsize=12)
+        ax3.set_xlabel('Iteration', fontsize=14)
+        ax3.set_ylabel('Changed Parameter', fontsize=14)
+        ax3.tick_params(axis='both', labelsize=12)
         ax3.grid(True, alpha=0.3)
         ax3.set_xlim(0, max(n.iteration for n in nodes) + 1)
         ax3.set_ylim(-0.5, len(key_params) - 0.5)
 
-    # Add overall title
-    fig.suptitle(title, fontsize=14, y=0.98)
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.tight_layout()
 
     if output_path:
-        plt.savefig(output_path, dpi=300, bbox_inches='tight')
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
         print(f"Saved exploration tree to {output_path}")
     else:
         plt.show()
@@ -436,14 +433,14 @@ def plot_data_exploration(nodes: list[ExperimentNode],
     if svd_ranks:
         for sr, spec, cr, c, it, ct in zip(svd_ranks, spectral_radii, conn_r2s, colors, iterations, conn_types):
             marker = connectivity_markers.get(ct, 'o')
-            ax1.scatter(sr, spec, c=c, s=120, marker=marker, edgecolors='black', linewidths=0.5, alpha=0.8, zorder=2)
+            ax1.scatter(sr, spec, c=c, s=120, marker=marker, edgecolors=None, alpha=0.8, zorder=2)
             ax1.annotate(str(it), (sr, spec), ha='center', va='bottom', fontsize=7, fontweight='bold', xytext=(0, 5), textcoords='offset points')
 
         ax1.axhline(y=1.0, color='orange', linestyle=':', alpha=0.5, label='edge of chaos')
         ax1.axvline(x=10, color='blue', linestyle=':', alpha=0.5, label='min complexity')
-        ax1.set_xlabel('svd_rank (activity complexity)', fontsize=11)
-        ax1.set_ylabel('spectral_radius', fontsize=11)
-        ax1.set_title('Activity Complexity vs Dynamics Stability', fontsize=12)
+        ax1.set_xlabel('svd_rank (activity complexity)', fontsize=14)
+        ax1.set_ylabel('spectral_radius', fontsize=14)
+        ax1.tick_params(axis='both', labelsize=12)
         ax1.grid(True, alpha=0.3)
 
         # legend for status colors
@@ -455,10 +452,9 @@ def plot_data_exploration(nodes: list[ExperimentNode],
                                        markerfacecolor='gray', markersize=8, linestyle='None'))
         legend_elements.append(Line2D([0], [0], marker='s', color='gray', label='low_rank',
                                        markerfacecolor='gray', markersize=8, linestyle='None'))
-        ax1.legend(handles=legend_elements, loc='upper right', fontsize=8)
+        ax1.legend(handles=legend_elements, loc='upper right', fontsize=10)
     else:
-        ax1.text(0.5, 0.5, 'No data', ha='center', va='center', transform=ax1.transAxes)
-        ax1.set_title('Activity Complexity vs Dynamics Stability', fontsize=12)
+        ax1.text(0.5, 0.5, 'No data', ha='center', va='center', fontsize=12, transform=ax1.transAxes)
 
     # --- Panel 2: UCB Tree Structure (parent-child relationships) ---
     # Build tree structure from parent field in analysis log
@@ -564,7 +560,7 @@ def plot_data_exploration(nodes: list[ExperimentNode],
 
         conn_type = node.config.get('connectivity_type', 'chaotic')
         marker = connectivity_markers.get(conn_type, 'o')
-        ax2.scatter(x, y, c=color, s=size, marker=marker, edgecolors='black', linewidths=1, zorder=2)
+        ax2.scatter(x, y, c=color, s=size, marker=marker, edgecolors=None, zorder=2)
 
         # Label: node id on top, UCB below
         ax2.annotate(str(node.iteration), (x, y), ha='center', va='center',
@@ -579,14 +575,13 @@ def plot_data_exploration(nodes: list[ExperimentNode],
         ucb = ucb_values[node.iteration]['ucb']
         ax2.annotate(f'{ucb:.1f}', (x, y), ha='left', va='center', fontsize=6, xytext=(8, 0), textcoords='offset points')
 
-    ax2.set_xlabel('Tree Depth', fontsize=11)
-    ax2.set_ylabel('Branch', fontsize=11)
-    ax2.set_title('Parent-Child Tree (size = UCB)', fontsize=12)
+    ax2.set_xlabel('Tree Depth', fontsize=14)
+    ax2.set_ylabel('Branch', fontsize=14)
+    ax2.tick_params(axis='both', labelsize=12)
     ax2.set_xlim(-0.5, max(depth_map.values()) + 0.5 if depth_map else 1)
     ax2.grid(True, alpha=0.3)
 
-    fig.suptitle(title, fontsize=14, y=0.98)
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.tight_layout()
 
     if output_path:
         plt.savefig(output_path, dpi=150, bbox_inches='tight')
@@ -649,16 +644,16 @@ def plot_parameter_space(nodes: list[ExperimentNode],
 
     # Scatter plot
     scatter = ax.scatter(x_vals, y_vals, c=colors, s=sizes,
-                        edgecolors='black', linewidths=0.5, alpha=0.8)
+                        edgecolors=None, alpha=0.8)
 
     # Add iteration labels
     for i, (x, y, label) in enumerate(zip(x_vals, y_vals, labels)):
         ax.annotate(str(label), (x, y), ha='center', va='center',
                    fontsize=7, fontweight='bold')
 
-    ax.set_xlabel(param_x, fontsize=12)
-    ax.set_ylabel(param_y, fontsize=12)
-    ax.set_title(f'Parameter Space Exploration: {param_x} vs {param_y}', fontsize=14)
+    ax.set_xlabel(param_x, fontsize=14)
+    ax.set_ylabel(param_y, fontsize=14)
+    ax.tick_params(axis='both', labelsize=12)
     ax.set_xscale('log')
     ax.set_yscale('log')
     ax.grid(True, alpha=0.3)
@@ -666,7 +661,7 @@ def plot_parameter_space(nodes: list[ExperimentNode],
     # Legend
     legend_patches = [mpatches.Patch(color=c, label=s.capitalize())
                      for s, c in status_colors.items()]
-    ax.legend(handles=legend_patches, loc='best')
+    ax.legend(handles=legend_patches, loc='best', fontsize=10)
 
     plt.tight_layout()
 
@@ -727,8 +722,7 @@ def compute_ucb_scores(analysis_path, ucb_path, c=1.0, current_log_path=None, cu
         current_log_path: Path to current iteration's analysis.log (optional)
         current_iteration: Current iteration number (optional)
         block_size: Size of each simulation block (default 12)
-        config_file: Config file name (optional). When it contains 'metabolism',
-            uses stoichiometry_R2 instead of connectivity_R2 as primary metric.
+        config_file: Config file name (optional, unused)
 
     Returns:
         True if UCB scores were computed, False if no nodes found
@@ -738,10 +732,7 @@ def compute_ucb_scores(analysis_path, ucb_path, c=1.0, current_log_path=None, cu
         from the current block are included in UCB scores. Block N covers
         iterations (N*block_size)+1 to (N+1)*block_size.
     """
-    # Detect primary metric based on config
-    # S given mode: optimize rate_constants_R2 (k recovery)
-    is_metabolism = config_file is not None and 'metabolism' in str(config_file)
-    primary_metric = 'rate_constants_R2' if is_metabolism else 'connectivity_R2'
+    primary_metric = 'rate_constants_R2'
     nodes = {}
     next_parent_map = {}  # maps iteration N -> parent for iteration N+1 (from "Next: parent=P")
 

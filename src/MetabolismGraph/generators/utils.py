@@ -97,18 +97,7 @@ def plot_loss(loss_dict, log_dir, epoch=None, Niter=None, debug=False,
             print("\n  warning: negative prediction loss! regul > total loss")
         print("="*60)
 
-    fig_loss, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
-
-    # add epoch and iteration info as text annotation
-    info_text = ""
-    if epoch is not None:
-        info_text += f"epoch: {epoch}"
-    if Niter is not None:
-        if info_text:
-            info_text += " | "
-        info_text += f"iterations/epoch: {Niter}"
-    if info_text:
-        fig_loss.suptitle(info_text, fontsize=20, y=0.995)
+    fig_loss, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 
     # build optional components list from LOSS_COLORS (metabolism-specific)
     # plus legacy components for NeuralGraph compatibility
@@ -131,25 +120,23 @@ def plot_loss(loss_dict, log_dir, epoch=None, Niter=None, debug=False,
     for key, color, lw, label in optional_components:
         if key in loss_dict:
             ax1.plot(loss_dict[key], color=color, linewidth=lw, label=label, alpha=0.7)
-    ax1.set_xlabel('iteration', fontsize=16)
-    ax1.set_ylabel('loss', fontsize=16)
-    ax1.set_title('loss vs iteration', fontsize=18)
+    ax1.set_xlabel('iteration', fontsize=14)
+    ax1.set_ylabel('loss', fontsize=14)
     ax1.legend(fontsize=10, loc='best', ncol=2)
     ax1.grid(True, alpha=0.3)
-    ax1.tick_params(labelsize=14)
+    ax1.tick_params(labelsize=12)
 
     # log scale
     ax2.plot(loss_dict['loss'], color=loss_color, linewidth=loss_lw, label=loss_label, alpha=0.8)
     for key, color, lw, label in optional_components:
         if key in loss_dict:
             ax2.plot(loss_dict[key], color=color, linewidth=lw, label=label, alpha=0.7)
-    ax2.set_xlabel('iteration', fontsize=16)
-    ax2.set_ylabel('loss', fontsize=16)
+    ax2.set_xlabel('iteration', fontsize=14)
+    ax2.set_ylabel('loss (log)', fontsize=14)
     ax2.set_yscale('log')
-    ax2.set_title('loss vs iteration (Log)', fontsize=18)
     ax2.legend(fontsize=10, loc='best', ncol=2)
     ax2.grid(True, alpha=0.3, which='both')
-    ax2.tick_params(labelsize=14)
+    ax2.tick_params(labelsize=12)
 
     plt.tight_layout()
     plt.savefig(f'{log_dir}/tmp_training/loss.tif', dpi=150)
@@ -331,18 +318,18 @@ def plot_metabolism_concentrations(x_list, n_metabolites, n_frames, dataset_name
     spacing = np.std(conc_plot) * 3 if np.std(conc_plot) > 0 else 1.0
     conc_plot = conc_plot - spacing * np.arange(n_plot)[:, None] + spacing * n_plot / 2
 
-    plt.figure(figsize=(18, 12))
+    plt.figure(figsize=(16, 10))
     plt.plot(conc_plot.T, linewidth=2, alpha=0.7)
 
     for i in range(0, n_plot, 5):
         plt.text(-100, conc_plot[i, 0], str(sampled_indices[i]),
-                 fontsize=12, va='center', ha='right')
+                 fontsize=10, va='center', ha='right')
 
     ax = plt.gca()
     ax.text(-n_frames * 0.12, conc_plot.mean(), 'metabolite index',
-            fontsize=18, va='center', ha='center', rotation=90)
-    plt.xlabel('time (min)', fontsize=18)
-    plt.xticks(fontsize=14)
+            fontsize=14, va='center', ha='center', rotation=90)
+    plt.xlabel('time (min)', fontsize=14)
+    plt.xticks(fontsize=12)
     ax.spines['left'].set_visible(False)
     ax.spines['top'].set_visible(False)
     ax.yaxis.set_ticks_position('right')
@@ -352,10 +339,10 @@ def plot_metabolism_concentrations(x_list, n_metabolites, n_frames, dataset_name
     # add activity rank in top left
     if activity_rank is not None:
         ax.text(0.02, 0.98, f'activity rank = {activity_rank}',
-                transform=ax.transAxes, fontsize=16, va='top', ha='left')
+                transform=ax.transAxes, fontsize=12, va='top', ha='left')
 
     plt.tight_layout()
-    plt.savefig(f'graphs_data/{dataset_name}/concentrations.png', dpi=300)
+    plt.savefig(f'graphs_data/{dataset_name}/concentrations.png', dpi=150)
     plt.close()
 
 
@@ -370,19 +357,19 @@ def plot_stoichiometric_matrix(S, dataset_name):
 
     vmax = max(np.max(np.abs(S_np)), 1)
 
-    # main heatmap
-    plt.figure(figsize=(10, 10))
+    # main heatmap — aspect ratio matches matrix shape
+    fig_w = max(8, min(12, n_rxn / n_met * 8))
+    plt.figure(figsize=(fig_w, 8))
     ax = sns.heatmap(S_np, center=0, square=False, cmap='bwr',
                      cbar_kws={'fraction': 0.046}, vmin=-vmax, vmax=vmax)
     cbar = ax.collections[0].colorbar
-    cbar.ax.tick_params(labelsize=32)
+    cbar.ax.tick_params(labelsize=12)
 
-    plt.xticks([0, n_rxn - 1], [1, n_rxn], fontsize=48)
-    plt.yticks([0, n_met - 1], [1, n_met], fontsize=48)
+    plt.xticks([0, n_rxn - 1], [1, n_rxn], fontsize=14)
+    plt.yticks([0, n_met - 1], [1, n_met], fontsize=14)
     plt.xticks(rotation=0)
-    plt.xlabel('reaction', fontsize=48)
-    plt.ylabel('metabolite', fontsize=48)
-    plt.title('stoichiometric matrix', fontsize=28)
+    plt.xlabel('reaction', fontsize=14)
+    plt.ylabel('metabolite', fontsize=14)
 
     # zoom inset (top-left corner)
     zoom = min(20, n_met, n_rxn)
@@ -394,7 +381,7 @@ def plot_stoichiometric_matrix(S, dataset_name):
         plt.yticks([])
 
     plt.tight_layout()
-    plt.savefig(f'graphs_data/{dataset_name}/connectivity_matrix.png', dpi=100)
+    plt.savefig(f'graphs_data/{dataset_name}/connectivity_matrix.png', dpi=150)
     plt.close()
 
 
@@ -409,24 +396,22 @@ def plot_stoichiometric_eigenvalues(S, dataset_name):
 
     U, sigma, Vt = np.linalg.svd(S_np, full_matrices=False)
 
-    fig, axes = plt.subplots(1, 3, figsize=(30, 10))
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
     # (0) singular values
-    axes[0].scatter(range(len(sigma)), sigma, s=50, c='k', alpha=0.7, edgecolors='none')
-    axes[0].set_xlabel('index', fontsize=32)
-    axes[0].set_ylabel('singular value', fontsize=32)
-    axes[0].tick_params(labelsize=20)
-    axes[0].set_title('singular values', fontsize=28)
+    axes[0].scatter(range(len(sigma)), sigma, s=50, c='k', alpha=0.7, edgecolors=None)
+    axes[0].set_xlabel('index', fontsize=14)
+    axes[0].set_ylabel('singular value', fontsize=14)
+    axes[0].tick_params(labelsize=12)
     axes[0].text(0.05, 0.95, f'rank: {np.sum(sigma > 1e-6)}',
-                 transform=axes[0].transAxes, fontsize=20, verticalalignment='top')
+                 transform=axes[0].transAxes, fontsize=12, verticalalignment='top')
 
     # (1) singular values (log scale)
     axes[1].plot(sigma, c='k', linewidth=2)
-    axes[1].set_xlabel('index', fontsize=32)
-    axes[1].set_ylabel('singular value', fontsize=32)
+    axes[1].set_xlabel('index', fontsize=14)
+    axes[1].set_ylabel('singular value (log)', fontsize=14)
     axes[1].set_yscale('log')
-    axes[1].tick_params(labelsize=20)
-    axes[1].set_title('singular values (log scale)', fontsize=28)
+    axes[1].tick_params(labelsize=12)
 
     # (2) cumulative variance explained
     cumvar = np.cumsum(sigma ** 2) / np.sum(sigma ** 2)
@@ -435,12 +420,11 @@ def plot_stoichiometric_eigenvalues(S, dataset_name):
     axes[2].plot(cumvar, c='k', linewidth=2)
     axes[2].axhline(y=0.9, color='gray', linestyle='--', linewidth=1)
     axes[2].axhline(y=0.99, color='gray', linestyle=':', linewidth=1)
-    axes[2].set_xlabel('index', fontsize=32)
-    axes[2].set_ylabel('cumulative variance', fontsize=32)
-    axes[2].tick_params(labelsize=20)
-    axes[2].set_title('cumulative variance explained', fontsize=28)
+    axes[2].set_xlabel('index', fontsize=14)
+    axes[2].set_ylabel('cumulative variance', fontsize=14)
+    axes[2].tick_params(labelsize=12)
     axes[2].text(0.5, 0.5, f'rank(90%): {rank_90}\nrank(99%): {rank_99}',
-                 transform=axes[2].transAxes, fontsize=20, verticalalignment='center')
+                 transform=axes[2].transAxes, fontsize=12, verticalalignment='center')
 
     plt.tight_layout()
     plt.savefig(f'graphs_data/{dataset_name}/eigenvalues.png', dpi=150)
@@ -459,30 +443,28 @@ def plot_rate_distribution(model, dataset_name):
     log_k = to_numpy(model.log_k.detach())
     k = 10.0 ** log_k
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 
     # log10(k_j) histogram
     ax1.hist(log_k, bins=20, color='steelblue', edgecolor='black', alpha=0.8)
-    ax1.set_xlabel('log$_{10}$(k$_j$)', fontsize=24)
-    ax1.set_ylabel('count', fontsize=24)
-    ax1.set_title('rate constants (log scale)', fontsize=24)
-    ax1.tick_params(labelsize=18)
+    ax1.set_xlabel('log$_{10}$(k$_j$)', fontsize=14)
+    ax1.set_ylabel('count', fontsize=14)
+    ax1.tick_params(labelsize=12)
     ax1.axvline(x=np.median(log_k), color='red', linestyle='--', linewidth=2,
                 label=f'median = {np.median(k):.3f}')
-    ax1.legend(fontsize=16)
+    ax1.legend(fontsize=10)
 
     # raw k_j histogram (log x-axis)
     ax2.hist(k, bins=np.logspace(np.log10(k.min()), np.log10(k.max()), 20),
              color='coral', edgecolor='black', alpha=0.8)
     ax2.set_xscale('log')
-    ax2.set_xlabel('k$_j$', fontsize=24)
-    ax2.set_ylabel('count', fontsize=24)
-    ax2.set_title('rate constants', fontsize=24)
-    ax2.tick_params(labelsize=18)
+    ax2.set_xlabel('k$_j$', fontsize=14)
+    ax2.set_ylabel('count', fontsize=14)
+    ax2.tick_params(labelsize=12)
     ax2.axvline(x=np.median(k), color='red', linestyle='--', linewidth=2)
 
     plt.tight_layout()
-    plt.savefig(f'graphs_data/{dataset_name}/rate_distribution.png', dpi=200)
+    plt.savefig(f'graphs_data/{dataset_name}/rate_distribution.png', dpi=150)
     plt.close()
     print(f'  k range: [{k.min():.4f}, {k.max():.4f}], median: {np.median(k):.4f}')
 
@@ -508,7 +490,7 @@ def plot_homeostasis_function(model, x_list, dataset_name, colormap='tab10'):
 
     cmap = plt.cm.get_cmap(colormap)
 
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=(8, 8))
 
     for t in range(n_types):
         lambda_t = p[t, 0]
@@ -520,11 +502,10 @@ def plot_homeostasis_function(model, x_list, dataset_name, colormap='tab10'):
         ax.axvline(x=c_baseline_t, color=cmap(t), linestyle='--', alpha=0.5)
 
     ax.axhline(y=0, color='gray', linestyle='-', alpha=0.3)
-    ax.set_xlabel('concentration $c$', fontsize=24)
-    ax.set_ylabel(r'$-\lambda (c - c^{\mathrm{baseline}})$', fontsize=24)
-    ax.legend(fontsize=12)
-    ax.tick_params(labelsize=16)
-    ax.set_title(f'Homeostasis function ({n_types} types)', fontsize=18)
+    ax.set_xlabel('concentration $c$', fontsize=14)
+    ax.set_ylabel(r'$-\lambda (c - c^{\mathrm{baseline}})$', fontsize=14)
+    ax.legend(fontsize=10)
+    ax.tick_params(labelsize=12)
     ax.grid(True, linestyle='--', alpha=0.3)
 
     # add concentration histogram as inset in top-right (smaller)
@@ -534,7 +515,7 @@ def plot_homeostasis_function(model, x_list, dataset_name, colormap='tab10'):
     ax_inset.set_ylabel('count', fontsize=7)
     ax_inset.tick_params(labelsize=6)
 
-    plt.savefig(f'graphs_data/{dataset_name}/homeostasis_function.png', dpi=200)
+    plt.savefig(f'graphs_data/{dataset_name}/homeostasis_function.png', dpi=150)
     plt.close()
     print(f'  saved graphs_data/{dataset_name}/homeostasis_function.png')
 
@@ -574,14 +555,13 @@ def plot_metabolism_mlp_functions(model, x_list, dataset_name, device):
         true_power = np.power(c_np + 1e-8, s_val)
         ax.plot(c_np, true_power, linewidth=2, color=color, label=f'$c^{{{s_val}}}$')
 
-    ax.set_xlabel('concentration $c$', fontsize=24)
-    ax.set_ylabel(r'$c^{|s|}$', fontsize=24)
-    ax.legend(fontsize=16)
-    ax.tick_params(labelsize=16)
-    ax.set_title('power law substrate functions', fontsize=16)
+    ax.set_xlabel('concentration $c$', fontsize=14)
+    ax.set_ylabel(r'$c^{|s|}$', fontsize=14)
+    ax.legend(fontsize=10)
+    ax.tick_params(labelsize=12)
 
     plt.tight_layout()
-    plt.savefig(f'{folder}/substrate_function.png', dpi=200)
+    plt.savefig(f'{folder}/substrate_function.png', dpi=150)
     plt.close()
 
     # --- rate_func: compute actual h_rxn from a data frame, plot rate vs ||h_rxn|| ---
@@ -609,23 +589,21 @@ def plot_metabolism_mlp_functions(model, x_list, dataset_name, device):
         h_norm = h_rxn.norm(dim=-1)
 
     # left panel: base rate (before k scaling) vs ||h_rxn||
-    axes[0].scatter(to_numpy(h_norm), to_numpy(base_rate), s=12, c='k', alpha=0.5)
-    axes[0].set_xlabel(r'$\|h_{rxn}\|$', fontsize=24)
-    axes[0].set_ylabel(r'rate\_func($h$)', fontsize=24)
-    axes[0].tick_params(labelsize=16)
-    axes[0].set_title(f'base rate vs aggregated message ({model.n_rxn} reactions)', fontsize=14)
+    axes[0].scatter(to_numpy(h_norm), to_numpy(base_rate), s=12, c='k', alpha=0.5, edgecolors=None)
+    axes[0].set_xlabel(r'$\|h_{rxn}\|$', fontsize=14)
+    axes[0].set_ylabel(r'rate\_func($h$)', fontsize=14)
+    axes[0].tick_params(labelsize=12)
 
     # right panel: full rate (k * base) vs ||h_rxn||, colored by log_k
     sc = axes[1].scatter(to_numpy(h_norm), to_numpy(full_rate), s=12,
-                         c=to_numpy(model.log_k.detach()), cmap='coolwarm', alpha=0.6)
+                         c=to_numpy(model.log_k.detach()), cmap='coolwarm', alpha=0.6, edgecolors=None)
     plt.colorbar(sc, ax=axes[1], label=r'$\log_{10}(k_j)$')
-    axes[1].set_xlabel(r'$\|h_{rxn}\|$', fontsize=24)
-    axes[1].set_ylabel(r'$k_j \cdot$ rate\_func($h$)', fontsize=24)
-    axes[1].tick_params(labelsize=16)
-    axes[1].set_title('full rate (k-scaled)', fontsize=14)
+    axes[1].set_xlabel(r'$\|h_{rxn}\|$', fontsize=14)
+    axes[1].set_ylabel(r'$k_j \cdot$ rate\_func($h$)', fontsize=14)
+    axes[1].tick_params(labelsize=12)
 
     plt.tight_layout()
-    plt.savefig(f'{folder}/rate_function.png', dpi=200)
+    plt.savefig(f'{folder}/rate_function.png', dpi=150)
     plt.close()
     print(f'  saved {folder}/substrate_function.png and {folder}/rate_function.png')
 
@@ -655,17 +633,17 @@ def plot_metabolism_kinograph(x_list, n_metabolites, n_frames, dataset_name, del
         vmin = 0
         vmax = np.abs(conc).max()
 
-    plt.figure(figsize=(15, 10))
+    plt.figure(figsize=(12, 8))
     plt.imshow(conc, aspect='auto', cmap='viridis', vmin=vmin, vmax=vmax, origin='lower', interpolation='nearest')
     cbar = plt.colorbar(fraction=0.046, pad=0.04)
-    cbar.ax.tick_params(labelsize=32)
-    cbar.set_label('concentration', fontsize=32)
-    plt.ylabel('metabolite', fontsize=64)
-    plt.xlabel('time (min)', fontsize=64)
-    plt.xticks([0, n_frames_plot - 1], [0, int(n_frames_plot * delta_t)], fontsize=48)
-    plt.yticks([0, n_metabolites - 1], [1, n_metabolites], fontsize=48)
+    cbar.ax.tick_params(labelsize=12)
+    cbar.set_label('concentration', fontsize=14)
+    plt.ylabel('metabolite', fontsize=14)
+    plt.xlabel('time (min)', fontsize=14)
+    plt.xticks([0, n_frames_plot - 1], [0, int(n_frames_plot * delta_t)], fontsize=12)
+    plt.yticks([0, n_metabolites - 1], [1, n_metabolites], fontsize=12)
     plt.tight_layout()
-    plt.savefig(f'graphs_data/{dataset_name}/kinograph.png', dpi=300)
+    plt.savefig(f'graphs_data/{dataset_name}/kinograph.png', dpi=150)
     plt.close()
 
 
@@ -680,15 +658,15 @@ def plot_metabolism_external_input_kinograph(x_list, n_metabolites, n_frames, da
 
     n_frames_plot = ext_input.shape[1]
 
-    plt.figure(figsize=(15, 10))
+    plt.figure(figsize=(12, 8))
     plt.imshow(ext_input, aspect='auto', cmap='viridis', vmin=ext_input.min(), vmax=ext_input.max(), origin='lower', interpolation='nearest')
     cbar = plt.colorbar(fraction=0.046, pad=0.04)
-    cbar.ax.tick_params(labelsize=32)
-    cbar.set_label('external input', fontsize=32)
-    plt.ylabel('metabolite', fontsize=64)
-    plt.xlabel('time (min)', fontsize=64)
-    plt.xticks([0, n_frames_plot - 1], [0, int(n_frames_plot * delta_t)], fontsize=48)
-    plt.yticks([0, n_metabolites - 1], [1, n_metabolites], fontsize=48)
+    cbar.ax.tick_params(labelsize=12)
+    cbar.set_label('external input', fontsize=14)
+    plt.ylabel('metabolite', fontsize=14)
+    plt.xlabel('time (min)', fontsize=14)
+    plt.xticks([0, n_frames_plot - 1], [0, int(n_frames_plot * delta_t)], fontsize=12)
+    plt.yticks([0, n_metabolites - 1], [1, n_metabolites], fontsize=12)
     plt.tight_layout()
-    plt.savefig(f'graphs_data/{dataset_name}/kinograph_external_input.png', dpi=300)
+    plt.savefig(f'graphs_data/{dataset_name}/kinograph_external_input.png', dpi=150)
     plt.close()

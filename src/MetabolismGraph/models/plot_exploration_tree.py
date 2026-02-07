@@ -218,11 +218,11 @@ def plot_ucb_tree(nodes: list[UCBNode],
 
         if is_leaf:
             # Cross marker for leaf nodes
-            ax.scatter(x, y, c=color, s=size, marker='x', linewidths=3, zorder=2)
+            ax.scatter(x, y, c=color, s=size, marker='x', linewidths=3, zorder=2, edgecolors=None)
         else:
             # Circle marker for internal nodes
             ax.scatter(x, y, c=color, s=size, marker='o',
-                      edgecolors='black', linewidths=0.5, zorder=2)
+                      edgecolors=None, zorder=2)
 
         # Label: node id inside/near the marker (always black)
         ax.annotate(str(node.id), (x, y), ha='center', va='center',
@@ -310,7 +310,7 @@ def plot_ucb_tree(nodes: list[UCBNode],
             sim_formatted = '\n'.join(sim_lines)
         # Place at top left using axes coordinates (0,1 = top left)
         ax.text(0.02, 0.98, sim_formatted, transform=ax.transAxes,
-                fontsize=11, ha='left', va='top', color='#333333')
+                fontsize=12, ha='left', va='top', color='#333333')
 
     # Remove axis labels and ticks
     ax.set_xlabel('')
@@ -338,7 +338,7 @@ def plot_ucb_tree(nodes: list[UCBNode],
         plt.Line2D([0], [0], marker='x', color='gray', label='Leaf node',
                    markerfacecolor='gray', markersize=8, linestyle='None', markeredgewidth=2),
     ]
-    legend = ax.legend(handles=legend_elements, loc='upper right', fontsize=9,
+    legend = ax.legend(handles=legend_elements, loc='upper right', fontsize=10,
                        facecolor='white', edgecolor='black', framealpha=1.0)
     # Ensure legend text is black
     for text in legend.get_texts():
@@ -347,7 +347,7 @@ def plot_ucb_tree(nodes: list[UCBNode],
     plt.tight_layout()
 
     if output_path:
-        plt.savefig(output_path, dpi=300, bbox_inches='tight')
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
     else:
         plt.show()
 

@@ -1,5 +1,5 @@
 description: designed by Claude (parallel)
-dataset: simulation_oscillatory_Claude_03
+dataset: simulation_oscillatory_rank_50_Claude_03
 simulation:
   n_metabolites: 100
   n_metabolite_types: 2
@@ -14,7 +14,7 @@ simulation:
   cycle_fraction: 1.0
   cycle_length: 3
   use_mass_action: true
-  log_k_min: -2.5
+  log_k_min: -2.0
   log_k_max: -1.0
   flux_limit: false
   homeostatic_strength: 0.0
@@ -36,6 +36,10 @@ graph_model:
   output_size: 1
   hidden_dim: 64
   n_layers: 3
+  hidden_dim_sub: 32
+  n_layers_sub: 3
+  hidden_dim_node: 64
+  n_layers_node: 3
   aggr_type: mul
   update_type: none
 plotting:
@@ -45,10 +49,10 @@ training:
   n_runs: 1
   device: auto
   batch_size: 8
-  seed: 45
-  data_augmentation_loop: 2000
+  seed: 63
+  data_augmentation_loop: 1000
   learning_rate_start: 0.001
-  learning_rate_k: 0.005
+  learning_rate_k: 0.001
   learning_rate_node: 0.001
   learning_rate_sub: 0.0005
   freeze_stoichiometry: true
@@ -56,12 +60,14 @@ training:
   coeff_S_L1: 0.0
   coeff_S_integer: 0.0
   coeff_mass_conservation: 0.0
-  coeff_MLP_sub_diff: 5
-  coeff_MLP_node_L1: 1.0
+  coeff_MLP_sub_diff: 10
+  coeff_MLP_node_L1: 0.0
   coeff_k_center: 5.0
+  recurrent_training: false
+  time_step: 1
 claude:
   n_epochs: 1
   data_augmentation_loop: 1000
-  n_iter_block: 24
+  n_iter_block: 12
   ucb_c: 1.414
   node_name: a100

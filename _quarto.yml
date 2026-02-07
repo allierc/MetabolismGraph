@@ -14,6 +14,8 @@ website:
         href: model.qmd
       - text: "GNN-LLM-Memory"
         href: gnn-llm-memory.qmd
+      - text: "Results"
+        href: results.qmd
       - text: "References"
         href: references.qmd
     tools:

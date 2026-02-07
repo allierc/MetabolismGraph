@@ -765,7 +765,7 @@ Fix the bug. Do NOT make other changes."""
                 pre_folder, iteration,
                 iter_in_block=iter_in_block, block_number=block_number
             )
-            activity_paths[slot] = artifact_paths['activity_path']
+            activity_paths[slot] = artifact_paths['concentrations_path']
 
             # save config file for EVERY iteration (not just block start)
             config_save_dir = f"{exploration_dir}/config"
@@ -848,7 +848,7 @@ Fix the bug. Do NOT make other changes."""
             slot_info_lines.append(
                 f"Slot {slot} (iteration {iteration}) [{status}]:\n"
                 f"  Metrics: {analysis_log_paths[slot]}\n"
-                f"  Activity: {act_path}\n"
+                f"  Concentrations: {act_path}\n"
                 f"  Config: {config_paths[slot]}"
             )
         slot_info = "\n\n".join(slot_info_lines)
@@ -918,8 +918,7 @@ IMPORTANT: Do NOT change the 'dataset' field in any config — it must stay as-i
                 sim_info += f", max_per_rxn={config.simulation.max_metabolites_per_reaction}"
                 plot_ucb_tree(nodes, ucb_tree_path,
                               title=f"UCB Tree - Batch {batch_first}-{batch_last}",
-                              simulation_info=sim_info,
-                              config_file=config_file)
+                              simulation_info=sim_info)
 
         # save instruction file at first iteration of each block
         protocol_save_dir = f"{exploration_dir}/protocol"
@@ -947,3 +946,5 @@ IMPORTANT: Do NOT change the 'dataset' field in any config — it must stay as-i
 
 # python GNN_LLM_parallel.py -o generate_train_test_plot_Claude_cluster metabolism_1 iterations=120
 # python GNN_LLM_parallel.py -o generate_train_test_plot_Claude_cluster metabolism_1 iterations=120 --resume
+
+# python GNN_LLM_parallel.py -o generate_train_test_plot_Claude_cluster simulation_oscillatory_rank_50 iterations=512

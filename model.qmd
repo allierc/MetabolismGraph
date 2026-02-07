@@ -140,7 +140,7 @@ Example cycle: $A + B \to 2B, \quad B + C \to 2C, \quad C + A \to 2A$
 | Initial concentrations | [1.0, 9.0] |
 | Flux limiting | Disabled |
 
-![](graphs_data/simulation_oscillatory/concentrations.png){width=100%}
+![](graphs_data/simulation_oscillatory_rank_20/concentrations.png){width=100%}
 
 ## Activity Rank
 
@@ -154,6 +154,29 @@ $$\text{rank}_{99} = \min \left\{ k : \frac{\sum_{i=1}^{k} \sigma_i^2}{\sum_{i=1
 
 - **Low rank** (1-5): concentrations are highly correlated, dynamics are simple (equilibration or uniform decay)
 - **High rank** (>20): metabolites evolve independently with rich, complex dynamics
+
+### Increasing Activity Rank
+
+With the baseline oscillatory config ($k_j \in [10^{-2.5}, 10^{-1}]$, 256 reactions), the activity rank is **24**. Systematic exploration of simulation parameters revealed that activity rank is controlled by the **number of actively contributing reactions per metabolite**. Three parameters have a significant effect:
+
+| Change | Activity Rank | Effect |
+|--------|:---:|--------|
+| Baseline | 24 | Reference |
+| Narrow $k$ range: $[10^{-2.0}, 10^{-1}]$ | **50** | Eliminates slow inert reactions |
+| Double reactions: 512 | **47** | More overlapping cycles per metabolite |
+| Zero homeostasis: $\lambda = 0$ | **37** | Removes linear damping |
+
+The most impactful single change is **narrowing the rate constant range** from $[10^{-2.5}, 10^{-1}]$ to $[10^{-2.0}, 10^{-1}]$. With the wider range, ~40% of reactions have $k < 0.01$ and contribute negligibly to the dynamics. Removing these inert reactions doubles the activity rank.
+
+| Parameter | Value |
+|-----------|-------|
+| n_metabolites | 100 |
+| n_reactions | 256 |
+| Stoichiometry | 100% autocatalytic 3-cycles |
+| Rate constants $k_j$ | $[10^{-2.0}, 10^{-1}]$ |
+| All other parameters | Same as oscillatory baseline |
+
+![](graphs_data/simulation_oscillatory_rank_50/concentrations.png){width=100%}
 
 ## Summary: The Full Model
 

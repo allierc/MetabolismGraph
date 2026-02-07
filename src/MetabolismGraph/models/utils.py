@@ -257,11 +257,15 @@ def analyze_data_svd(x_list, output_folder, config=None, max_components=100, log
 
     k = min(max_components, min(n_frames_sampled, n_metabolites) - 1)
 
-    if use_randomized:
-        U_act, S_act, Vt_act = randomized_svd(activity, n_components=k, random_state=42)
-    else:
-        U_act, S_act, Vt_act = np.linalg.svd(activity, full_matrices=False)
-        S_act = S_act[:k]
+    try:
+        if use_randomized:
+            U_act, S_act, Vt_act = randomized_svd(activity, n_components=k, random_state=42)
+        else:
+            U_act, S_act, Vt_act = np.linalg.svd(activity, full_matrices=False)
+            S_act = S_act[:k]
+    except np.linalg.LinAlgError:
+        log_print("  SVD did not converge — skipping SVD analysis")
+        return {'activity': {'rank_90': None, 'rank_99': None}}
 
     # compute cumulative variance
     cumvar_act = np.cumsum(S_act**2) / np.sum(S_act**2)
@@ -911,12 +915,13 @@ def save_exploration_artifacts(root_dir, exploration_dir, config, config_file_, 
     config_save_dir = f"{exploration_dir}/config"
     scatter_save_dir = f"{exploration_dir}/stoichiometry_scatter"
     matrix_save_dir = f"{exploration_dir}/stoichiometry_matrix"
-    activity_save_dir = f"{exploration_dir}/activity"
+    concentrations_save_dir = f"{exploration_dir}/concentrations"
     mlp_save_dir = f"{exploration_dir}/mlp"
     tree_save_dir = f"{exploration_dir}/exploration_tree"
     protocol_save_dir = f"{exploration_dir}/protocol"
     kinograph_save_dir = f"{exploration_dir}/kinograph"
     embedding_save_dir = f"{exploration_dir}/embedding"
+    rate_constants_save_dir = f"{exploration_dir}/rate_constants"
 
     # create directories at start of experiment (clear only on iteration 1)
     if iteration == 1:
@@ -926,12 +931,13 @@ def save_exploration_artifacts(root_dir, exploration_dir, config, config_file_, 
     os.makedirs(config_save_dir, exist_ok=True)
     os.makedirs(scatter_save_dir, exist_ok=True)
     os.makedirs(matrix_save_dir, exist_ok=True)
-    os.makedirs(activity_save_dir, exist_ok=True)
+    os.makedirs(concentrations_save_dir, exist_ok=True)
     os.makedirs(mlp_save_dir, exist_ok=True)
     os.makedirs(tree_save_dir, exist_ok=True)
     os.makedirs(protocol_save_dir, exist_ok=True)
     os.makedirs(kinograph_save_dir, exist_ok=True)
     os.makedirs(embedding_save_dir, exist_ok=True)
+    os.makedirs(rate_constants_save_dir, exist_ok=True)
 
     is_block_start = (iter_in_block == 1)
 
@@ -942,7 +948,7 @@ def save_exploration_artifacts(root_dir, exploration_dir, config, config_file_, 
         if os.path.exists(src_config):
             shutil.copy2(src_config, dst_config)
 
-    # save stoichiometry scatterplot
+    # save stoichiometry scatterplot (S learning mode)
     matrix_dir = f"{root_dir}/log/{pre_folder}{config_file_}/tmp_training/matrix"
     scatter_files = glob.glob(f"{matrix_dir}/comparison_*.png")
     if scatter_files:
@@ -950,49 +956,62 @@ def save_exploration_artifacts(root_dir, exploration_dir, config, config_file_, 
         dst_scatter = f"{scatter_save_dir}/iter_{iteration:03d}.png"
         shutil.copy2(latest_scatter, dst_scatter)
 
+    # save rate constants scatterplot (S given / freeze_stoichiometry mode)
+    rate_dir = f"{root_dir}/log/{pre_folder}{config_file_}/tmp_training/rate_constants"
+    rate_files = glob.glob(f"{rate_dir}/comparison_*.png")
+    if rate_files:
+        latest_rate = max(rate_files, key=os.path.getmtime)
+        dst_rate = f"{rate_constants_save_dir}/iter_{iteration:03d}.png"
+        shutil.copy2(latest_rate, dst_rate)
+
     # save stoichiometry matrix heatmap only at first iteration of each block
     data_folder = f"{root_dir}/graphs_data/{config.dataset}"
     if is_block_start:
-        src_matrix = f"{data_folder}/stoichiometry_matrix.png"
+        src_matrix = f"{data_folder}/connectivity_matrix.png"
         dst_matrix = f"{matrix_save_dir}/block_{block_number:03d}.png"
         if os.path.exists(src_matrix):
             shutil.copy2(src_matrix, dst_matrix)
 
-    # save concentration plot only at first iteration of each block
-    activity_path = f"{data_folder}/concentration.png"
+    # save concentrations plot only at first iteration of each block
+    concentrations_path = f"{data_folder}/concentrations.png"
     if is_block_start:
-        dst_activity = f"{activity_save_dir}/block_{block_number:03d}.png"
-        if os.path.exists(activity_path):
-            shutil.copy2(activity_path, dst_activity)
+        dst_conc = f"{concentrations_save_dir}/block_{block_number:03d}.png"
+        if os.path.exists(concentrations_path):
+            shutil.copy2(concentrations_path, dst_conc)
 
-    # save combined MLP plot
+    # save combined MLP plot (functions_combined or substrate_func + rate_func)
     results_dir = f"{root_dir}/log/{pre_folder}{config_file_}/results"
-    src_mlp0 = f"{results_dir}/MLP0.png"
-    src_mlp1 = f"{results_dir}/MLP1_corrected.png"
-    if os.path.exists(src_mlp0) and os.path.exists(src_mlp1):
-        try:
-            img0 = mpimg.imread(src_mlp0)
-            img1 = mpimg.imread(src_mlp1)
-            fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-            axes[0].imshow(img0)
-            axes[0].set_title('MLP0', fontsize=12)
-            axes[0].axis('off')
-            axes[1].imshow(img1)
-            axes[1].set_title('MLP1 (corrected)', fontsize=12)
-            axes[1].axis('off')
-            plt.tight_layout()
-            plt.savefig(f"{mlp_save_dir}/iter_{iteration:03d}_MLP.png", dpi=150, bbox_inches='tight')
-            plt.close()
-        except Exception as e:
-            print(f"\033[93mwarning: could not combine MLP plots: {e}\033[0m")
+    src_combined = f"{results_dir}/functions_combined.png"
+    if os.path.exists(src_combined):
+        shutil.copy2(src_combined, f"{mlp_save_dir}/iter_{iteration:03d}_MLP.png")
+    else:
+        # fallback: combine substrate_func + rate_func
+        src_mlp0 = f"{results_dir}/substrate_func.png"
+        src_mlp1 = f"{results_dir}/rate_func.png"
+        if os.path.exists(src_mlp0) and os.path.exists(src_mlp1):
+            try:
+                img0 = mpimg.imread(src_mlp0)
+                img1 = mpimg.imread(src_mlp1)
+                fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+                axes[0].imshow(img0)
+                axes[0].set_title('substrate_func', fontsize=12)
+                axes[0].axis('off')
+                axes[1].imshow(img1)
+                axes[1].set_title('rate_func', fontsize=12)
+                axes[1].axis('off')
+                plt.tight_layout()
+                plt.savefig(f"{mlp_save_dir}/iter_{iteration:03d}_MLP.png", dpi=150, bbox_inches='tight')
+                plt.close()
+            except Exception as e:
+                print(f"\033[93mwarning: could not combine MLP plots: {e}\033[0m")
 
     # save kinograph montage
     src_montage = f"{results_dir}/kinograph_montage.png"
     if os.path.exists(src_montage):
         shutil.copy2(src_montage, f"{kinograph_save_dir}/iter_{iteration:03d}.png")
 
-    # save embedding plot
-    embedding_dir = f"{root_dir}/log/{pre_folder}{config_file_}/tmp_training/embedding"
+    # save embedding plot (saved at log/{dataset}/embedding/, not tmp_training/embedding/)
+    embedding_dir = f"{root_dir}/log/{pre_folder}{config_file_}/embedding"
     if os.path.isdir(embedding_dir):
         embed_files = glob.glob(f"{embedding_dir}/*.png")
         if embed_files:
@@ -1005,11 +1024,12 @@ def save_exploration_artifacts(root_dir, exploration_dir, config, config_file_, 
         'config_save_dir': config_save_dir,
         'scatter_save_dir': scatter_save_dir,
         'matrix_save_dir': matrix_save_dir,
-        'activity_save_dir': activity_save_dir,
+        'concentrations_save_dir': concentrations_save_dir,
         'mlp_save_dir': mlp_save_dir,
         'tree_save_dir': tree_save_dir,
         'protocol_save_dir': protocol_save_dir,
         'kinograph_save_dir': kinograph_save_dir,
         'embedding_save_dir': embedding_save_dir,
-        'activity_path': activity_path
+        'rate_constants_save_dir': rate_constants_save_dir,
+        'concentrations_path': concentrations_path
     }

@@ -1,0 +1,67 @@
+description: Oscillatory baseline (activity rank ~24)
+dataset: simulation_oscillatory_rank_20
+
+simulation:
+  n_metabolites: 100
+  n_metabolite_types: 2
+  n_reactions: 256
+  max_metabolites_per_reaction: 4
+  n_frames: 2880
+  delta_t: 0.1
+  start_frame: 0
+  seed: 42
+  # wider initial concentration range for more dynamics
+  concentration_min: 1.0
+  concentration_max: 9.0
+  # cyclic structures: 100% reactions form autocatalytic cycles (A+B→2B)
+  cycle_fraction: 1.0
+  cycle_length: 3
+  # use true mass-action kinetics: v = k * Π(c^s) for oscillations
+  use_mass_action: true
+  # rate constants: k in [0.003, 0.1] - moderate for stable oscillations
+  log_k_min: -2.5
+  log_k_max: -1.0
+  # no flux limiting for freer oscillatory dynamics
+  flux_limit: false
+  # per-type homeostatic regulation
+  homeostatic_strength: 0.0
+  homeostatic_lambda_per_type: [0.001, 0.002]
+  homeostatic_baseline_per_type: [4.0, 6.0]
+  baseline_mode: fixed
+  baseline_concentration: 5.0
+  kinograph_range: 2.0
+  circadian_amplitude: 0.0
+  circadian_period: 1440
+
+graph_model:
+  model_name: PDE_M1
+  prediction: first_derivative
+  input_size: 2
+  output_size: 1
+  hidden_dim: 64
+  n_layers: 3
+  aggr_type: mul
+  update_type: none
+
+plotting:
+  colormap: tab20
+
+training:
+  n_epochs: 1
+  n_runs: 1
+  device: auto
+  batch_size: 8
+  seed: 42
+  data_augmentation_loop: 4000
+  learning_rate_start: 0.001
+  learning_rate_k: 0.001
+  learning_rate_node: 0.001
+  learning_rate_sub: 0.001
+  freeze_stoichiometry: true
+  learning_rate_S_start: 0.0
+  coeff_S_L1: 0.0
+  coeff_S_integer: 0.0
+  coeff_mass_conservation: 0.0
+  coeff_MLP_sub_diff: 10
+  coeff_MLP_node_L1: 1.0
+  coeff_k_center: 1.0

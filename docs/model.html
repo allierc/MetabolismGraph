@@ -134,6 +134,10 @@ window.Quarto = {
 <span class="menu-text">GNN-LLM-Memory</span></a>
   </li>  
   <li class="nav-item">
+    <a class="nav-link" href="./results.html"> 
+<span class="menu-text">Results</span></a>
+  </li>  
+  <li class="nav-item">
     <a class="nav-link" href="./references.html"> 
 <span class="menu-text">References</span></a>
   </li>  
@@ -162,7 +166,10 @@ window.Quarto = {
   <li><a href="#homeostasis" id="toc-homeostasis" class="nav-link" data-scroll-target="#homeostasis">2. Homeostasis</a></li>
   <li><a href="#oscillatory" id="toc-oscillatory" class="nav-link" data-scroll-target="#oscillatory">3. Oscillatory</a></li>
   </ul></li>
-  <li><a href="#activity-rank" id="toc-activity-rank" class="nav-link" data-scroll-target="#activity-rank">Activity Rank</a></li>
+  <li><a href="#activity-rank" id="toc-activity-rank" class="nav-link" data-scroll-target="#activity-rank">Activity Rank</a>
+  <ul class="collapse">
+  <li><a href="#increasing-activity-rank" id="toc-increasing-activity-rank" class="nav-link" data-scroll-target="#increasing-activity-rank">Increasing Activity Rank</a></li>
+  </ul></li>
   <li><a href="#summary-the-full-model" id="toc-summary-the-full-model" class="nav-link" data-scroll-target="#summary-the-full-model">Summary: The Full Model</a></li>
   </ul>
 </nav>
@@ -417,7 +424,7 @@ flowchart LR
 </tr>
 </tbody>
 </table>
-<p><img src="graphs_data/simulation_oscillatory/concentrations.png" class="img-fluid" style="width:100.0%"></p>
+<p><img src="graphs_data/simulation_oscillatory_rank_20/concentrations.png" class="img-fluid" style="width:100.0%"></p>
 </section>
 </section>
 <section id="activity-rank" class="level2">
@@ -430,6 +437,78 @@ flowchart LR
 <li><strong>Low rank</strong> (1-5): concentrations are highly correlated, dynamics are simple (equilibration or uniform decay)</li>
 <li><strong>High rank</strong> (&gt;20): metabolites evolve independently with rich, complex dynamics</li>
 </ul>
+<section id="increasing-activity-rank" class="level3">
+<h3 class="anchored" data-anchor-id="increasing-activity-rank">Increasing Activity Rank</h3>
+<p>With the baseline oscillatory config (<span class="math inline">\(k_j \in [10^{-2.5}, 10^{-1}]\)</span>, 256 reactions), the activity rank is <strong>24</strong>. Systematic exploration of simulation parameters revealed that activity rank is controlled by the <strong>number of actively contributing reactions per metabolite</strong>. Three parameters have a significant effect:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 38%">
+<col style="width: 23%">
+<col style="width: 38%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Change</th>
+<th style="text-align: center;">Activity Rank</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Baseline</td>
+<td style="text-align: center;">24</td>
+<td>Reference</td>
+</tr>
+<tr class="even">
+<td>Narrow <span class="math inline">\(k\)</span> range: <span class="math inline">\([10^{-2.0}, 10^{-1}]\)</span></td>
+<td style="text-align: center;"><strong>50</strong></td>
+<td>Eliminates slow inert reactions</td>
+</tr>
+<tr class="odd">
+<td>Double reactions: 512</td>
+<td style="text-align: center;"><strong>47</strong></td>
+<td>More overlapping cycles per metabolite</td>
+</tr>
+<tr class="even">
+<td>Zero homeostasis: <span class="math inline">\(\lambda = 0\)</span></td>
+<td style="text-align: center;"><strong>37</strong></td>
+<td>Removes linear damping</td>
+</tr>
+</tbody>
+</table>
+<p>The most impactful single change is <strong>narrowing the rate constant range</strong> from <span class="math inline">\([10^{-2.5}, 10^{-1}]\)</span> to <span class="math inline">\([10^{-2.0}, 10^{-1}]\)</span>. With the wider range, ~40% of reactions have <span class="math inline">\(k &lt; 0.01\)</span> and contribute negligibly to the dynamics. Removing these inert reactions doubles the activity rank.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>n_metabolites</td>
+<td>100</td>
+</tr>
+<tr class="even">
+<td>n_reactions</td>
+<td>256</td>
+</tr>
+<tr class="odd">
+<td>Stoichiometry</td>
+<td>100% autocatalytic 3-cycles</td>
+</tr>
+<tr class="even">
+<td>Rate constants <span class="math inline">\(k_j\)</span></td>
+<td><span class="math inline">\([10^{-2.0}, 10^{-1}]\)</span></td>
+</tr>
+<tr class="odd">
+<td>All other parameters</td>
+<td>Same as oscillatory baseline</td>
+</tr>
+</tbody>
+</table>
+<p><img src="graphs_data/simulation_oscillatory_rank_50/concentrations.png" class="img-fluid" style="width:100.0%"></p>
+</section>
 </section>
 <section id="summary-the-full-model" class="level2">
 <h2 class="anchored" data-anchor-id="summary-the-full-model">Summary: The Full Model</h2>

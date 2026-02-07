@@ -1,0 +1,40 @@
+---
+title: "Results"
+---
+
+## Oscillatory Simulation — S Given Mode
+
+The LLM-driven exploration engine ran 68 iterations (3 blocks of 24, with 4 parallel slots) on the oscillatory simulation regime: 100 metabolites, 256 reactions, 2880 time frames, mass-action kinetics with stoichiometry frozen from ground truth. The goal was to recover the 256 rate constants $k_j$ by optimizing training hyperparameters through UCB tree search.
+
+The best rate constant recovery reached $R^2 = 0.58$ (shift-corrected), achieved with the following optimal configuration:
+
+| Parameter | Optimal value |
+|-----------|--------------|
+| `lr_k` | 0.005 |
+| `lr_node` | 0.001 |
+| `lr_sub` | 0.0005 |
+| `batch_size` | 8 |
+| `n_epochs` | 1 |
+| `data_augmentation_loop` | 2000 |
+| `coeff_k_center` | 5.0 |
+| `coeff_MLP_sub_diff` | 3–5 |
+| `coeff_MLP_node_L1` | 0.5–1.0 |
+
+### Key Findings
+
+**Sharp optima.** Several hyperparameters have narrow optimal ranges. `lr_k = 0.005` is a sharp optimum — both 0.004 and 0.006 degrade $R^2$ by 10$\times$. Similarly, `coeff_k_center = 5.0` is strictly optimal; values of 4.0 or 6.0 cause significant regression.
+
+**Scale ambiguity regularization matters.** The `coeff_k_center` regularization anchoring $\text{mean}(\log k)$ to the ground-truth range center was essential. Without it, the learned rate constants absorb a multiplicative offset into the MLP$_\text{sub}$ output, making the scatter plot slope deviate from 1.
+
+**Regularization interactions.** `coeff_MLP_sub_diff` and `coeff_MLP_node_L1` interact: the combination (diff=5, node\_L1=0.5) and (diff=3, node\_L1=1.0) both work, but (diff=3, node\_L1=0.5) fails. Reducing `coeff_MLP_node_L1` below 0.5 causes the MLP$_\text{sub}$ to learn an inverse (negative correlation) function.
+
+**Non-reproducibility.** Results are highly sensitive to random seed. The same configuration can yield $R^2$ ranging from 0.09 to 0.57 across different seeds. Working seeds identified: 45, 48, 49, 50, 52, 55. This suggests the optimization landscape has many local minima.
+
+**MLP$_\text{node}$ limitation.** Across all runs, the MLP$_\text{node}$ (homeostasis) did not learn the true homeostatic function $-\lambda_i(c_i - c_i^{\text{baseline}})$. It consistently shows a flat or weakly decreasing pattern, suggesting the architecture may need modification to better capture per-metabolite homeostatic regulation.
+
+### Open Questions
+
+- Can $R^2$ be pushed above 0.6 with architectural changes?
+- Is the non-reproducibility inherent to the optimization landscape or addressable with better initialization?
+- Can the MLP$_\text{node}$ architecture be modified to learn homeostasis (e.g., explicit linear bias term)?
+- Will unfreezing the stoichiometry matrix $\mathbf{S}$ improve or degrade rate constant recovery?

@@ -1,4 +1,10 @@
-# Metabolism Rate Constants Recovery — S Given Mode
+# Metabolism Rate Constants Recovery — S Given Mode (High-Rank Regime)
+
+## Regime Note
+
+This config uses a **narrower rate constant range** (`log_k` in [-2.0, -1.0] instead of [-2.5, -1.0]) which produces **activity rank ~50** (vs ~24 with the original range). All reactions are actively contributing to the dynamics, making this a harder inverse problem with richer dynamics.
+
+Previous exploration on the original oscillatory config found optimal training params: `lr_k=0.005`, `lr_node=0.001`, `lr_sub=0.0005`, `coeff_k_center=5.0`, `coeff_MLP_sub_diff=3-5`, `data_augmentation_loop=2000`. These are used as starting values but may need re-tuning for the higher-rank regime.
 
 ## Goal
 

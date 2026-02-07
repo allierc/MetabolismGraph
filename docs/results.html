@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>MetabolismGraph: Learning Stoichiometric Networks with Graph Neural Networks – MetabolismGraph</title>
+<title>Results – MetabolismGraph</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -19,40 +19,6 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -152,7 +118,7 @@ window.Quarto = {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
+    <a class="nav-link" href="./index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
@@ -164,7 +130,7 @@ window.Quarto = {
 <span class="menu-text">GNN-LLM-Memory</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./results.html"> 
+    <a class="nav-link active" href="./results.html" aria-current="page"> 
 <span class="menu-text">Results</span></a>
   </li>  
   <li class="nav-item">
@@ -188,16 +154,11 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">Overview</a></li>
-  <li><a href="#the-full-model" id="toc-the-full-model" class="nav-link" data-scroll-target="#the-full-model">The Full Model</a></li>
-  <li><a href="#the-inverse-problem" id="toc-the-inverse-problem" class="nav-link" data-scroll-target="#the-inverse-problem">The Inverse Problem</a>
+  <li><a href="#oscillatory-simulation-s-given-mode" id="toc-oscillatory-simulation-s-given-mode" class="nav-link active" data-scroll-target="#oscillatory-simulation-s-given-mode">Oscillatory Simulation — S Given Mode</a>
   <ul class="collapse">
-  <li><a href="#gnn-parameterization" id="toc-gnn-parameterization" class="nav-link" data-scroll-target="#gnn-parameterization">GNN Parameterization</a></li>
-  <li><a href="#learnable-parameters" id="toc-learnable-parameters" class="nav-link" data-scroll-target="#learnable-parameters">Learnable Parameters</a></li>
-  <li><a href="#configuration" id="toc-configuration" class="nav-link" data-scroll-target="#configuration">Configuration</a></li>
+  <li><a href="#key-findings" id="toc-key-findings" class="nav-link" data-scroll-target="#key-findings">Key Findings</a></li>
+  <li><a href="#open-questions" id="toc-open-questions" class="nav-link" data-scroll-target="#open-questions">Open Questions</a></li>
   </ul></li>
-  <li><a href="#key-features" id="toc-key-features" class="nav-link" data-scroll-target="#key-features">Key Features</a></li>
-  <li><a href="#citation" id="toc-citation" class="nav-link" data-scroll-target="#citation">Citation</a></li>
   </ul>
 </nav>
     </div>
@@ -206,7 +167,7 @@ window.Quarto = {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<div class="quarto-title-block"><div><h1 class="title">MetabolismGraph: Learning Stoichiometric Networks with Graph Neural Networks</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source" data-quarto-source-url="https://github.com/allierc/MetabolismGraph/blob/main/index.qmd"><i class="bi"></i> Code</button></div></div>
+<div class="quarto-title-block"><div><h1 class="title">Results</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source" data-quarto-source-url="https://github.com/allierc/MetabolismGraph/blob/main/results.qmd"><i class="bi"></i> Code</button></div></div>
 </div>
 
 
@@ -223,145 +184,75 @@ window.Quarto = {
 </header>
 
 
-<section id="overview" class="level2">
-<h2 class="anchored" data-anchor-id="overview">Overview</h2>
-<p><strong>MetabolismGraph</strong> is a framework for learning the structure of metabolic networks from concentration dynamics using Graph Neural Networks (GNNs). Given time-series measurements of metabolite concentrations, the model recovers:</p>
-<ol type="1">
-<li><strong>Rate constants</strong> <span class="math inline">\(k_j\)</span> — the intrinsic speed of each reaction</li>
-<li><strong>Homeostatic parameters</strong> <span class="math inline">\(\lambda_i\)</span>, <span class="math inline">\(c_i^{\text{baseline}}\)</span> — metabolite regulation</li>
-</ol>
-</section>
-<section id="the-full-model" class="level2">
-<h2 class="anchored" data-anchor-id="the-full-model">The Full Model</h2>
-<p>The complete metabolic dynamics:</p>
-<p><span class="math display">\[
-\frac{dc_i}{dt} = \underbrace{-\lambda_i \cdot (c_i - c_i^{\text{baseline}})}_{\text{homeostasis}} + \underbrace{\sum_{j=1}^{m} S_{ij} \cdot v_j}_{\text{reaction dynamics}}
-\]</span></p>
-<p>where the reaction rate <span class="math inline">\(v_j\)</span> depends on aggregation type:</p>
+<section id="oscillatory-simulation-s-given-mode" class="level2">
+<h2 class="anchored" data-anchor-id="oscillatory-simulation-s-given-mode">Oscillatory Simulation — S Given Mode</h2>
+<p>The LLM-driven exploration engine ran 68 iterations (3 blocks of 24, with 4 parallel slots) on the oscillatory simulation regime: 100 metabolites, 256 reactions, 2880 time frames, mass-action kinetics with stoichiometry frozen from ground truth. The goal was to recover the 256 rate constants <span class="math inline">\(k_j\)</span> by optimizing training hyperparameters through UCB tree search.</p>
+<p>The best rate constant recovery reached <span class="math inline">\(R^2 = 0.58\)</span> (shift-corrected), achieved with the following optimal configuration:</p>
 <table class="caption-top table">
-<colgroup>
-<col style="width: 52%">
-<col style="width: 48%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Aggregation</th>
-<th>Rate <span class="math inline">\(v_j\)</span></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Additive</td>
-<td><span class="math inline">\(v_j = k_j \cdot \sum_{k \in \text{sub}(j)} c_k^{s_{kj}}\)</span></td>
-</tr>
-<tr class="even">
-<td>Multiplicative</td>
-<td><span class="math inline">\(v_j = k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{s_{kj}}\)</span></td>
-</tr>
-</tbody>
-</table>
-<p>See <a href="./model.html">Model</a> for detailed equations, diagrams, and model configurations.</p>
-</section>
-<section id="the-inverse-problem" class="level2">
-<h2 class="anchored" data-anchor-id="the-inverse-problem">The Inverse Problem</h2>
-<p>The forward model describes how concentrations evolve given all parameters. In practice, the parameters themselves are unknown. The <strong>inverse problem</strong> is to recover them from observed dynamics.</p>
-<p><strong>Given:</strong></p>
-<ul>
-<li>Concentration trajectories <span class="math inline">\(\{c_i(t)\}_{i=1}^{n}\)</span> measured over time</li>
-<li>Stoichiometric matrix <span class="math inline">\(\mathbf{S}\)</span> (known from biochemistry)</li>
-</ul>
-<p><strong>To learn:</strong></p>
-<ul>
-<li>Rate constants <span class="math inline">\(k_j\)</span> — how fast each reaction proceeds</li>
-<li>Homeostatic parameters <span class="math inline">\(\lambda_i\)</span>, <span class="math inline">\(c_i^{\text{baseline}}\)</span> — per-metabolite regulatory strength and target concentration</li>
-</ul>
-<p>This is challenging because the system is high-dimensional (<span class="math inline">\(n\)</span> metabolites, <span class="math inline">\(m\)</span> reactions), the mapping from parameters to dynamics is nonlinear, and multiple parameter combinations can produce similar trajectories (identifiability). Classical optimization approaches struggle with this combinatorial landscape.</p>
-<p>We address this by casting the inverse problem as a <strong>Graph Neural Network</strong> learning task. The metabolic network is naturally a bipartite graph (metabolites <span class="math inline">\(\leftrightarrow\)</span> reactions), and we replace the unknown functions with learnable MLPs that operate on this graph structure. The GNN is trained end-to-end by minimizing the prediction error on <span class="math inline">\(dc/dt\)</span>, recovering the rate constants and homeostatic functions simultaneously. An LLM-driven closed-loop exploration engine systematically searches the hyperparameter space — see <a href="./gnn-llm-memory.html">GNN-LLM-Memory</a> for the training scheme, regularization terms, and exploration loop.</p>
-<section id="gnn-parameterization" class="level3">
-<h3 class="anchored" data-anchor-id="gnn-parameterization">GNN Parameterization</h3>
-<p><span class="math display">\[
-\frac{dc_i}{dt} = \underbrace{\text{MLP}_{\text{node}}(c_i, a_i)}_{\text{learns } -\lambda_i(c_i - c_i^{\text{baseline}})} + \underbrace{\sum_{j=1}^{m} S_{ij} \cdot k_j \cdot \text{aggr}_{k \in \text{sub}(j)} \text{MLP}_{\text{sub}}(c_k, s_{kj})}_{\text{learns } c_k^{s_{kj}}}
-\]</span></p>
-<p>where:</p>
-<ul>
-<li><span class="math inline">\(a_i \in \mathbb{R}^d\)</span> is a <strong>learnable embedding</strong> for metabolite <span class="math inline">\(i\)</span></li>
-<li><span class="math inline">\(k_j\)</span> are <strong>learnable rate constants</strong></li>
-<li><span class="math inline">\(\text{aggr}\)</span> is sum (additive) or product (multiplicative)</li>
-</ul>
-</section>
-<section id="learnable-parameters" class="level3">
-<h3 class="anchored" data-anchor-id="learnable-parameters">Learnable Parameters</h3>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 42%">
-<col style="width: 23%">
-<col style="width: 34%">
-</colgroup>
 <thead>
 <tr class="header">
 <th>Parameter</th>
-<th>Type</th>
-<th>Purpose</th>
+<th>Optimal value</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><span class="math inline">\(a_i\)</span></td>
-<td>Embedding vectors</td>
-<td>Per-metabolite identity</td>
+<td><code>lr_k</code></td>
+<td>0.005</td>
 </tr>
 <tr class="even">
-<td><span class="math inline">\(k_j\)</span></td>
-<td>Scalars</td>
-<td>Per-reaction rate constants</td>
+<td><code>lr_node</code></td>
+<td>0.001</td>
 </tr>
 <tr class="odd">
-<td><span class="math inline">\(\text{MLP}_{\text{node}}\)</span></td>
-<td>Neural network</td>
-<td>Learns <span class="math inline">\(-\lambda_i(c_i - c_i^{\text{baseline}})\)</span></td>
+<td><code>lr_sub</code></td>
+<td>0.0005</td>
 </tr>
 <tr class="even">
-<td><span class="math inline">\(\text{MLP}_{\text{sub}}\)</span></td>
-<td>Neural network</td>
-<td>Learns <span class="math inline">\(c_k^{s_{kj}}\)</span></td>
+<td><code>batch_size</code></td>
+<td>8</td>
+</tr>
+<tr class="odd">
+<td><code>n_epochs</code></td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td><code>data_augmentation_loop</code></td>
+<td>2000</td>
+</tr>
+<tr class="odd">
+<td><code>coeff_k_center</code></td>
+<td>5.0</td>
+</tr>
+<tr class="even">
+<td><code>coeff_MLP_sub_diff</code></td>
+<td>3–5</td>
+</tr>
+<tr class="odd">
+<td><code>coeff_MLP_node_L1</code></td>
+<td>0.5–1.0</td>
 </tr>
 </tbody>
 </table>
+<section id="key-findings" class="level3">
+<h3 class="anchored" data-anchor-id="key-findings">Key Findings</h3>
+<p><strong>Sharp optima.</strong> Several hyperparameters have narrow optimal ranges. <code>lr_k = 0.005</code> is a sharp optimum — both 0.004 and 0.006 degrade <span class="math inline">\(R^2\)</span> by 10<span class="math inline">\(\times\)</span>. Similarly, <code>coeff_k_center = 5.0</code> is strictly optimal; values of 4.0 or 6.0 cause significant regression.</p>
+<p><strong>Scale ambiguity regularization matters.</strong> The <code>coeff_k_center</code> regularization anchoring <span class="math inline">\(\text{mean}(\log k)\)</span> to the ground-truth range center was essential. Without it, the learned rate constants absorb a multiplicative offset into the MLP<span class="math inline">\(_\text{sub}\)</span> output, making the scatter plot slope deviate from 1.</p>
+<p><strong>Regularization interactions.</strong> <code>coeff_MLP_sub_diff</code> and <code>coeff_MLP_node_L1</code> interact: the combination (diff=5, node_L1=0.5) and (diff=3, node_L1=1.0) both work, but (diff=3, node_L1=0.5) fails. Reducing <code>coeff_MLP_node_L1</code> below 0.5 causes the MLP<span class="math inline">\(_\text{sub}\)</span> to learn an inverse (negative correlation) function.</p>
+<p><strong>Non-reproducibility.</strong> Results are highly sensitive to random seed. The same configuration can yield <span class="math inline">\(R^2\)</span> ranging from 0.09 to 0.57 across different seeds. Working seeds identified: 45, 48, 49, 50, 52, 55. This suggests the optimization landscape has many local minima.</p>
+<p><strong>MLP<span class="math inline">\(_\text{node}\)</span> limitation.</strong> Across all runs, the MLP<span class="math inline">\(_\text{node}\)</span> (homeostasis) did not learn the true homeostatic function <span class="math inline">\(-\lambda_i(c_i - c_i^{\text{baseline}})\)</span>. It consistently shows a flat or weakly decreasing pattern, suggesting the architecture may need modification to better capture per-metabolite homeostatic regulation.</p>
 </section>
-<section id="configuration" class="level3">
-<h3 class="anchored" data-anchor-id="configuration">Configuration</h3>
-<div class="sourceCode" id="cb1"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">graph_model</span><span class="kw">:</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">aggr_type</span><span class="kw">:</span><span class="at"> add</span><span class="co">         # sum (additive) or mul (multiplicative)</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">embedding_dim</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span><span class="co">       # dimension of metabolite embeddings a_i</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hidden_dim</span><span class="kw">:</span><span class="at"> </span><span class="dv">32</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">training</span><span class="kw">:</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">learning_rate_start</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.001</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">freeze_stoichiometry</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span><span class="co">   # S given mode</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">training_single_type</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span><span class="co">  # learn per-metabolite embeddings</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</section>
-</section>
-<section id="key-features" class="level2">
-<h2 class="anchored" data-anchor-id="key-features">Key Features</h2>
+<section id="open-questions" class="level3">
+<h3 class="anchored" data-anchor-id="open-questions">Open Questions</h3>
 <ul>
-<li><strong>Bipartite graph representation</strong>: metabolites and reactions form a bipartite graph, with stoichiometric coefficients on edges</li>
-<li><strong>Learnable rate constants</strong>: per-reaction <span class="math inline">\(k_j\)</span> learned via gradient descent</li>
-<li><strong>Learnable homeostasis</strong>: MLP learns <span class="math inline">\(-\lambda_i(c_i - c_i^{\text{baseline}})\)</span> per metabolite</li>
-<li><strong>Flexible aggregation</strong>: additive (sum) or multiplicative (product) for different dynamics</li>
-<li><strong>Metabolite embeddings</strong>: learnable vectors <span class="math inline">\(a_i\)</span> capture per-metabolite identity</li>
+<li>Can <span class="math inline">\(R^2\)</span> be pushed above 0.6 with architectural changes?</li>
+<li>Is the non-reproducibility inherent to the optimization landscape or addressable with better initialization?</li>
+<li>Can the MLP<span class="math inline">\(_\text{node}\)</span> architecture be modified to learn homeostasis (e.g., explicit linear bias term)?</li>
+<li>Will unfreezing the stoichiometry matrix <span class="math inline">\(\mathbf{S}\)</span> improve or degrade rate constant recovery?</li>
 </ul>
+
+
 </section>
-<section id="citation" class="level2">
-<h2 class="anchored" data-anchor-id="citation">Citation</h2>
-<p>If you use MetabolismGraph in your research, please cite:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">@software{metabolismgraph2025,</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">  author = {Allier, Cédric},</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">  title = {MetabolismGraph: Learning Stoichiometric Networks with GNNs},</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">  year = {2025},</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">  url = {https://github.com/allierc/MetabolismGraph}</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">}</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-
-
 </section>
 
 </main> <!-- /main -->

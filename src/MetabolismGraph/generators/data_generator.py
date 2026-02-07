@@ -161,7 +161,7 @@ def data_generate(
         # reset concentrations per run
         x[:, 3] = concentrations.clone().detach()
 
-        for it in trange(simulation_config.start_frame, n_frames + 1, ncols=150):
+        for it in trange(simulation_config.start_frame, n_frames + 1, ncols=50):
 
             # update external input from movie (2D grid subsample)
             if has_visual_input:

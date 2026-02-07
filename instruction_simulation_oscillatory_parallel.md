@@ -66,14 +66,14 @@ Node: id=N, parent=P
 Mode/Strategy: [strategy]
 Config: seed=S, lr_k=X, lr_node=Y, lr_sub=Z, batch_size=B, n_epochs=E, data_augmentation_loop=A, coeff_MLP_node_L1=L, coeff_k_center=K
 Metrics: rate_constants_R2=C, rate_constants_R2_shifted=D, test_R2=A, test_pearson=B, final_loss=E
-Visual: MLP_sub=[good/partial/bad: brief description], MLP_node=[good/partial/bad: brief description]
+Visual: MLP_sub=[good/partial/bad: brief description], MLP_node=[good/partial/bad: brief description], k_scatter=[good/partial/bad: brief description]
 Mutation: [param]: [old] -> [new]
 Parent rule: [one line]
 Observation: [one line]
 Next: parent=P
 ```
 
-**CRITICAL**: The `Visual:` line must describe what you see in the last MLP_sub and MLP_node plots. Always read the last (highest iteration) plot in `function/substrate_func/` and `function/rate_func/` before writing this line.
+**CRITICAL**: The `Visual:` line must describe what you see in the last MLP_sub, MLP_node, and rate constants scatter plots. Always read the last (highest iteration) plot in `function/substrate_func/`, `function/rate_func/`, and `rate_constants/` before writing this line.
 
 **CRITICAL**: The `Mutation:` line is parsed by the UCB tree builder. Always include the exact parameter change.
 

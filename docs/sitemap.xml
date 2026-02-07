@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://allierc.github.io/MetabolismGraph/model.html</loc>
-    <lastmod>2026-02-06T20:30:48.774Z</lastmod>
-  </url>
-  <url>
-    <loc>https://allierc.github.io/MetabolismGraph/gnn.html</loc>
-    <lastmod>2026-02-06T20:25:37.915Z</lastmod>
+    <loc>https://allierc.github.io/MetabolismGraph/references.html</loc>
+    <lastmod>2026-02-07T01:20:04.882Z</lastmod>
   </url>
   <url>
     <loc>https://allierc.github.io/MetabolismGraph/index.html</loc>
-    <lastmod>2026-02-06T20:29:22.431Z</lastmod>
+    <lastmod>2026-02-07T01:10:45.425Z</lastmod>
+  </url>
+  <url>
+    <loc>https://allierc.github.io/MetabolismGraph/gnn-llm-memory.html</loc>
+    <lastmod>2026-02-07T01:10:37.992Z</lastmod>
+  </url>
+  <url>
+    <loc>https://allierc.github.io/MetabolismGraph/model.html</loc>
+    <lastmod>2026-02-07T00:59:59.587Z</lastmod>
   </url>
 </urlset>

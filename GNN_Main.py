@@ -26,15 +26,39 @@ if __name__ == "__main__":
         print(f"Options: {args.option}")
     if args.option is not None:
         task = args.option[0]
-        config_list = [args.option[1]]
-        if len(args.option) > 2:
-            best_model = args.option[2]
+        # Support multiple configs: -o task config1,config2,config3 [best_model]
+        # or: -o task config1 config2 config3 [best_model]
+        if len(args.option) > 1:
+            # Check if configs are comma-separated
+            if ',' in args.option[1]:
+                config_list = [c.strip() for c in args.option[1].split(',')]
+                best_model = args.option[2] if len(args.option) > 2 else None
+            else:
+                # Multiple space-separated configs, last one might be best_model
+                potential_configs = args.option[1:]
+                # If last arg looks like a model name (not a config), treat it as best_model
+                if len(potential_configs) > 1 and potential_configs[-1] in ['best', 'last']:
+                    config_list = potential_configs[:-1]
+                    best_model = potential_configs[-1]
+                else:
+                    config_list = potential_configs
+                    best_model = None
         else:
+            config_list = ['metabolism_1']
             best_model = None
     else:
         best_model = ''
         task = 'generate'
-        config_list = ['metabolism_1']
+        # Default: generate simulation configs
+        config_list = [
+            'simulation_pure',
+            'simulation_homeostatic',
+            'simulation_oscillatory'
+        ]
+
+    print(f"Task: {task}")
+    print(f"Config list: {config_list}")
+    print()
 
     for config_file_ in config_list:
         print(" ")

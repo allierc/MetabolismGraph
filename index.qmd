@@ -28,17 +28,56 @@ See [Model](model.qmd) for detailed equations, diagrams, and model configuration
 
 ## The Inverse Problem
 
+The forward model describes how concentrations evolve given all parameters. In practice, the parameters themselves are unknown. The **inverse problem** is to recover them from observed dynamics.
+
 **Given:**
 
-- Concentration trajectories $\{c_i(t)\}_{i=1}^{n}$
+- Concentration trajectories $\{c_i(t)\}_{i=1}^{n}$ measured over time
 - Stoichiometric matrix $\mathbf{S}$ (known from biochemistry)
 
 **To learn:**
 
-- Rate constants $k_j$
-- Homeostatic parameters $\lambda_i$, $c_i^{\text{baseline}}$
+- Rate constants $k_j$ — how fast each reaction proceeds
+- Homeostatic parameters $\lambda_i$, $c_i^{\text{baseline}}$ — per-metabolite regulatory strength and target concentration
 
-See [GNN](gnn.qmd) for the GNN parameterization and training configuration.
+This is challenging because the system is high-dimensional ($n$ metabolites, $m$ reactions), the mapping from parameters to dynamics is nonlinear, and multiple parameter combinations can produce similar trajectories (identifiability). Classical optimization approaches struggle with this combinatorial landscape.
+
+We address this by casting the inverse problem as a **Graph Neural Network** learning task. The metabolic network is naturally a bipartite graph (metabolites $\leftrightarrow$ reactions), and we replace the unknown functions with learnable MLPs that operate on this graph structure. The GNN is trained end-to-end by minimizing the prediction error on $dc/dt$, recovering the rate constants and homeostatic functions simultaneously. An LLM-driven closed-loop exploration engine systematically searches the hyperparameter space — see [GNN-LLM-Memory](gnn-llm-memory.qmd) for the training scheme, regularization terms, and exploration loop.
+
+### GNN Parameterization
+
+$$
+\frac{dc_i}{dt} = \underbrace{\text{MLP}_{\text{node}}(c_i, a_i)}_{\text{learns } -\lambda_i(c_i - c_i^{\text{baseline}})} + \underbrace{\sum_{j=1}^{m} S_{ij} \cdot k_j \cdot \text{aggr}_{k \in \text{sub}(j)} \text{MLP}_{\text{sub}}(c_k, s_{kj})}_{\text{learns } c_k^{s_{kj}}}
+$$
+
+where:
+
+- $a_i \in \mathbb{R}^d$ is a **learnable embedding** for metabolite $i$
+- $k_j$ are **learnable rate constants**
+- $\text{aggr}$ is sum (additive) or product (multiplicative)
+
+### Learnable Parameters
+
+| Parameter | Type | Purpose |
+|-----------|------|---------|
+| $a_i$ | Embedding vectors | Per-metabolite identity |
+| $k_j$ | Scalars | Per-reaction rate constants |
+| $\text{MLP}_{\text{node}}$ | Neural network | Learns $-\lambda_i(c_i - c_i^{\text{baseline}})$ |
+| $\text{MLP}_{\text{sub}}$ | Neural network | Learns $c_k^{s_{kj}}$ |
+
+### Configuration
+
+```yaml
+graph_model:
+  aggr_type: add         # sum (additive) or mul (multiplicative)
+  embedding_dim: 2       # dimension of metabolite embeddings a_i
+  hidden_dim: 32
+
+training:
+  learning_rate_start: 0.001
+  freeze_stoichiometry: true   # S given mode
+  training_single_type: false  # learn per-metabolite embeddings
+```
 
 ## Key Features
 

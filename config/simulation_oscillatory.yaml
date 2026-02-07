@@ -23,8 +23,10 @@ simulation:
   log_k_max: -1.0
   # no flux limiting for freer oscillatory dynamics
   flux_limit: false
-  # no homeostatic regulation - let dynamics evolve freely
+  # per-type homeostatic regulation
   homeostatic_strength: 0.0
+  homeostatic_lambda_per_type: [0.001, 0.002]
+  homeostatic_baseline_per_type: [4.0, 6.0]
   baseline_mode: fixed
   baseline_concentration: 5.0
   kinograph_range: 2.0
@@ -36,9 +38,9 @@ graph_model:
   prediction: first_derivative
   input_size: 2
   output_size: 1
-  hidden_dim: 32
+  hidden_dim: 64
   n_layers: 3
-  aggr_type: add
+  aggr_type: mul # multiplicative for oscillatory (mass-action) dynamics
   update_type: none
 
 plotting:
@@ -50,11 +52,21 @@ training:
   device: auto
   batch_size: 8
   seed: 42
-  data_augmentation_loop: 1000
+  data_augmentation_loop: 4000
   learning_rate_start: 0.001
+  # separate learning rates for model components
+  learning_rate_k: 0.001 # rate constants k_j
+  learning_rate_node: 0.001 # MLP_node (homeostasis)
+  learning_rate_sub: 0.001 # MLP_sub (substrate function)
   # S is given (frozen from ground truth)
   freeze_stoichiometry: true
   learning_rate_S_start: 0.0
   coeff_S_L1: 0.0
   coeff_S_integer: 0.0
   coeff_mass_conservation: 0.0
+  # MLP_sub monotonicity constraint (c^s should be increasing)
+  coeff_MLP_sub_diff: 10
+  # MLP_node L1 regularization: keep homeostasis output small vs reaction terms
+  coeff_MLP_node_L1: 1.0
+  # k center regularization: anchor mean(log_k) to GT range center
+  coeff_k_center: 1.0

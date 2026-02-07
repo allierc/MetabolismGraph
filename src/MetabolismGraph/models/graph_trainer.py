@@ -52,7 +52,8 @@ def data_train(config, erase, best_model, device, log_file=None, style='color'):
     return data_train_metabolism(config, erase, best_model, device, log_file=log_file, style=style)
 
 
-def data_test(config, best_model=20, n_rollout_frames=600, device=None, log_file=None):
+def data_test(config, best_model=20, n_rollout_frames=600, device=None, log_file=None,
+              visualize=False, verbose=False, run=0):
     """dispatcher that calls data_test_metabolism() directly."""
     return data_test_metabolism(config, best_model=best_model,
                                 n_rollout_frames=n_rollout_frames,
@@ -151,13 +152,20 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     gt_model = None
     gt_model_path = f'graphs_data/{dataset_name}/gt_model.pt'
     if os.path.exists(gt_model_path):
+        # infer hidden_dim from checkpoint to avoid size mismatch
+        gt_state = torch.load(gt_model_path, map_location=device)
+        gt_hidden_dim = gt_state.get('substrate_func.0.weight', torch.zeros(32, 2)).shape[0]
+        # create a temporary config with the correct hidden_dim
+        from copy import deepcopy
+        gt_config = deepcopy(config)
+        gt_config.graph_model.hidden_dim = gt_hidden_dim
         if "PDE_M2" in config.graph_model.model_name:
             from MetabolismGraph.generators.PDE_M2 import PDE_M2
-            gt_model = PDE_M2(config=config, stoich_graph=stoich_graph, device=device)
+            gt_model = PDE_M2(config=gt_config, stoich_graph=stoich_graph, device=device)
         else:
             from MetabolismGraph.generators.PDE_M1 import PDE_M1
-            gt_model = PDE_M1(config=config, stoich_graph=stoich_graph, device=device)
-        gt_model.load_state_dict(torch.load(gt_model_path, map_location=device))
+            gt_model = PDE_M1(config=gt_config, stoich_graph=stoich_graph, device=device)
+        gt_model.load_state_dict(gt_state)
         gt_model.to(device)
         gt_model.eval()
 
@@ -233,22 +241,44 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     # --- optimizer (custom param groups for metabolism) ---
     lr = train_config.learning_rate_start
     lr_S = train_config.learning_rate_S_start
+    # separate learning rates for model components (fall back to lr if not specified)
+    lr_k = getattr(train_config, 'learning_rate_k', lr)
+    lr_node = getattr(train_config, 'learning_rate_node', lr)
+    lr_sub = getattr(train_config, 'learning_rate_sub', lr)
 
-    # separate stoichiometric params from MLP/rate params
-    stoich_params = []
-    other_params = []
+    # separate parameters into groups: k, MLP_node, MLP_sub, stoichiometry
+    k_params = []       # log_k (rate constants)
+    node_params = []    # MLP_node (node_func + embeddings a)
+    sub_params = []     # MLP_sub (substrate_func)
+    stoich_params = []  # sto_all (stoichiometry)
+    other_params = []   # anything else
+
     for name, p in model.named_parameters():
         if 'sto_' in name:
             if not freeze_stoichiometry:
                 stoich_params.append(p)
         elif 'NNR_f' in name:
             continue  # handled by optimizer_f
+        elif 'log_k' in name:
+            k_params.append(p)
+        elif 'node_func' in name or name == 'a':
+            node_params.append(p)
+        elif 'substrate_func' in name:
+            sub_params.append(p)
         else:
             other_params.append(p)
 
-    param_groups = [{'params': other_params, 'lr': lr}]
+    param_groups = []
+    if k_params:
+        param_groups.append({'params': k_params, 'lr': lr_k, 'name': 'k'})
+    if node_params:
+        param_groups.append({'params': node_params, 'lr': lr_node, 'name': 'MLP_node'})
+    if sub_params:
+        param_groups.append({'params': sub_params, 'lr': lr_sub, 'name': 'MLP_sub'})
+    if other_params:
+        param_groups.append({'params': other_params, 'lr': lr, 'name': 'other'})
     if stoich_params and lr_S > 0:
-        param_groups.append({'params': stoich_params, 'lr': lr_S})
+        param_groups.append({'params': stoich_params, 'lr': lr_S, 'name': 'S'})
     elif stoich_params:
         # lr_S=0 means stoichiometry learns at same rate as MLPs
         param_groups[0]['params'].extend(stoich_params)
@@ -264,17 +294,31 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     n_epochs_init = getattr(train_config, 'n_epochs_init', 0)
     first_coeff_L1 = getattr(train_config, 'first_coeff_L1', coeff_S_L1)
 
+    # --- MLP regularization coefficients ---
+    coeff_MLP_sub_diff = getattr(train_config, 'coeff_MLP_sub_diff', 100.0)
+    coeff_MLP_node_L1 = getattr(train_config, 'coeff_MLP_node_L1', 0.0)
+    coeff_k_center = getattr(train_config, 'coeff_k_center', 0.0)
+    # target: midpoint of log_k range from simulation config
+    sim_config = config.simulation
+    k_center_target = (sim_config.log_k_min + sim_config.log_k_max) / 2.0
+
     # pre-compute per-reaction scatter indices for mass conservation penalty
     rxn_all = model.rxn_all
 
-    print(f'learning rates: lr={lr}, lr_S={lr_S}')
+    print(f'learning rates: lr_k={lr_k}, lr_node={lr_node}, lr_sub={lr_sub}, lr_S={lr_S}')
+    for g in param_groups:
+        n_params = sum(p.numel() for p in g['params'])
+        print(f"  {g.get('name', 'unnamed')}: {n_params:,} params, lr={g['lr']}")
     print(f'S regularization: coeff_S_L1={coeff_S_L1}, coeff_S_integer={coeff_S_integer}, coeff_mass={coeff_S_mass}')
+    print(f'MLP regularization: coeff_MLP_sub_diff={coeff_MLP_sub_diff}, coeff_MLP_node_L1={coeff_MLP_node_L1}')
+    if coeff_k_center > 0:
+        print(f'k center regularization: coeff_k_center={coeff_k_center}, target={k_center_target:.2f}')
     if n_epochs_init > 0:
         print(f'two-phase: first {n_epochs_init} epochs with L1={first_coeff_L1}, then L1={coeff_S_L1}')
 
     list_loss = []
     list_loss_regul = []
-    loss_components = {'loss': [], 'regul_total': [], 'S_L1': [], 'S_integer': [], 'mass_conservation': []}
+    loss_components = {'loss': [], 'regul_total': [], 'S_L1': [], 'S_integer': [], 'mass_conservation': [], 'MLP_sub_diff': [], 'MLP_node_L1': [], 'k_center': []}
 
     print("start training ...")
     check_and_clear_memory(
@@ -415,6 +459,48 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                 loss = loss + regul_mass
                 regul_loss_val += regul_mass.item()
 
+            # MLP_sub monotonicity: penalize decreasing output as concentration increases
+            # MLP_sub learns c^s which should be increasing in c (for s > 0)
+            regul_MLP_sub_diff = torch.tensor(0.0, device=device)
+            if coeff_MLP_sub_diff > 0 and hasattr(model, 'substrate_func'):
+                # sample at two concentration levels
+                n_samples = 100
+                c_max = xnorm.item() * 2.0
+                c_vals = torch.linspace(0.1, c_max, n_samples, device=device)
+                delta_c = c_vals[1] - c_vals[0]
+
+                # test with |stoich| = 1 (most common case)
+                s_abs = torch.ones(n_samples, 1, device=device)
+                msg_in = torch.cat([c_vals.unsqueeze(-1), s_abs], dim=-1)
+                msg_in_next = torch.cat([(c_vals + delta_c).unsqueeze(-1), s_abs], dim=-1)
+
+                msg0 = model.substrate_func(msg_in)
+                msg1 = model.substrate_func(msg_in_next)
+
+                # penalize cases where output decreases (msg0 > msg1)
+                # relu(msg0 - msg1) is positive only when output decreases
+                regul_MLP_sub_diff = torch.relu(msg0.norm(dim=-1) - msg1.norm(dim=-1)).norm(2) * coeff_MLP_sub_diff
+                loss = loss + regul_MLP_sub_diff
+                regul_loss_val += regul_MLP_sub_diff.item()
+
+            # MLP_node L1: penalize large homeostasis output to keep it small
+            # relative to reaction terms
+            regul_MLP_node_L1 = torch.tensor(0.0, device=device)
+            if coeff_MLP_node_L1 > 0 and hasattr(model, 'node_func'):
+                concentrations = x[:, 3]
+                node_in = torch.cat([concentrations.unsqueeze(-1), model.a], dim=-1)
+                node_out = model.node_func(node_in).squeeze(-1)
+                regul_MLP_node_L1 = node_out.abs().mean() * coeff_MLP_node_L1
+                loss = loss + regul_MLP_node_L1
+                regul_loss_val += regul_MLP_node_L1.item()
+
+            # k center: penalize mean(log_k) deviating from GT range center
+            regul_k_center = torch.tensor(0.0, device=device)
+            if coeff_k_center > 0 and hasattr(model, 'log_k'):
+                regul_k_center = (model.log_k.mean() - k_center_target) ** 2 * coeff_k_center
+                loss = loss + regul_k_center
+                regul_loss_val += regul_k_center.item()
+
             # SIREN omega regularization
             coeff_omega_f_L2 = getattr(train_config, 'coeff_omega_f_L2', 0.0)
             if model_f is not None and coeff_omega_f_L2 > 0:
@@ -447,6 +533,15 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                 loss_components['mass_conservation'].append(
                     regul_mass.item() / n_metabolites if coeff_S_mass > 0 else 0.0
                 )
+                loss_components['MLP_sub_diff'].append(
+                    regul_MLP_sub_diff.item() / n_metabolites if coeff_MLP_sub_diff > 0 else 0.0
+                )
+                loss_components['MLP_node_L1'].append(
+                    regul_MLP_node_L1.item() / n_metabolites if coeff_MLP_node_L1 > 0 else 0.0
+                )
+                loss_components['k_center'].append(
+                    regul_k_center.item() / n_metabolites if coeff_k_center > 0 else 0.0
+                )
                 plot_dict = {k: v for k, v in loss_components.items() if any(x != 0 for x in v) or k == 'loss'}
                 plot_loss(
                     plot_dict, log_dir, epoch=epoch, Niter=N, debug=False,
@@ -459,7 +554,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                 with torch.no_grad():
                     if freeze_stoichiometry and gt_model is not None:
                         # S is given, plot k_j comparison
-                        last_S_r2 = _plot_rate_constants_comparison(
+                        last_S_r2, _ = _plot_rate_constants_comparison(
                             model, gt_model, log_dir, epoch, N,
                         )
                     else:
@@ -469,7 +564,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                             epoch, N,
                         )
 
-                # plot substrate_func and rate_func learned functions
+                # plot MLP_sub learned function
                 _plot_metabolism_mlp_functions(
                     model, x, xnorm, log_dir, epoch, N, device,
                     gt_model=gt_model,
@@ -524,52 +619,10 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
             ),
         )
 
-        # epoch-end plot: loss + stoichiometry comparison
-        plt.style.use('dark_background')
-        fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-
-        axes[0].plot(list_loss, color='cyan', linewidth=1)
-        axes[0].set_xlim([0, n_epochs])
-        axes[0].set_ylabel('prediction loss', fontsize=12)
-        axes[0].set_xlabel('epochs', fontsize=12)
-        axes[0].set_title('Loss', fontsize=14)
-
-        # reconstruct learned S matrix from sto_all
-        learned_S = torch.zeros_like(gt_S, device='cpu')
-        met_all_cpu = stoich_graph['all'][0].cpu()
-        rxn_all_cpu = stoich_graph['all'][1].cpu()
-        with torch.no_grad():
-            learned_S[met_all_cpu, rxn_all_cpu] = model.sto_all.detach().cpu()
-
-        im1 = axes[1].imshow(
-            to_numpy(gt_S.cpu()), aspect='auto', cmap='bwr',
-            vmin=-3, vmax=3,
-        )
-        axes[1].set_title('Ground Truth S', fontsize=14)
-        axes[1].set_xlabel('reactions')
-        axes[1].set_ylabel('metabolites')
-        plt.colorbar(im1, ax=axes[1], fraction=0.046)
-
-        im2 = axes[2].imshow(
-            to_numpy(learned_S), aspect='auto', cmap='bwr',
-            vmin=-3, vmax=3,
-        )
-        axes[2].set_title(f'Learned S (epoch {epoch})', fontsize=14)
-        axes[2].set_xlabel('reactions')
-        axes[2].set_ylabel('metabolites')
-        plt.colorbar(im2, ax=axes[2], fraction=0.046)
-
-        plt.tight_layout()
-        plt.savefig(
-            f"./{log_dir}/tmp_training/epoch_{epoch}.png", dpi=150,
-            bbox_inches='tight',
-        )
-        plt.close()
-
     # --- final analysis: compute R2 and write to log ---
     with torch.no_grad():
         if freeze_stoichiometry and gt_model is not None:
-            final_r2 = _plot_rate_constants_comparison(
+            final_r2, final_r2_shifted = _plot_rate_constants_comparison(
                 model, gt_model, log_dir, epoch='final', N=0,
             )
             r2_name = "rate_constants"
@@ -587,20 +640,22 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     print(f"\n=== training complete ===")
     print(f"  final prediction loss: {final_loss:.6f}")
     print(f"  {r2_name} R2: {final_r2:.4f}")
-    print(f"  substrate_func R2: {func_metrics['substrate_func_r2']:.4f}")
-    print(f"  rate_func R2: {func_metrics['rate_func_r2']:.4f}")
+    if freeze_stoichiometry:
+        print(f"  {r2_name} R2 (shifted): {final_r2_shifted:.4f}")
+    print(f"  MLP_sub R2: {func_metrics['MLP_sub_r2']:.4f}")
     logger.info(f"final prediction loss: {final_loss:.6f}")
     logger.info(f"{r2_name} R2: {final_r2:.4f}")
-    logger.info(f"substrate_func R2: {func_metrics['substrate_func_r2']:.4f}")
-    logger.info(f"rate_func R2: {func_metrics['rate_func_r2']:.4f}")
+    if freeze_stoichiometry:
+        logger.info(f"{r2_name} R2 (shifted): {final_r2_shifted:.4f}")
+    logger.info(f"MLP_sub R2: {func_metrics['MLP_sub_r2']:.4f}")
 
     if log_file is not None:
         log_file.write(f"final_loss: {final_loss:.6f}\n")
         log_file.write(f"{r2_name}_R2: {final_r2:.4f}\n")
-        log_file.write(f"substrate_func_R2: {func_metrics['substrate_func_r2']:.4f}\n")
-        log_file.write(f"substrate_func_corr: {func_metrics['substrate_func_corr']:.4f}\n")
-        log_file.write(f"rate_func_R2: {func_metrics['rate_func_r2']:.4f}\n")
-        log_file.write(f"rate_func_corr: {func_metrics['rate_func_corr']:.4f}\n")
+        if freeze_stoichiometry:
+            log_file.write(f"{r2_name}_R2_shifted: {final_r2_shifted:.4f}\n")
+        log_file.write(f"MLP_sub_R2: {func_metrics['MLP_sub_r2']:.4f}\n")
+        log_file.write(f"MLP_sub_corr: {func_metrics['MLP_sub_corr']:.4f}\n")
 
 
 def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=None, log_file=None):
@@ -688,54 +743,61 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
             model_f.eval()
             print(f'loaded model_f from {model_f_path}')
 
-    # --- stoichiometry R2 (learned vs true S) ---
-    with torch.no_grad():
-        learned_S = torch.zeros_like(gt_S, device='cpu')
-        met_all_cpu = stoich_graph['all'][0].cpu()
-        rxn_all_cpu = stoich_graph['all'][1].cpu()
-        learned_S[met_all_cpu, rxn_all_cpu] = model.sto_all.detach().cpu()
+    # --- check if S is frozen (S given mode) ---
+    freeze_stoichiometry = getattr(train_config, 'freeze_stoichiometry', False)
 
-    # compare only edge coefficients (not full matrix with trivial zeros)
-    gt_edges = to_numpy(gt_S.cpu()[met_all_cpu, rxn_all_cpu])
-    learned_edges = to_numpy(model.sto_all.detach().cpu())
-    n_edges = len(gt_edges)
-
-    stoich_r2 = 0.0
+    # --- stoichiometry R2 (learned vs true S) - skip if frozen ---
+    stoich_r2 = 1.0 if freeze_stoichiometry else 0.0
     lin_fit = None
-    try:
-        lin_fit, _ = curve_fit(linear_model, gt_edges, learned_edges)
-        residuals = learned_edges - linear_model(gt_edges, *lin_fit)
-        ss_res = np.sum(residuals ** 2)
-        ss_tot = np.sum((learned_edges - np.mean(learned_edges)) ** 2)
-        stoich_r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
-    except Exception:
-        pass
+    n_edges = 0
 
-    print(f'stoichiometry R2: {stoich_r2:.4f} (n={n_edges} edges)')
+    if not freeze_stoichiometry:
+        with torch.no_grad():
+            learned_S = torch.zeros_like(gt_S, device='cpu')
+            met_all_cpu = stoich_graph['all'][0].cpu()
+            rxn_all_cpu = stoich_graph['all'][1].cpu()
+            learned_S[met_all_cpu, rxn_all_cpu] = model.sto_all.detach().cpu()
 
-    # --- scatter plot: true vs learned S (edges only) ---
-    out_dir = os.path.join(log_dir, 'tmp_training', 'stoichiometry')
-    os.makedirs(out_dir, exist_ok=True)
+        # compare only edge coefficients (not full matrix with trivial zeros)
+        gt_edges = to_numpy(gt_S.cpu()[met_all_cpu, rxn_all_cpu])
+        learned_edges = to_numpy(model.sto_all.detach().cpu())
+        n_edges = len(gt_edges)
 
-    fig, ax = plt.subplots(figsize=(8, 8))
-    ax.scatter(gt_edges, learned_edges, s=2, c='k', alpha=0.5)
-    ax.set_xlabel(r'true $S_{ij}$', fontsize=18)
-    ax.set_ylabel(r'learned $S_{ij}$', fontsize=18)
-    ax.text(0.05, 0.96, f'$R^2$: {stoich_r2:.3f}', transform=ax.transAxes,
-            fontsize=12, verticalalignment='top')
-    if lin_fit is not None:
-        ax.text(0.05, 0.92, f'slope: {lin_fit[0]:.3f}', transform=ax.transAxes,
+        try:
+            lin_fit, _ = curve_fit(linear_model, gt_edges, learned_edges)
+            residuals = learned_edges - linear_model(gt_edges, *lin_fit)
+            ss_res = np.sum(residuals ** 2)
+            ss_tot = np.sum((learned_edges - np.mean(learned_edges)) ** 2)
+            stoich_r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
+        except Exception:
+            pass
+
+        print(f'stoichiometry R2: {stoich_r2:.4f} (n={n_edges} edges)')
+
+    # --- scatter plot: true vs learned S (edges only) - skip if frozen ---
+    if not freeze_stoichiometry:
+        out_dir = os.path.join(log_dir, 'tmp_training', 'stoichiometry')
+        os.makedirs(out_dir, exist_ok=True)
+
+        fig, ax = plt.subplots(figsize=(8, 8))
+        ax.scatter(gt_edges, learned_edges, s=2, c='k', alpha=0.5)
+        ax.set_xlabel(r'true $S_{ij}$', fontsize=18)
+        ax.set_ylabel(r'learned $S_{ij}$', fontsize=18)
+        ax.text(0.05, 0.96, f'$R^2$: {stoich_r2:.3f}', transform=ax.transAxes,
                 fontsize=12, verticalalignment='top')
-    ax.text(0.05, 0.88, f'n={n_edges} edges', transform=ax.transAxes,
-            fontsize=12, verticalalignment='top')
-    lims = [min(gt_edges.min(), learned_edges.min()) - 0.2,
-            max(gt_edges.max(), learned_edges.max()) + 0.2]
-    ax.plot(lims, lims, 'r--', alpha=0.5, linewidth=1)
-    ax.set_xlim(lims)
-    ax.set_ylim(lims)
-    plt.tight_layout()
-    plt.savefig(os.path.join(out_dir, 'scatter_test.png'), dpi=150)
-    plt.close()
+        if lin_fit is not None:
+            ax.text(0.05, 0.92, f'slope: {lin_fit[0]:.3f}', transform=ax.transAxes,
+                    fontsize=12, verticalalignment='top')
+        ax.text(0.05, 0.88, f'n={n_edges} edges', transform=ax.transAxes,
+                fontsize=12, verticalalignment='top')
+        lims = [min(gt_edges.min(), learned_edges.min()) - 0.2,
+                max(gt_edges.max(), learned_edges.max()) + 0.2]
+        ax.plot(lims, lims, 'r--', alpha=0.5, linewidth=1)
+        ax.set_xlim(lims)
+        ax.set_ylim(lims)
+        plt.tight_layout()
+        plt.savefig(os.path.join(out_dir, 'scatter_test.png'), dpi=150)
+        plt.close()
 
     # --- rollout: predict concentration trajectories ---
     run = 0
@@ -815,159 +877,316 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
     test_pearson = np.mean(pearson_list) if pearson_list else 0.0
 
     print(f'\n=== test results ===')
-    print(f'  stoichiometry R2: {stoich_r2:.4f}')
+    if not freeze_stoichiometry:
+        print(f'  stoichiometry R2: {stoich_r2:.4f}')
     print(f'  test R2 (rollout): {test_r2:.4f}')
     print(f'  test Pearson: {test_pearson:.4f}')
 
-    # --- plot rollout: a few example metabolites ---
-    out_dir_rollout = os.path.join(log_dir, 'tmp_training', 'rollout')
-    os.makedirs(out_dir_rollout, exist_ok=True)
+    # --- create results folder ---
+    results_dir = os.path.join(log_dir, 'results')
+    os.makedirs(results_dir, exist_ok=True)
 
-    n_plot = min(10, n_metabolites)
-    fig, axes = plt.subplots(n_plot, 1, figsize=(12, 2 * n_plot), sharex=True)
-    if n_plot == 1:
-        axes = [axes]
-    for i in range(n_plot):
-        axes[i].plot(activity_true[i, :], 'k-', linewidth=1, label='true')
-        axes[i].plot(activity_pred[i, :], 'r--', linewidth=1, label='predicted')
-        axes[i].set_ylabel(f'met {i}', fontsize=8)
-        if i == 0:
-            axes[i].legend(fontsize=8)
-    axes[-1].set_xlabel('frame')
-    plt.suptitle(f'rollout (R2={test_r2:.3f}, Pearson={test_pearson:.3f})')
+    # --- save kinograph (concentration heatmap) as npy ---
+    np.save(os.path.join(results_dir, 'kinograph_gt.npy'), activity_true)
+    np.save(os.path.join(results_dir, 'kinograph_pred.npy'), activity_pred)
+
+    # --- kinograph montage 2x2: GT, pred, residual, scatter ---
+    # use min/max of true concentrations for consistent color scale
+    vmin_true = activity_true.min()
+    vmax_true = activity_true.max()
+    residual = activity_true - activity_pred
+    vmax_res = np.abs(residual).max()
+
+    fig, axes = plt.subplots(2, 2, figsize=(24, 16))
+    ax_gt, ax_pred, ax_res, ax_scat = axes[0, 0], axes[0, 1], axes[1, 0], axes[1, 1]
+
+    # Top-left: GT
+    im_gt = ax_gt.imshow(activity_true, aspect='auto', cmap='viridis', vmin=vmin_true, vmax=vmax_true, origin='lower')
+    ax_gt.set_ylabel('metabolites', fontsize=28)
+    ax_gt.set_title('ground truth', fontsize=24)
+    ax_gt.set_xticks([0, n_test_frames - 1]); ax_gt.set_xticklabels([0, n_test_frames], fontsize=20)
+    ax_gt.set_yticks([0, n_metabolites - 1]); ax_gt.set_yticklabels([1, n_metabolites], fontsize=20)
+    fig.colorbar(im_gt, ax=ax_gt, fraction=0.046, pad=0.04).ax.tick_params(labelsize=16)
+
+    # Top-right: GNN prediction (use same color scale as GT for comparison)
+    im_pred = ax_pred.imshow(activity_pred, aspect='auto', cmap='viridis', vmin=vmin_true, vmax=vmax_true, origin='lower')
+    ax_pred.set_title('GNN prediction', fontsize=24)
+    ax_pred.set_xticks([0, n_test_frames - 1]); ax_pred.set_xticklabels([0, n_test_frames], fontsize=20)
+    ax_pred.set_yticks([0, n_metabolites - 1]); ax_pred.set_yticklabels([1, n_metabolites], fontsize=20)
+    fig.colorbar(im_pred, ax=ax_pred, fraction=0.046, pad=0.04).ax.tick_params(labelsize=16)
+
+    # Bottom-left: Residual
+    im_res = ax_res.imshow(residual, aspect='auto', cmap='RdBu_r', vmin=-vmax_res, vmax=vmax_res, origin='lower')
+    ax_res.set_ylabel('metabolites', fontsize=28)
+    ax_res.set_xlabel('time', fontsize=28)
+    ax_res.set_title('residuals', fontsize=24)
+    ax_res.set_xticks([0, n_test_frames - 1]); ax_res.set_xticklabels([0, n_test_frames], fontsize=20)
+    ax_res.set_yticks([0, n_metabolites - 1]); ax_res.set_yticklabels([1, n_metabolites], fontsize=20)
+    fig.colorbar(im_res, ax=ax_res, fraction=0.046, pad=0.04).ax.tick_params(labelsize=16)
+
+    # Bottom-right: Scatter true vs predicted (use true concentration range)
+    gt_flat = activity_true.flatten()
+    pred_flat = activity_pred.flatten()
+    ax_scat.scatter(gt_flat, pred_flat, s=1, alpha=0.1, c='k', rasterized=True)
+    lims = [vmin_true, vmax_true]
+    ax_scat.plot(lims, lims, 'r--', linewidth=2)
+    ax_scat.set_xlim(lims); ax_scat.set_ylim(lims)
+    ax_scat.set_xlabel('ground truth concentration', fontsize=28)
+    ax_scat.set_ylabel('predicted concentration', fontsize=28)
+    ax_scat.set_title('true vs predicted', fontsize=24)
+    ax_scat.tick_params(labelsize=18)
+    ax_scat.text(0.05, 0.95, f'R²={test_r2:.3f}\nPearson={test_pearson:.3f}',
+                 transform=ax_scat.transAxes, fontsize=20, va='top')
+
     plt.tight_layout()
-    plt.savefig(os.path.join(out_dir_rollout, 'rollout_test.png'), dpi=150)
+    plt.savefig(os.path.join(results_dir, 'kinograph_montage.png'), dpi=300, bbox_inches='tight')
     plt.close()
+
+    # --- concentration traces plot (like concentrations.png but with GT overlay) ---
+    n_traces = min(20, n_metabolites)
+    trace_ids = np.linspace(0, n_metabolites - 1, n_traces, dtype=int)
+
+    # compute per-trace R²
+    r2_per_trace = []
+    for idx in trace_ids:
+        gt_trace = activity_true[idx]
+        pred_trace = activity_pred[idx]
+        ss_res = np.sum((gt_trace - pred_trace) ** 2)
+        ss_tot = np.sum((gt_trace - np.mean(gt_trace)) ** 2)
+        r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
+        r2_per_trace.append(r2)
+
+    fig, ax = plt.subplots(1, 1, figsize=(20, 12))
+
+    # compute offset based on data range
+    offset = np.abs(activity_true[trace_ids]).max() * 1.5
+    if offset == 0:
+        offset = 1.0
+
+    for j, n_idx in enumerate(trace_ids):
+        y0 = j * offset
+        baseline = np.mean(activity_true[n_idx])
+        # Ground truth in green (thicker line)
+        ax.plot(activity_true[n_idx] - baseline + y0, color='green', lw=3.0, alpha=0.9)
+        # Prediction in red (thinner line)
+        ax.plot(activity_pred[n_idx] - baseline + y0, color='red', lw=1.0, alpha=0.9)
+
+        # Metabolite index on the left
+        ax.text(-n_test_frames * 0.02, y0, str(n_idx), fontsize=10, va='center', ha='right')
+
+        # R² on the right with color coding
+        r2_val = r2_per_trace[j]
+        r2_color = 'red' if r2_val < 0.5 else ('orange' if r2_val < 0.8 else 'green')
+        ax.text(n_test_frames * 1.02, y0, f'R²:{r2_val:.2f}', fontsize=9, va='center', ha='left', color=r2_color)
+
+    ax.set_xlim([-n_test_frames * 0.05, n_test_frames * 1.1])
+    ax.set_ylim([-offset, n_traces * offset])
+    ax.set_xlabel('frame', fontsize=24)
+    ax.set_ylabel('metabolite', fontsize=24)
+    ax.spines['left'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_bounds(0, n_test_frames)
+    ax.set_yticks([])
+
+    # legend
+    from matplotlib.lines import Line2D
+    legend_elements = [Line2D([0], [0], color='green', lw=3, label='ground truth'),
+                       Line2D([0], [0], color='red', lw=1, label='GNN prediction')]
+    ax.legend(handles=legend_elements, loc='upper right', fontsize=14)
+
+    # Add overall R² in title
+    mean_r2 = np.mean(r2_per_trace)
+    ax.set_title(f'Concentration traces (n={n_traces} of {n_metabolites} metabolites) | mean R²={mean_r2:.3f}', fontsize=20)
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, 'concentrations.png'), dpi=150)
+    plt.close()
+
+    # --- rate constants R2 (for S given mode) ---
+    freeze_stoichiometry = getattr(train_config, 'freeze_stoichiometry', False)
+    rate_constants_r2 = 0.0
+    rate_constants_r2_shifted = 0.0
+    if freeze_stoichiometry:
+        # load ground truth log_k directly from checkpoint (avoids config mismatch)
+        gt_model_path = f'graphs_data/{dataset_name}/gt_model.pt'
+        if os.path.exists(gt_model_path):
+            try:
+                gt_state = torch.load(gt_model_path, map_location=device)
+                gt_log_k = gt_state['log_k']
+
+                with torch.no_grad():
+                    gt_k = to_numpy(torch.pow(10, gt_log_k.cpu()))
+                    learned_k = to_numpy(torch.pow(10, model.log_k.detach().cpu()))
+
+                    lin_fit_k, _ = curve_fit(linear_model, gt_k, learned_k)
+                    residuals_k = learned_k - linear_model(gt_k, *lin_fit_k)
+                    ss_res_k = np.sum(residuals_k ** 2)
+                    ss_tot_k = np.sum((learned_k - np.mean(learned_k)) ** 2)
+                    rate_constants_r2 = 1 - (ss_res_k / ss_tot_k) if ss_tot_k > 0 else 0.0
+
+                    # shift-corrected R² in log space
+                    gt_log_k_np = to_numpy(gt_log_k.cpu())
+                    learned_log_k_np = to_numpy(model.log_k.detach().cpu())
+                    offset = np.mean(learned_log_k_np) - np.mean(gt_log_k_np)
+                    shifted = learned_log_k_np - offset
+                    ss_res_shifted = np.sum((shifted - gt_log_k_np) ** 2)
+                    ss_tot_gt = np.sum((gt_log_k_np - np.mean(gt_log_k_np)) ** 2)
+                    rate_constants_r2_shifted = 1 - (ss_res_shifted / ss_tot_gt) if ss_tot_gt > 0 else 0.0
+
+                print(f'  rate_constants R2: {rate_constants_r2:.4f} (shifted: {rate_constants_r2_shifted:.4f})')
+            except Exception as e:
+                print(f'  rate_constants R2: skipped ({e})')
 
     # --- write to analysis log ---
     if log_file is not None:
-        log_file.write(f"stoichiometry_R2: {stoich_r2:.4f}\n")
+        if not freeze_stoichiometry:
+            log_file.write(f"stoichiometry_R2: {stoich_r2:.4f}\n")
         log_file.write(f"test_R2: {test_r2:.4f}\n")
         log_file.write(f"test_pearson: {test_pearson:.4f}\n")
+        if freeze_stoichiometry:
+            log_file.write(f"rate_constants_R2: {rate_constants_r2:.4f}\n")
+            log_file.write(f"rate_constants_R2_shifted: {rate_constants_r2_shifted:.4f}\n")
 
 
 def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
                                   gt_model=None):
-    """plot learned substrate_func and rate_func functions during metabolism training.
+    """plot learned MLP_sub, MLP_node, and embeddings during metabolism training.
 
-    substrate_func: sweep concentration at several fixed |stoich| values -> ||output||.
-    rate_func: compute actual h_rxn for all reactions -> scatter rate vs ||h_rxn||,
-               plus 1D sweep along mean h_rxn direction.
+    MLP_sub: sweep concentration at several fixed |stoich| values -> ||output||.
+    MLP_node: per-metabolite-type homeostasis function (c_i, a_i) -> homeostasis term.
+    embeddings: scatter plot of learned metabolite embeddings a_i colored by type.
     if gt_model is provided, overlay ground-truth curves as dashed lines.
 
-    saves to tmp_training/function/substrate_func/ and tmp_training/function/rate_func/.
+    saves to tmp_training/function/ and embedding/.
     """
-    msg_dir = f"./{log_dir}/tmp_training/function/substrate_func"
-    rate_dir = f"./{log_dir}/tmp_training/function/rate_func"
-    os.makedirs(msg_dir, exist_ok=True)
+    func_dir = f"./{log_dir}/tmp_training/function"
+    sub_dir = f"{func_dir}/substrate_func"
+    rate_dir = f"{func_dir}/rate_func"
+    emb_dir = f"./{log_dir}/embedding"
+    os.makedirs(sub_dir, exist_ok=True)
     os.makedirs(rate_dir, exist_ok=True)
+    os.makedirs(emb_dir, exist_ok=True)
 
     n_pts = 500
 
-    # --- substrate_func: concentration sweep at fixed |stoich| values ---
+    # --- MLP_sub: concentration sweep at fixed |stoich| values ---
     conc_max = to_numpy(xnorm).item() * 3.0
     conc_range = torch.linspace(0, conc_max, n_pts, device=device)
 
-    stoich_values = [0.5, 1.0, 2.0]
-    colors = ['tab:blue', 'tab:orange', 'tab:green']
+    stoich_values = [1, 2]
+    colors = ['tab:blue', 'tab:orange']
 
     fig, ax = plt.subplots(figsize=(8, 8))
+    c_np = to_numpy(conc_range)
     with torch.no_grad():
         for s_val, color in zip(stoich_values, colors):
-            s_abs = torch.full((n_pts, 1), s_val, device=device)
+            s_abs = torch.full((n_pts, 1), float(s_val), device=device)
             msg_in = torch.cat([conc_range.unsqueeze(-1), s_abs], dim=-1)
             msg_out = model.substrate_func(msg_in)
             msg_norm = msg_out.norm(dim=-1)
-            ax.plot(to_numpy(conc_range), to_numpy(msg_norm),
+            ax.plot(c_np, to_numpy(msg_norm),
                     linewidth=2, color=color, label=f'learned |s|={s_val}')
 
-            if gt_model is not None:
-                gt_msg_out = gt_model.substrate_func(msg_in)
-                gt_msg_norm = gt_msg_out.norm(dim=-1)
-                ax.plot(to_numpy(conc_range), to_numpy(gt_msg_norm),
-                        linewidth=2, color=color, linestyle='--', alpha=0.7,
-                        label=f'GT |s|={s_val}')
+            # true power law c^s (normalized to match learned scale)
+            true_power = np.power(c_np + 1e-8, s_val)
+            scale = to_numpy(msg_norm).max() / (true_power.max() + 1e-8)
+            ax.plot(c_np, true_power * scale,
+                    linewidth=2, color=color, linestyle='--', alpha=0.5,
+                    label=f'$c^{{{s_val}}}$ (scaled)')
 
     ax.set_xlabel('concentration', fontsize=24)
-    ax.set_ylabel(r'$\|\mathrm{substrate\_func}\|$', fontsize=24)
+    ax.set_ylabel('MLP_sub output', fontsize=24)
     ax.legend(fontsize=12)
     ax.tick_params(labelsize=16)
     plt.tight_layout()
-    plt.savefig(f"{msg_dir}/func_{epoch}_{N}.png", dpi=87)
+    plt.savefig(f"{sub_dir}/MLP_sub_{epoch}_{N}.png", dpi=87)
     plt.close()
 
-    # --- rate_func: actual h_rxn scatter + 1D sweep ---
+    # --- MLP_node: per-metabolite homeostasis function ---
+    # MLP_node(c_i, a_i) learns -λ_i(c_i - c_baseline)
+    # Plot for ALL metabolites using their individual embeddings a_i
     with torch.no_grad():
-        concentrations = x[:, 3]
-        x_src = concentrations[model.met_sub].unsqueeze(-1)
-        s_abs = model.sto_all[model.sub_to_all].abs().unsqueeze(-1)
-        msg_in = torch.cat([x_src, s_abs], dim=-1)
-        msg = model.substrate_func(msg_in)
+        metabolite_types = x[:, 6].long()
+        n_types = metabolite_types.max().item() + 1
+        n_met = model.a.shape[0]
+        cmap = plt.cm.get_cmap('tab10')
 
-        h_rxn = torch.zeros(
-            model.n_rxn, msg.shape[1], dtype=msg.dtype, device=msg.device
-        )
-        h_rxn.index_add_(0, model.rxn_sub, msg)
+        fig, ax = plt.subplots(figsize=(10, 8))
 
-        rate = model.softplus(model.rate_func(h_rxn).squeeze(-1))
-        h_norm = h_rxn.norm(dim=-1)
+        # plot MLP_node for each individual metabolite
+        for i in range(n_met):
+            a_i = model.a[i]  # embedding for metabolite i
+            t = metabolite_types[i].item()
 
-        # 1D sweep along mean h_rxn direction
-        h_mean = h_rxn.mean(dim=0)
-        h_mean_norm = h_mean.norm()
-        if h_mean_norm > 1e-8:
-            h_dir = h_mean / h_mean_norm
-            sweep_scale = torch.linspace(0, h_norm.max().item() * 1.5, n_pts, device=device)
-            h_sweep = sweep_scale.unsqueeze(-1) * h_dir.unsqueeze(0)
-            rate_sweep = model.softplus(model.rate_func(h_sweep).squeeze(-1))
-        else:
-            sweep_scale = None
+            # sweep concentration with this metabolite's embedding
+            a_repeated = a_i.unsqueeze(0).expand(n_pts, -1)
+            node_in = torch.cat([conc_range.unsqueeze(-1), a_repeated], dim=-1)
+            homeostasis = model.node_func(node_in).squeeze(-1)
 
-        # ground truth rate_func
-        gt_rate = None
-        gt_h_norm = None
-        gt_sweep_scale = None
-        gt_rate_sweep = None
-        if gt_model is not None:
-            gt_x_src = concentrations[gt_model.met_sub].unsqueeze(-1)
-            gt_s_abs = gt_model.sto_sub.unsqueeze(-1)
-            gt_msg_in = torch.cat([gt_x_src, gt_s_abs], dim=-1)
-            gt_msg = gt_model.substrate_func(gt_msg_in)
+            ax.plot(c_np, to_numpy(homeostasis), linewidth=1, color=cmap(t),
+                    alpha=0.3)
 
-            gt_h_rxn = torch.zeros(
-                gt_model.n_rxn, gt_msg.shape[1], dtype=gt_msg.dtype, device=gt_msg.device
-            )
-            gt_h_rxn.index_add_(0, gt_model.rxn_sub, gt_msg)
+        # GT homeostasis if available: -λ_t * (c - c_baseline_t)
+        if gt_model is not None and hasattr(gt_model, 'p'):
+            p = to_numpy(gt_model.p.detach().cpu())
+            for t in range(n_types):
+                if t < p.shape[0]:
+                    lambda_t = p[t, 0]
+                    c_baseline_t = p[t, 1]
+                    gt_homeostasis = -lambda_t * (c_np - c_baseline_t)
+                    ax.plot(c_np, gt_homeostasis, linewidth=2, color=cmap(t),
+                            linestyle='--', label=f'GT type {t}')
+                    ax.axvline(x=c_baseline_t, color=cmap(t), linestyle=':',
+                               alpha=0.3)
 
-            gt_rate = gt_model.softplus(gt_model.rate_func(gt_h_rxn).squeeze(-1))
-            gt_h_norm = gt_h_rxn.norm(dim=-1)
+        ax.axhline(y=0, color='gray', linestyle='-', alpha=0.3)
+        ax.set_xlabel('concentration $c$', fontsize=24)
+        ax.set_ylabel(r'$\mathrm{MLP_{node}}(c, a)$', fontsize=24)
+        ax.legend(fontsize=12, loc='best')
+        ax.tick_params(labelsize=16)
+        ax.grid(True, linestyle='--', alpha=0.3)
 
-            gt_h_mean = gt_h_rxn.mean(dim=0)
-            gt_h_mean_norm = gt_h_mean.norm()
-            if gt_h_mean_norm > 1e-8:
-                gt_h_dir = gt_h_mean / gt_h_mean_norm
-                gt_sweep_scale = torch.linspace(0, gt_h_norm.max().item() * 1.5, n_pts, device=device)
-                gt_h_sweep = gt_sweep_scale.unsqueeze(-1) * gt_h_dir.unsqueeze(0)
-                gt_rate_sweep = gt_model.softplus(gt_model.rate_func(gt_h_sweep).squeeze(-1))
+        # set y-axis limits from ground truth range (with margin)
+        if gt_model is not None and hasattr(gt_model, 'p'):
+            p = to_numpy(gt_model.p.detach().cpu())
+            gt_vals = []
+            for t in range(min(n_types, p.shape[0])):
+                lambda_t = p[t, 0]
+                c_baseline_t = p[t, 1]
+                gt_vals.append(-lambda_t * (c_np[0] - c_baseline_t))
+                gt_vals.append(-lambda_t * (c_np[-1] - c_baseline_t))
+            gt_ymin, gt_ymax = min(gt_vals), max(gt_vals)
+            margin = (gt_ymax - gt_ymin) * 0.3 + 1e-6
+            ax.set_ylim(gt_ymin - margin, gt_ymax + margin)
 
-    fig, ax = plt.subplots(figsize=(8, 8))
-    ax.scatter(to_numpy(h_norm), to_numpy(rate), s=10, c='k', alpha=0.4,
-               label=f'learned (n={model.n_rxn})')
-    if sweep_scale is not None:
-        ax.plot(to_numpy(sweep_scale), to_numpy(rate_sweep),
-                'r-', linewidth=2, alpha=0.8, label='learned sweep')
-    if gt_rate is not None:
-        ax.scatter(to_numpy(gt_h_norm), to_numpy(gt_rate), s=10, c='tab:blue',
-                   alpha=0.3, marker='o', label=f'GT (n={gt_model.n_rxn})')
-        if gt_sweep_scale is not None:
-            ax.plot(to_numpy(gt_sweep_scale), to_numpy(gt_rate_sweep),
-                    'b--', linewidth=2, alpha=0.7, label='GT sweep')
-    ax.set_xlabel(r'$\|h_{rxn}\|$ (aggregated message)', fontsize=20)
-    ax.set_ylabel(r'$\mathrm{softplus}(\mathrm{rate\_func}(h))$', fontsize=20)
-    ax.legend(fontsize=12)
-    ax.tick_params(labelsize=16)
     plt.tight_layout()
-    plt.savefig(f"{rate_dir}/func_{epoch}_{N}.png", dpi=87)
+    plt.savefig(f"{rate_dir}/MLP_node_{epoch}_{N}.png", dpi=87)
+    plt.close()
+
+    # --- Embeddings: scatter plot of learned metabolite embeddings ---
+    with torch.no_grad():
+        metabolite_types = x[:, 6].long()
+        n_types = metabolite_types.max().item() + 1
+        cmap = plt.cm.get_cmap('tab10')
+
+        fig, ax = plt.subplots(figsize=(8, 8))
+
+        a_np = to_numpy(model.a.detach().cpu())
+        for t in range(n_types):
+            pos = torch.argwhere(metabolite_types == t).squeeze(-1)
+            if len(pos) == 0:
+                continue
+            pos_np = to_numpy(pos)
+            ax.scatter(a_np[pos_np, 0], a_np[pos_np, 1], s=50, color=cmap(t),
+                       alpha=0.7, edgecolors=None)
+
+        ax.set_xlabel('embedding 0', fontsize=18)
+        ax.set_ylabel('embedding 1', fontsize=18)
+        ax.tick_params(labelsize=12)
+
+    plt.tight_layout()
+    plt.savefig(f"{emb_dir}/Fig_{epoch}_{N}.png", dpi=87)
     plt.close()
 
 
@@ -1066,70 +1285,81 @@ def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N):
         learned_log_k = to_numpy(model.log_k.detach().cpu())
         n_rxn = len(gt_log_k)
 
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    # linear scale values
+    gt_k = np.power(10.0, gt_log_k)
+    learned_k = np.power(10.0, learned_log_k)
 
-    # panel 1: histogram of log_k values
-    axes[0].hist(gt_log_k, bins=20, alpha=0.5, label='GT', color='blue')
-    axes[0].hist(learned_log_k, bins=20, alpha=0.5, label='Learned', color='orange')
-    axes[0].set_xlabel(r'$\log_{10}(k_j)$', fontsize=14)
-    axes[0].set_ylabel('count', fontsize=14)
-    axes[0].legend(fontsize=12)
-    axes[0].set_title(f'Rate constants (epoch {epoch}, iter {N})', fontsize=14)
+    fig, ax = plt.subplots(figsize=(8, 8))
 
-    # panel 2: scatter plot true vs learned
-    axes[1].scatter(gt_log_k, learned_log_k, s=20, c='k', alpha=0.6)
-    axes[1].set_xlabel(r'true $\log_{10}(k_j)$', fontsize=14)
-    axes[1].set_ylabel(r'learned $\log_{10}(k_j)$', fontsize=14)
+    # scatter plot true vs learned (log scale)
+    ax.scatter(gt_log_k, learned_log_k, s=20, c='k', alpha=0.6, edgecolors=None)
+    ax.set_xlabel(r'true $\log_{10}(k_j)$', fontsize=18)
+    ax.set_ylabel(r'learned $\log_{10}(k_j)$', fontsize=18)
 
     r_squared = 0.0
+    r_squared_shifted = 0.0
     try:
         lin_fit, _ = curve_fit(linear_model, gt_log_k, learned_log_k)
         residuals = learned_log_k - linear_model(gt_log_k, *lin_fit)
         ss_res = np.sum(residuals ** 2)
         ss_tot = np.sum((learned_log_k - np.mean(learned_log_k)) ** 2)
         r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
-        axes[1].text(0.05, 0.96, f'$R^2$: {r_squared:.3f}', transform=axes[1].transAxes,
-                     fontsize=12, verticalalignment='top')
-        axes[1].text(0.05, 0.90, f'slope: {lin_fit[0]:.3f}', transform=axes[1].transAxes,
-                     fontsize=12, verticalalignment='top')
+
+        # shift-corrected R²: remove mean offset, then compute R²
+        offset = np.mean(learned_log_k) - np.mean(gt_log_k)
+        shifted = learned_log_k - offset
+        ss_res_shifted = np.sum((shifted - gt_log_k) ** 2)
+        ss_tot_gt = np.sum((gt_log_k - np.mean(gt_log_k)) ** 2)
+        r_squared_shifted = 1 - (ss_res_shifted / ss_tot_gt) if ss_tot_gt > 0 else 0.0
+
+        ax.text(0.05, 0.96, f'$R^2$: {r_squared:.3f}', transform=ax.transAxes,
+                fontsize=14, verticalalignment='top')
+        ax.text(0.05, 0.89, f'$R^2_{{shift}}$: {r_squared_shifted:.3f}', transform=ax.transAxes,
+                fontsize=14, verticalalignment='top')
+        ax.text(0.05, 0.82, f'slope: {lin_fit[0]:.3f}', transform=ax.transAxes,
+                fontsize=14, verticalalignment='top')
     except Exception:
         pass
 
-    axes[1].text(0.05, 0.84, f'n={n_rxn} reactions', transform=axes[1].transAxes,
-                 fontsize=12, verticalalignment='top')
+    ax.text(0.05, 0.75, f'n={n_rxn} reactions', transform=ax.transAxes,
+            fontsize=14, verticalalignment='top')
 
-    lims = [min(gt_log_k.min(), learned_log_k.min()) - 0.2,
-            max(gt_log_k.max(), learned_log_k.max()) + 0.2]
-    axes[1].plot(lims, lims, 'r--', alpha=0.5, linewidth=1)
-    axes[1].set_xlim(lims)
-    axes[1].set_ylim(lims)
-    axes[1].set_aspect('equal')
+    # axis limits based on GT data range with small margin
+    margin = 0.1 * (gt_log_k.max() - gt_log_k.min())
+    x_min = gt_log_k.min() - margin
+    x_max = gt_log_k.max() + margin
+    y_min = min(learned_log_k.min(), x_min) - margin
+    y_max = max(learned_log_k.max(), x_max) + margin
+    lims = [min(x_min, y_min), max(x_max, y_max)]
+
+    ax.plot(lims, lims, 'r--', alpha=0.5, linewidth=1)
+    ax.set_xlim([x_min, x_max])
+    ax.set_ylim(lims)
+    ax.tick_params(labelsize=14)
 
     plt.tight_layout()
     plt.savefig(f"{out_dir}/comparison_{epoch}_{N}.png", dpi=150, bbox_inches='tight')
     plt.close()
 
-    return r_squared
+    return r_squared, r_squared_shifted
 
 
 def _compare_functions(model, gt_model, device):
-    """Compare learned vs ground truth substrate_func and rate_func.
+    """Compare learned vs ground truth MLP_sub (substrate function).
 
-    Evaluates both functions on a grid of inputs and computes correlation metrics.
+    Evaluates MLP_sub on a grid of inputs and computes correlation metrics.
 
     Returns
     -------
     dict with keys:
-        substrate_func_r2: R² between GT and learned substrate_func outputs
-        substrate_func_corr: Pearson correlation for substrate_func
-        rate_func_r2: R² between GT and learned rate_func outputs
-        rate_func_corr: Pearson correlation for rate_func
+        MLP_sub_r2: R² between GT and learned MLP_sub outputs
+        MLP_sub_corr: Pearson correlation for MLP_sub
     """
     model.eval()
     gt_model.eval()
 
     with torch.no_grad():
-        # --- substrate_func comparison ---
+        # --- MLP_sub comparison ---
         # Create grid of inputs: [concentration, |stoich|]
         # concentration range: 0 to 10, stoich range: 0 to 3
         n_pts = 50
@@ -1149,42 +1379,16 @@ def _compare_functions(model, gt_model, device):
         # Compute metrics
         ss_res = ((learned_flat - gt_flat) ** 2).sum()
         ss_tot = ((gt_flat - gt_flat.mean()) ** 2).sum()
-        substrate_r2 = 1 - ss_res / (ss_tot + 1e-8)
+        sub_r2 = 1 - ss_res / (ss_tot + 1e-8)
 
         # Pearson correlation
         learned_centered = learned_flat - learned_flat.mean()
         gt_centered = gt_flat - gt_flat.mean()
-        substrate_corr = (learned_centered * gt_centered).sum() / (
+        sub_corr = (learned_centered * gt_centered).sum() / (
             learned_centered.norm() * gt_centered.norm() + 1e-8
         )
 
-        # --- rate_func comparison ---
-        # Create grid of inputs in message space
-        # Get msg_dim from rate_func's input layer (more reliable than substrate_func output)
-        msg_dim = model.rate_func[0].in_features
-        n_msg_pts = 100
-        # Random inputs spanning typical message range
-        msg_inputs = torch.randn(n_msg_pts, msg_dim, device=device) * 2
-
-        learned_rate = model.softplus(model.rate_func(msg_inputs))
-        gt_rate = gt_model.softplus(gt_model.rate_func(msg_inputs))
-
-        learned_rate_flat = learned_rate.flatten()
-        gt_rate_flat = gt_rate.flatten()
-
-        ss_res_rate = ((learned_rate_flat - gt_rate_flat) ** 2).sum()
-        ss_tot_rate = ((gt_rate_flat - gt_rate_flat.mean()) ** 2).sum()
-        rate_r2 = 1 - ss_res_rate / (ss_tot_rate + 1e-8)
-
-        rate_learned_centered = learned_rate_flat - learned_rate_flat.mean()
-        rate_gt_centered = gt_rate_flat - gt_rate_flat.mean()
-        rate_corr = (rate_learned_centered * rate_gt_centered).sum() / (
-            rate_learned_centered.norm() * rate_gt_centered.norm() + 1e-8
-        )
-
     return {
-        'substrate_func_r2': float(substrate_r2.cpu()),
-        'substrate_func_corr': float(substrate_corr.cpu()),
-        'rate_func_r2': float(rate_r2.cpu()),
-        'rate_func_corr': float(rate_corr.cpu()),
+        'MLP_sub_r2': float(sub_r2.cpu()),
+        'MLP_sub_corr': float(sub_corr.cpu()),
     }

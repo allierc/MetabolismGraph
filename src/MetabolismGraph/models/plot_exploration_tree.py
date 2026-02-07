@@ -10,6 +10,7 @@ Usage:
 """
 
 import argparse
+import os
 import re
 from collections import defaultdict
 from dataclasses import dataclass
@@ -39,6 +40,9 @@ class UCBNode:
 def parse_ucb_scores(filepath: str) -> list[UCBNode]:
     """Parse ucb_scores.txt into a list of UCBNode objects."""
     nodes = []
+
+    if not os.path.exists(filepath):
+        return nodes
 
     with open(filepath, 'r') as f:
         content = f.read()

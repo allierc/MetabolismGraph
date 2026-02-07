@@ -739,8 +739,9 @@ def compute_ucb_scores(analysis_path, ucb_path, c=1.0, current_log_path=None, cu
         iterations (N*block_size)+1 to (N+1)*block_size.
     """
     # Detect primary metric based on config
+    # S given mode: optimize rate_constants_R2 (k recovery)
     is_metabolism = config_file is not None and 'metabolism' in str(config_file)
-    primary_metric = 'stoichiometry_R2' if is_metabolism else 'connectivity_R2'
+    primary_metric = 'rate_constants_R2' if is_metabolism else 'connectivity_R2'
     nodes = {}
     next_parent_map = {}  # maps iteration N -> parent for iteration N+1 (from "Next: parent=P")
 

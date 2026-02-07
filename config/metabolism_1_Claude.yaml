@@ -12,7 +12,7 @@ graph_model:
   model_name: PDE_M1
   prediction: first_derivative
   input_size: 2
-  output_size: 16
+  output_size: 1
   hidden_dim: 32
   n_layers: 3
   input_size_update: 3

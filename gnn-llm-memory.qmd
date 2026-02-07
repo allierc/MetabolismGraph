@@ -1,0 +1,154 @@
+---
+title: "GNN-LLM-Memory"
+subtitle: "Closed-loop exploration of metabolic rate constant recovery"
+---
+
+## The Exploration Loop
+
+```{mermaid}
+%%| fig-width: 6
+flowchart LR
+    A[Experiment] --> B[LLM]
+    B --> A
+
+    B --> C[(Memory)]
+    C --> B
+
+    style A fill:#e1f5fe
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+```
+
+The framework implements a **closed-loop exploration engine** composed of three interacting components:
+
+1. **Experiment**
+   The metabolic simulator generates concentration dynamics from a known stoichiometric network. A GNN (see [Home](index.qmd)) is trained to predict $dc/dt$ while jointly recovering rate constants $k_j$ and homeostatic functions. **4 parallel slots** run simultaneously per batch via UCB tree search.
+
+2. **LLM**
+   The LLM interprets training results in context of accumulated memory, diagnoses failure modes (scale ambiguity, function degeneracy, MLP compensation), and selects the next hyperparameter mutation via UCB tree search.
+
+3. **Memory**
+   Observations, failed attempts, and validated principles are written into explicit long-term memory. This memory persists across experimental blocks, enabling cumulative understanding rather than episodic trial-and-error.
+
+---
+
+## Training Scheme
+
+The GNN is trained by minimizing the prediction error on $dc/dt$:
+
+$$
+\mathcal{L} = \sum_{\text{frames}} \left\| \frac{dc}{dt}_{\text{pred}} - \frac{dc}{dt}_{\text{GT}} \right\|_2 + \mathcal{R}
+$$
+
+where $\mathcal{R}$ is the sum of regularization terms described below.
+
+### Separate Learning Rates
+
+Each model component has its own learning rate to control the balance between parameter groups:
+
+| Component | Config key | Controls | Typical range |
+|-----------|-----------|----------|---------------|
+| Rate constants $k_j$ | `learning_rate_k` | How fast k values are updated | 1E-4 to 1E-2 |
+| MLP$_{\text{node}}$ (homeostasis) | `learning_rate_node` | Homeostasis function learning speed | 1E-4 to 1E-2 |
+| MLP$_{\text{sub}}$ (substrate) | `learning_rate_sub` | Substrate function learning speed | 1E-4 to 1E-2 |
+
+The learning rate balance is critical:
+
+- **`lr_k` too high**: $k$ values overshoot, oscillate, or converge to wrong values
+- **`lr_k` too low**: $k$ barely moves, MLPs compensate
+- **`lr_node`/`lr_sub` imbalance**: one function absorbs capacity meant for the other
+
+### Regularization Terms
+
+The total regularization $\mathcal{R}$ is the sum of the following penalties:
+
+#### MLP$_{\text{sub}}$ Monotonicity (`coeff_MLP_sub_diff`)
+
+MLP$_{\text{sub}}$ learns $c^s$ which should be monotonically increasing in concentration. This penalty samples concentration pairs $(c, c+\delta)$ and penalizes cases where the output decreases:
+
+$$
+\mathcal{R}_{\text{sub\_diff}} = \left\| \text{ReLU}\left(\|\text{MLP}_{\text{sub}}(c)\| - \|\text{MLP}_{\text{sub}}(c+\delta)\|\right) \right\|_2 \cdot \lambda_{\text{sub\_diff}}
+$$
+
+Without this constraint, MLP$_{\text{sub}}$ can develop non-physical local minima that don't match the true power law behavior.
+
+#### MLP$_{\text{node}}$ L1 (`coeff_MLP_node_L1`)
+
+Penalizes large MLP$_{\text{node}}$ output to keep homeostasis values small relative to reaction terms:
+
+$$
+\mathcal{R}_{\text{node\_L1}} = \text{mean}\left(|\text{MLP}_{\text{node}}(c_i, a_i)|\right) \cdot \lambda_{\text{node\_L1}}
+$$
+
+MLP$_{\text{node}}$ is **initialized to zero output** so homeostasis starts inactive. Combined with a reduced learning rate, this prevents MLP$_{\text{node}}$ from dominating the dynamics. The true homeostatic $\lambda$ values are small (0.001--0.002), so MLP$_{\text{node}}$ output should remain small.
+
+#### $k$ Center (`coeff_k_center`)
+
+Breaks the **scale ambiguity** between $k$ and MLP$_{\text{sub}}$. The product $k_j \cdot \text{MLP}_{\text{sub}}(c)$ is invariant under $k \to \alpha k$, $\text{MLP}_{\text{sub}} \to \text{MLP}_{\text{sub}} / \alpha$. This penalty anchors the mean of $\log_{10}(k)$ to the center of the known range:
+
+$$
+\mathcal{R}_{k\_center} = \left(\text{mean}(\log_{10} k) - \frac{\log_{10} k_{\min} + \log_{10} k_{\max}}{2}\right)^2 \cdot \lambda_{k\_center}
+$$
+
+Without this, MLP$_{\text{sub}}$ can absorb a global scale factor and shift all $k$ values, producing high correlation (high $R^2_{\text{shifted}}$) but poor absolute recovery (low $R^2$).
+
+### Summary of Hyperparameters
+
+| Parameter | Config key | Description | Typical range |
+|-----------|-----------|-------------|---------------|
+| Learning rate $k$ | `learning_rate_k` | Rate constants update speed | 1E-4 to 1E-2 |
+| Learning rate node | `learning_rate_node` | MLP$_{\text{node}}$ update speed | 1E-4 to 1E-2 |
+| Learning rate sub | `learning_rate_sub` | MLP$_{\text{sub}}$ update speed | 1E-4 to 1E-2 |
+| Batch size | `batch_size` | Time frames per gradient step | 4 to 32 |
+| Training iterations | `data_augmentation_loop` | Multiplier for iterations per epoch | 100 to 5000 |
+| MLP$_{\text{sub}}$ monotonicity | `coeff_MLP_sub_diff` | Penalize non-increasing MLP$_{\text{sub}}$ | 0 to 500 |
+| MLP$_{\text{node}}$ L1 | `coeff_MLP_node_L1` | Penalize large homeostasis output | 0 to 10 |
+| $k$ center | `coeff_k_center` | Anchor mean($\log k$) to GT range | 0 to 10 |
+
+---
+
+## Metrics
+
+| Metric | Description | Good value |
+|--------|-------------|------------|
+| `rate_constants_R2` | R² between learned and true rate constants $k$ | > 0.9 |
+| `rate_constants_R2_shifted` | R² after removing mean offset — measures correlation independent of global scale | > 0.9 |
+| `test_R2` | R² on held-out test frames | > 0.9 |
+| `test_pearson` | Pearson correlation on test frames | > 0.95 |
+| `final_loss` | Final prediction loss (MSE on $dc/dt$) | Lower is better |
+
+### Diagnostic Interpretation
+
+| $R^2$ | $R^2_{\text{shifted}}$ | Diagnosis |
+|:-----:|:----------------------:|-----------|
+| High  | High | Correct recovery |
+| Low   | High | Scale ambiguity — increase `coeff_k_center` |
+| Low   | Low  | Poor correlation — adjust learning rates |
+
+| test_pearson | $R^2$ | Gap | Diagnosis |
+|:------------:|:-----:|:---:|-----------|
+| > 0.95 | > 0.9 | < 0.1 | **Healthy** — good dynamics from correct $k$ |
+| > 0.95 | 0.3--0.9 | 0.1--0.7 | **Degenerate** — good dynamics from wrong $k$ |
+| > 0.95 | < 0.3 | > 0.7 | **Severely degenerate** — MLPs compensating |
+| < 0.5 | < 0.5 | ~0 | **Failed** — both dynamics and $k$ poor |
+
+---
+
+## UCB Tree Search
+
+The LLM selects parent configurations to mutate using an **Upper Confidence Bound** (UCB) strategy that balances exploitation of high-performing branches with exploration of under-visited regions:
+
+$$
+\text{UCB}(i) = \bar{X}_i + c \cdot \sqrt{\frac{\ln N}{n_i}}
+$$
+
+where $\bar{X}_i$ is the mean reward of node $i$, $N$ is the total number of visits, $n_i$ is the number of visits to node $i$, and $c$ is the exploration constant.
+
+**4 parallel slots** run per batch with diversified roles:
+
+| Slot | Role | Description |
+| ---- | ---- | ----------- |
+| 0 | **exploit** | Highest UCB node, conservative mutation |
+| 1 | **exploit** | 2nd highest UCB, or same parent different param |
+| 2 | **explore** | Under-visited node, or new parameter dimension |
+| 3 | **principle-test** | Test or challenge one established principle from memory |

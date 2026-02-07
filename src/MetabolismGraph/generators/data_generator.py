@@ -17,6 +17,7 @@ from MetabolismGraph.generators.utils import (
     plot_metabolism_kinograph,
     plot_metabolism_external_input_kinograph,
     plot_metabolism_mlp_functions,
+    plot_homeostasis_function,
 )
 
 
@@ -50,19 +51,22 @@ def data_generate(
     noise_model_level = simulation_config.noise_model_level
     measurement_noise_level = training_config.measurement_noise_level
 
-    print(f'generating metabolism data ... {n_metabolites} metabolites {n_reactions} reactions')
-
     folder = f'./graphs_data/{dataset_name}/'
     os.makedirs(folder, exist_ok=True)
     os.makedirs(f'{folder}/Fig/', exist_ok=True)
 
     # --- build stoichiometric graph ---
+    cycle_fraction = getattr(simulation_config, 'cycle_fraction', 0.0)
+    cycle_length = getattr(simulation_config, 'cycle_length', 4)
     stoich_graph, S = init_reaction(
         n_metabolites, n_reactions, max_met_per_rxn, device, seed=simulation_config.seed,
+        cycle_fraction=cycle_fraction, cycle_length=cycle_length,
     )
 
     # --- initial concentrations ---
-    concentrations = init_concentration(n_metabolites, device, mode='random', seed=simulation_config.seed)
+    c_min = getattr(simulation_config, 'concentration_min', 2.5)
+    c_max = getattr(simulation_config, 'concentration_max', 7.5)
+    concentrations = init_concentration(n_metabolites, device, mode='random', seed=simulation_config.seed, c_min=c_min, c_max=c_max)
 
     # --- positions for visualisation ---
     xc, yc = get_equidistant_points(n_points=n_metabolites)
@@ -93,7 +97,6 @@ def data_generate(
         n_side = int(np.sqrt(n_input_metabolites))
         im_rows = np.linspace(0, im_h - 1, n_side, dtype=int)
         im_cols = np.linspace(0, im_w - 1, n_side, dtype=int)
-        print(f'external input: {simulation_config.node_value_map} shape={im.shape}')
 
     S_np = to_numpy(S)
 
@@ -113,7 +116,42 @@ def data_generate(
     x[:, 0] = torch.arange(n_metabolites, dtype=torch.float32, device=device)
     x[:, 1:3] = pos.clone().detach()
     x[:, 3] = concentrations.clone().detach()
-    x[:, 6] = 0  # metabolite type (single type for now)
+
+    # assign metabolite types (evenly distributed)
+    n_metabolite_types = getattr(simulation_config, 'n_metabolite_types', 1)
+    metabolite_type = torch.zeros(n_metabolites, dtype=torch.float32, device=device)
+    for t in range(n_metabolite_types):
+        start_idx = t * (n_metabolites // n_metabolite_types)
+        end_idx = (t + 1) * (n_metabolites // n_metabolite_types) if t < n_metabolite_types - 1 else n_metabolites
+        metabolite_type[start_idx:end_idx] = t
+    x[:, 6] = metabolite_type
+
+    # set per-type parameters if multiple types
+    if n_metabolite_types > 1 and hasattr(model, 'p'):
+        sim_cfg = config.simulation
+        lambda_per_type = getattr(sim_cfg, 'homeostatic_lambda_per_type', None)
+        baseline_per_type = getattr(sim_cfg, 'homeostatic_baseline_per_type', None)
+
+        with torch.no_grad():
+            # use per-type config if provided, otherwise randomize
+            if lambda_per_type is not None and len(lambda_per_type) == n_metabolite_types:
+                model.p[:, 0] = torch.tensor(lambda_per_type, dtype=model.p.dtype)
+            else:
+                # vary lambda: uniform in [0.5*base, 1.5*base]
+                base_lambda = model.p[0, 0].item()
+                if base_lambda > 0:
+                    model.p[:, 0] = base_lambda * (0.5 + torch.rand(n_metabolite_types))
+
+            if baseline_per_type is not None and len(baseline_per_type) == n_metabolite_types:
+                model.p[:, 1] = torch.tensor(baseline_per_type, dtype=model.p.dtype)
+            else:
+                # vary c_baseline: uniform in [0.8*base, 1.2*base]
+                base_c = model.p[0, 1].item()
+                model.p[:, 1] = base_c * (0.8 + 0.4 * torch.rand(n_metabolite_types))
+
+        print(f'metabolite types: {n_metabolite_types}')
+        print(f'  lambda per type: {to_numpy(model.p[:, 0])}')
+        print(f'  c_baseline per type: {to_numpy(model.p[:, 1])}')
 
     # --- Euler integration ---
     for run in range(training_config.n_runs):
@@ -174,33 +212,23 @@ def data_generate(
             np.save(f'{folder}/x_list_{run}.npy', x_list)
             np.save(f'{folder}/y_list_{run}.npy', y_list)
 
-        print(f'run {run}: generated {x_list.shape[0]} frames')
-
-        # --- start vs end concentration check ---
-        conc_start = x_list[0, :, 3]
-        conc_end = x_list[-1, :, 3]
-        delta = conc_end - conc_start
-        n_changed = np.sum(np.abs(delta) > 1e-6)
-        n_increased = np.sum(delta > 1e-6)
-        n_decreased = np.sum(delta < -1e-6)
-        n_unchanged = n_metabolites - n_changed
-        print(f'  concentration change (start vs end):')
-        print(f'    changed: {n_changed}/{n_metabolites} (increased: {n_increased}, decreased: {n_decreased}, unchanged: {n_unchanged})')
-        print(f'    start: mean={conc_start.mean():.4f} std={conc_start.std():.4f} min={conc_start.min():.4f} max={conc_start.max():.4f}')
-        print(f'    end:   mean={conc_end.mean():.4f} std={conc_end.std():.4f} min={conc_end.min():.4f} max={conc_end.max():.4f}')
-        print(f'    delta: mean={delta.mean():.4f} std={delta.std():.4f} min={delta.min():.4f} max={delta.max():.4f}')
-
         # --- activity plot + SVD analysis (first run) ---
         if run == 0:
-            plot_metabolism_concentrations(x_list, n_metabolites, n_frames, dataset_name, delta_t)
-            plot_metabolism_kinograph(x_list, n_metabolites, n_frames, dataset_name, delta_t)
+            # compute SVD analysis first to get activity rank
+            from MetabolismGraph.models.utils import analyze_data_svd
+            svd_results = analyze_data_svd(x_list, folder, config=config, save_in_subfolder=False)
+            activity_rank = svd_results.get('activity', {}).get('rank_99', None)
+
+            plot_metabolism_concentrations(x_list, n_metabolites, n_frames, dataset_name, delta_t, activity_rank=activity_rank)
+            # use data-driven vmin/vmax (no fixed c_center)
+            plot_metabolism_kinograph(x_list, n_metabolites, n_frames, dataset_name, delta_t, c_center=None, c_range=1.0)
             if has_visual_input:
                 plot_metabolism_external_input_kinograph(x_list, n_metabolites, n_frames, dataset_name, delta_t)
 
-            from MetabolismGraph.models.utils import analyze_data_svd
-            analyze_data_svd(x_list, folder, config=config, save_in_subfolder=False)
-
             plot_metabolism_mlp_functions(model, x_list, dataset_name, device)
 
+            # plot per-type homeostasis functions
+            if n_metabolite_types > 1:
+                plot_homeostasis_function(model, x_list, dataset_name)
+
     torch.save(model.p, f'{folder}/model_p_0.pt')
-    print('data saved')

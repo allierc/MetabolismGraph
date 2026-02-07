@@ -17,7 +17,7 @@ graph_model:
 
   # substrate_func: input_size=2 (concentration + |stoich|), output_size=msg_dim
   input_size: 2
-  output_size: 16
+  output_size: 1
   hidden_dim: 32
   n_layers: 3
 

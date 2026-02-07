@@ -1,4 +1,4 @@
-from typing import Optional, Literal, Annotated
+from typing import Optional, Literal, Annotated, List
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -48,6 +48,9 @@ class SimulationConfig(BaseModel):
     homeostatic_strength: float = 0.0  # λ (0 = disabled)
     baseline_mode: Literal["initial", "fixed"] = "initial"  # "initial" uses c(t=0), "fixed" uses baseline_concentration
     baseline_concentration: float = 1.0  # c_baseline when baseline_mode="fixed"
+    # per-type parameters (optional, overrides global values)
+    homeostatic_lambda_per_type: Optional[List[float]] = None  # [λ_0, λ_1, ...] per type
+    homeostatic_baseline_per_type: Optional[List[float]] = None  # [c_0, c_1, ...] per type
 
     # circadian modulation: c_baseline(t) = c_baseline * (1 + A * sin(2π*t/T))
     circadian_amplitude: float = 0.0  # A (0 = no oscillation)
@@ -154,6 +157,17 @@ class TrainingConfig(BaseModel):
     coeff_S_L1: float = 0.0
     coeff_S_integer: float = 0.0
     coeff_mass_conservation: float = 0.0
+
+    # MLP_sub monotonicity regularization (c^s should be increasing)
+    coeff_MLP_sub_diff: float = 100.0  # penalize decreasing MLP_sub output
+
+    # MLP_node L1 regularization: penalize large homeostasis output
+    # keeps MLP_node values small relative to the reaction terms
+    coeff_MLP_node_L1: float = 0.0
+
+    # k center regularization: penalize mean(log_k) deviating from GT range center
+    # breaks scale ambiguity between k and MLP_sub
+    coeff_k_center: float = 0.0
 
     # phase-1 regularization
     first_coeff_L1: float = 0.0

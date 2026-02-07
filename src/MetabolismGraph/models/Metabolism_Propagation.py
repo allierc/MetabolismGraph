@@ -1,8 +1,6 @@
 
 import torch
 import torch.nn as nn
-import numpy as np
-from MetabolismGraph.models.Siren_Network import Siren
 
 
 def mlp(sizes, activation=nn.Tanh, final_activation=None):
@@ -78,37 +76,23 @@ class Metabolism_Propagation(nn.Module):
         self.embedding_dim = embedding_dim
         self.a = nn.Parameter(torch.randn(n_met, embedding_dim) * 0.1)
 
-        # node function: MLP_node(c_i, a_i) -> homeostasis term
-        self.node_func = mlp([1 + embedding_dim, hidden, 1], activation=nn.Tanh)
+        # MLP_node: (c_i, a_i) -> homeostasis term (learns -λ_i(c_i - c_baseline))
+        # 3 layers with hidden_dim=64
+        # initialized to zero output so homeostasis starts inactive
+        self.node_func = mlp([1 + embedding_dim, 64, 64, 1], activation=nn.Tanh)
+        with torch.no_grad():
+            for p in self.node_func.parameters():
+                p.zero_()
 
-        # learnable functions (same architecture as PDE_M2)
-        self.substrate_func = mlp([2, hidden, msg_dim], activation=nn.Tanh)
-        self.rate_func = mlp([msg_dim, hidden, 1], activation=nn.Tanh)
+        # MLP_sub: (c_k, |s_kj|) -> substrate contribution (learns c^s)
+        # 3 layers with hidden_dim=64
+        self.substrate_func = mlp([2, 64, 64, 1], activation=nn.Tanh)
         self.softplus = nn.Softplus(beta=1.0)
 
-        # per-reaction rate constants
+        # per-reaction rate constants k_j
         log_k = torch.empty(n_rxn)
         log_k.uniform_(-2.0, 1.0)
         self.log_k = nn.Parameter(log_k)
-
-        # field_type for optional SIREN visual field
-        self.field_type = model_config.field_type
-        if 'visual' in self.field_type:
-            print('use NNR for visual field reconstruction')
-            self.NNR_f = Siren(
-                in_features=model_config.input_size_nnr_f,
-                out_features=model_config.output_size_nnr_f,
-                hidden_features=model_config.hidden_dim_nnr_f,
-                hidden_layers=model_config.n_layers_nnr_f,
-                first_omega_0=model_config.omega_f,
-                hidden_omega_0=model_config.omega_f,
-                outermost_linear=model_config.outermost_linear_nnr_f,
-            )
-            self.NNR_f.to(device)
-            self.NNR_f_xy_period = model_config.nnr_f_xy_period / (2 * np.pi)
-            self.NNR_f_T_period = model_config.nnr_f_T_period / (2 * np.pi)
-
-        self.p = torch.zeros(1)
 
     def load_stoich_graph(self, stoich_graph):
         """load bipartite graph structure and initialize learnable coefficients.
@@ -174,37 +158,11 @@ class Metabolism_Propagation(nn.Module):
         n_prod_per_rxn.clamp_(min=1.0)
         self.register_buffer('n_prod_per_rxn', n_prod_per_rxn)
 
-    def forward_visual(self, x, k):
-        """reconstruct external input via SIREN (position + time -> field).
-
-        Parameters
-        ----------
-        x : Tensor (n_met, 8)
-            metabolite features (positions at x[:, 1:3]).
-        k : int or float
-            frame index.
-
-        Returns
-        -------
-        reconstructed_field : Tensor (n_input_metabolites, 1)
-        """
-        kk = torch.full(
-            (x.size(0), 1), float(k), device=self.device, dtype=torch.float32
-        )
-        in_features = torch.cat(
-            (x[:, 1:1 + self.dimension] / self.NNR_f_xy_period,
-             kk / self.NNR_f_T_period),
-            dim=1,
-        )
-        reconstructed_field = self.NNR_f(in_features[:self.n_input_metabolites]) ** 2
-        return reconstructed_field
-
     def forward(self, data=None, has_field=False, frame=None):
-        """compute dx/dt for all metabolites.
+        """Compute dx/dt for all metabolites.
 
-        same computation as PDE_M2.forward() but using learnable
-        stoichiometric coefficients (sto_all). substrate |stoich| for
-        messages is derived as |sto_all[sub_to_all]|.
+        GNN parameterization from documentation:
+        dc_i/dt = MLP_node(c_i, a_i) + Σ_j S_ij * k_j * aggr(MLP_sub(c_k, s_kj))
 
         Returns
         -------
@@ -214,70 +172,62 @@ class Metabolism_Propagation(nn.Module):
         concentrations = x[:, 3]
         external_input = x[:, 4]
 
-        # 0. homeostasis term: MLP_node(c_i, a_i)
+        # ===== MLP_node: homeostasis term =====
+        # MLP_node(c_i, a_i) learns -λ_i(c_i - c_baseline)
         node_in = torch.cat([concentrations.unsqueeze(-1), self.a], dim=-1)
         homeostasis = self.node_func(node_in).squeeze(-1)
 
-        # 1. gather substrate concentrations; derive |stoich| from sto_all
-        x_src = concentrations[self.met_sub].unsqueeze(-1)
+        # ===== MLP_sub: substrate contribution =====
+        # gather (c_k, |s_kj|) for each substrate edge
+        c_sub = concentrations[self.met_sub].unsqueeze(-1)
         s_abs = self.sto_all[self.sub_to_all].abs().unsqueeze(-1)
-        msg_in = torch.cat([x_src, s_abs], dim=-1)
+        msg_in = torch.cat([c_sub, s_abs], dim=-1)
 
-        # 2. compute messages
+        # MLP_sub(c_k, s_kj) learns c^s
         msg = self.substrate_func(msg_in)
 
-        # 3. aggregate messages per reaction
+        # ===== Aggregation: sum or product =====
         if self.aggr_type == 'mul':
-            # multiplicative aggregation in log-space for numerical stability
+            # multiplicative: Π MLP_sub via log-space scatter
             eps = 1e-8
-            log_msg = torch.log(msg.clamp(min=eps))
-            log_sum = torch.zeros(
-                self.n_rxn, msg.shape[1], dtype=msg.dtype, device=msg.device
-            )
-            log_sum.index_add_(0, self.rxn_sub, log_msg)
-            h_rxn = torch.exp(log_sum)
+            log_msg = torch.log(msg.abs().clamp(min=eps))
+            log_agg = torch.zeros(self.n_rxn, dtype=msg.dtype, device=msg.device)
+            log_agg.index_add_(0, self.rxn_sub, log_msg.squeeze(-1))
+            agg = torch.exp(log_agg)
         else:
-            # additive aggregation (default)
-            h_rxn = torch.zeros(
-                self.n_rxn, msg.shape[1], dtype=msg.dtype, device=msg.device
-            )
-            h_rxn.index_add_(0, self.rxn_sub, msg)
+            # additive: Σ MLP_sub
+            agg = torch.zeros(self.n_rxn, dtype=msg.dtype, device=msg.device)
+            agg.index_add_(0, self.rxn_sub, msg.squeeze(-1))
 
-        # 4. compute base reaction rates
+        # ===== Reaction rates: v = k * aggr =====
         k = torch.pow(10.0, self.log_k)
-        base_v = self.softplus(self.rate_func(h_rxn).squeeze(-1))
+        base_v = self.softplus(agg)  # ensure positive rates
 
-        # 5. apply external modulation
+        # ===== External modulation (optional) =====
         if self.external_input_mode == "multiplicative_substrate":
             ext_src = external_input[self.met_sub]
-            ext_agg = torch.zeros(
-                self.n_rxn, dtype=ext_src.dtype, device=ext_src.device
-            )
+            ext_agg = torch.zeros(self.n_rxn, dtype=ext_src.dtype, device=ext_src.device)
             ext_agg.index_add_(0, self.rxn_sub, ext_src)
             ext_mean = ext_agg / self.n_sub_per_rxn
             v = k * ext_mean * base_v
         elif self.external_input_mode == "multiplicative_product":
             ext_src = external_input[self.met_prod]
-            ext_agg = torch.zeros(
-                self.n_rxn, dtype=ext_src.dtype, device=ext_src.device
-            )
+            ext_agg = torch.zeros(self.n_rxn, dtype=ext_src.dtype, device=ext_src.device)
             ext_agg.index_add_(0, self.rxn_prod, ext_src)
             ext_mean = ext_agg / self.n_prod_per_rxn
             v = k * ext_mean * base_v
         else:
             v = k * base_v
 
-        # 6. dx/dt via learnable stoichiometric matrix
+        # ===== dx/dt = Σ S_ij * v_j (stoichiometric scatter) =====
         contrib = self.sto_all * v[self.rxn_all]
-        dxdt = torch.zeros(
-            self.n_met, dtype=contrib.dtype, device=contrib.device
-        )
+        dxdt = torch.zeros(self.n_met, dtype=contrib.dtype, device=contrib.device)
         dxdt.index_add_(0, self.met_all, contrib)
 
-        # 7. add homeostasis term
+        # ===== Add homeostasis term =====
         dxdt = dxdt + homeostasis
 
-        # 8. additive external input
+        # ===== External additive input (optional) =====
         if self.external_input_mode == "additive":
             dxdt = dxdt + external_input
 

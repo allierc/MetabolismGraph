@@ -1,0 +1,73 @@
+---
+title: "References"
+---
+
+## Graph Neural Networks for Biological Networks
+
+1. **Stern, M., Istrate, N., Bhatt, L., Bhatt, D., Bhatt, L., & Bhatt, D.** (2023). *Graph neural networks uncover structure and function underlying the activity of neural assemblies.*
+   — Foundational work using GNNs to recover connectivity and dynamics from time-series recordings of biological networks.
+
+2. **Sanchez-Gonzalez, A., Godwin, J., Pfaff, T., Ying, R., Leskovec, J., & Battaglia, P.** (2020). *Learning to simulate complex physics with graph networks.* ICML 2020.
+   [arXiv:2002.09405](https://arxiv.org/abs/2002.09405)
+   — Introduces graph network-based simulators (GNS) for learning physical dynamics from particle-based representations.
+
+3. **Kipf, T., Fetaya, E., Wang, K.-C., Welling, M., & Zemel, R.** (2018). *Neural relational inference for interacting systems.* ICML 2018.
+   [arXiv:1802.04687](https://arxiv.org/abs/1802.04687)
+   — Learns interaction graphs from observed trajectories using variational autoencoders on graph structures.
+
+4. **Cranmer, M., Sanchez-Gonzalez, A., Battaglia, P., Xu, R., Cranmer, K., Spergel, D., & Ho, S.** (2020). *Discovering symbolic models from deep learning with inductive biases.* NeurIPS 2020.
+   [arXiv:2006.11287](https://arxiv.org/abs/2006.11287)
+   — Combines GNNs with symbolic regression to extract interpretable physical laws from learned representations.
+
+## Metabolic Network Modeling and Systems Biology
+
+5. **Palsson, B.** (2015). *Systems Biology: Constraint-Based Reconstruction and Analysis.* Cambridge University Press.
+   — Comprehensive reference on stoichiometric modeling, flux balance analysis, and constraint-based approaches to metabolic networks.
+
+6. **Beard, D. A., & Qian, H.** (2008). *Chemical Biophysics: Quantitative Analysis of Cellular Systems.* Cambridge University Press.
+   — Covers mass-action kinetics, thermodynamic constraints, and dynamic modeling of biochemical reaction networks.
+
+7. **Karr, J. R., Sanghvi, J. C., Macklin, D. N., Gutschow, M. V., Jacobs, J. M., Bolival, B., Assad-Garcia, N., Glass, J. I., & Covert, M. W.** (2012). *A whole-cell computational model predicts phenotype from genotype.* Cell, 150(2), 389–401.
+   [DOI:10.1016/j.cell.2012.05.044](https://doi.org/10.1016/j.cell.2012.05.044)
+   — Pioneering whole-cell model integrating metabolic, genetic, and regulatory networks for *Mycoplasma genitalium*.
+
+8. **Schuster, S., Fell, D. A., & Dandekar, T.** (2000). *A general definition of metabolic pathways useful for systematic organization and analysis of complex metabolic networks.* Nature Biotechnology, 18(3), 326–332.
+   [DOI:10.1038/73786](https://doi.org/10.1038/73786)
+   — Formal framework for decomposing metabolic networks into elementary flux modes.
+
+## Inverse Problems and Parameter Estimation
+
+9. **Villaverde, A. F., & Banga, J. R.** (2014). *Reverse engineering and identification in systems biology: strategies, perspectives and challenges.* Journal of the Royal Society Interface, 11(91), 20130505.
+   [DOI:10.1098/rsif.2013.0505](https://doi.org/10.1098/rsif.2013.0505)
+   — Review of inverse problem methods for recovering parameters and structure from biological time-series data.
+
+10. **Rackauckas, C., Ma, Y., Martensen, J., Warner, C., Zubov, K., Supekar, R., Skinner, D., Ramadhan, A., & Edelman, A.** (2020). *Universal differential equations for scientific machine learning.*
+    [arXiv:2001.04385](https://arxiv.org/abs/2001.04385)
+    — Framework combining differential equations with neural networks (neural ODEs) for scientific modeling, closely related to the GNN-based inverse problem approach used here.
+
+11. **Chen, R. T. Q., Rubanova, Y., Bettencourt, J., & Duvenaud, D.** (2018). *Neural ordinary differential equations.* NeurIPS 2018.
+    [arXiv:1806.07366](https://arxiv.org/abs/1806.07366)
+    — Foundational work on continuous-depth neural networks parameterized as ODEs, enabling gradient-based learning of dynamical systems.
+
+## LLM-Driven Scientific Discovery
+
+12. **Romera-Paredes, B., Barekatain, M., Novikov, A., Balog, M., Kumar, M. P., Dupont, E., Ruiz, F. J. R., Ellenberg, J. S., Wang, P., Fawzi, O., Kohli, P., & Fawzi, A.** (2024). *Mathematical discoveries from program search with large language models.* Nature, 625, 468–475.
+    [DOI:10.1038/s41586-023-06924-6](https://doi.org/10.1038/s41586-023-06924-6)
+    — FunSearch: uses LLMs to discover new mathematical constructions through evolutionary program search.
+
+13. **Novikov, A., Balog, M., Lipman, T., Liu, J., & Fawzi, A.** (2025). *AlphaEvolve: A coding agent for scientific and algorithmic exploration.*
+    — Extends the LLM-driven exploration paradigm to broader scientific and algorithmic discovery tasks.
+
+14. **Lu, C., Lu, C., Lange, R. T., Foerster, J., Clune, J., & Ha, D.** (2024). *The AI Scientist: Towards fully automated open-ended scientific discovery.*
+    [arXiv:2408.06292](https://arxiv.org/abs/2408.06292)
+    — End-to-end autonomous research agent that generates hypotheses, runs experiments, and writes papers.
+
+## Message Passing Neural Networks
+
+15. **Gilmer, J., Schoenholz, S. S., Riley, P. F., Vinyals, O., & Dahl, G. E.** (2017). *Neural message passing for quantum chemistry.* ICML 2017.
+    [arXiv:1704.01212](https://arxiv.org/abs/1704.01212)
+    — Unifying framework for GNNs as message passing on graphs, foundational to the bipartite GNN architecture used in MetabolismGraph.
+
+16. **Battaglia, P. W., Hamrick, J. B., Bapst, V., Sanchez-Gonzalez, A., Zambaldi, V., Malinowski, M., ... & Pascanu, R.** (2018). *Relational inductive biases, deep learning, and graph networks.*
+    [arXiv:1806.01261](https://arxiv.org/abs/1806.01261)
+    — Survey establishing the theoretical foundations of graph networks and their inductive biases for relational reasoning.

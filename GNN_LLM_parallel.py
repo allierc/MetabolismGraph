@@ -304,7 +304,7 @@ if __name__ == "__main__":
     else:
         best_model = ''
         task = 'generate_train_test_plot_Claude_cluster'
-        config_list = ['metabolism']
+        config_list = ['simulation_oscillatory']
         task_params = {'iterations': 2048}
 
     n_iterations = task_params.get('iterations', 5)
@@ -906,7 +906,7 @@ IMPORTANT: Do NOT change the 'dataset' field in any config — it must stay as-i
 
         # UCB tree visualization
         should_save_tree = (block_number == 1) or is_block_end
-        if should_save_tree:
+        if should_save_tree and os.path.exists(ucb_path):
             tree_save_dir = f"{exploration_dir}/exploration_tree"
             os.makedirs(tree_save_dir, exist_ok=True)
             ucb_tree_path = f"{tree_save_dir}/ucb_tree_iter_{batch_last:03d}.png"

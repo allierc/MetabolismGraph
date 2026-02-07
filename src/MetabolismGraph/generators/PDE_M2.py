@@ -1,4 +1,5 @@
 
+import math
 import torch
 import torch.nn as nn
 
@@ -61,7 +62,6 @@ class PDE_M2(nn.Module):
         # learnable functions
         self.substrate_func = mlp([2, hidden, msg_dim], activation=nn.Tanh)
         self.rate_func = mlp([msg_dim, hidden, 1], activation=nn.Tanh)
-        self.softplus = nn.Softplus(beta=1.0)
 
         # per-reaction rate constants: log-uniform in [0.001, 0.1]
         log_k = torch.empty(n_rxn)
@@ -98,6 +98,17 @@ class PDE_M2(nn.Module):
         n_prod_per_rxn.clamp_(min=1.0)
         self.register_buffer('n_prod_per_rxn', n_prod_per_rxn)
 
+        # homeostatic dynamics parameters
+        sim_cfg = config.simulation
+        self.homeostatic_strength = sim_cfg.homeostatic_strength
+        self.baseline_mode = sim_cfg.baseline_mode
+        self.baseline_concentration = sim_cfg.baseline_concentration
+        self.circadian_amplitude = sim_cfg.circadian_amplitude
+        self.circadian_period = sim_cfg.circadian_period
+
+        # baseline will be set on first forward pass if baseline_mode="initial"
+        self.register_buffer('c_baseline', None)
+
         self.p = torch.zeros(1)
 
     def forward(self, data=None, has_field=False, frame=None, dt=None):
@@ -105,6 +116,13 @@ class PDE_M2(nn.Module):
         x = data.x
         concentrations = x[:, 3]
         external_input = x[:, 4] * 2
+
+        # initialize baseline on first call if using "initial" mode
+        if self.c_baseline is None:
+            if self.baseline_mode == "initial":
+                self.c_baseline = concentrations.clone().detach()
+            else:  # "fixed"
+                self.c_baseline = torch.full_like(concentrations, self.baseline_concentration)
 
         # 1. gather substrate concentrations and stoichiometric coefficients
         x_src = concentrations[self.met_sub].unsqueeze(-1)
@@ -120,7 +138,7 @@ class PDE_M2(nn.Module):
 
         # 4. compute base reaction rates
         k = torch.pow(10.0, self.log_k)
-        base_v = self.softplus(self.rate_func(h_rxn).squeeze(-1))
+        base_v = self.rate_func(h_rxn).squeeze(-1)
 
         # 5. apply external modulation
         if self.external_input_mode == "multiplicative_substrate":
@@ -150,6 +168,17 @@ class PDE_M2(nn.Module):
         # 8. additive external input (direct flux injection)
         if self.external_input_mode == "additive":
             dxdt = dxdt + external_input
+
+        # 9. homeostatic term: -λ * (c - c_baseline(t))
+        if self.homeostatic_strength > 0:
+            # compute time-dependent baseline with circadian modulation
+            if self.circadian_amplitude > 0 and frame is not None:
+                phase = 2 * math.pi * frame / self.circadian_period
+                modulation = 1 + self.circadian_amplitude * math.sin(phase)
+                c_target = self.c_baseline * modulation
+            else:
+                c_target = self.c_baseline
+            dxdt = dxdt - self.homeostatic_strength * (concentrations - c_target)
 
         return dxdt.unsqueeze(-1)
 
@@ -191,7 +220,7 @@ class PDE_M2(nn.Module):
         h_rxn.index_add_(0, self.rxn_sub, msg)
 
         k = torch.pow(10.0, self.log_k)
-        base_v = self.softplus(self.rate_func(h_rxn).squeeze(-1))
+        base_v = self.rate_func(h_rxn).squeeze(-1)
 
         if self.external_input_mode == "multiplicative_substrate":
             ext_src = external_input[self.met_sub]

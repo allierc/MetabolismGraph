@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Model: Metabolic Network Dynamics – MetabolismGraph</title>
+<title>References – MetabolismGraph</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -66,40 +66,7 @@ ul.task-list li input[type="checkbox"] {
     "search-label": "Search"
   }
 }</script>
-<meta name="mermaid-theme" content="neutral">
-<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
-<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
-<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
 
-  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
-
-<script type="text/javascript">
-const typesetMath = (el) => {
-  if (window.MathJax) {
-    // MathJax Typeset
-    window.MathJax.typeset([el]);
-  } else if (window.katex) {
-    // KaTeX Render
-    var mathElements = el.getElementsByClassName("math");
-    var macros = [];
-    for (var i = 0; i < mathElements.length; i++) {
-      var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
-        window.katex.render(texText.data, mathElements[i], {
-          displayMode: mathElements[i].classList.contains('display'),
-          throwOnError: false,
-          macros: macros,
-          fleqn: false
-        });
-      }
-    }
-  }
-}
-window.Quarto = {
-  typesetMath
-};
-</script>
 
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -126,7 +93,7 @@ window.Quarto = {
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="./model.html" aria-current="page"> 
+    <a class="nav-link" href="./model.html"> 
 <span class="menu-text">Model</span></a>
   </li>  
   <li class="nav-item">
@@ -134,7 +101,7 @@ window.Quarto = {
 <span class="menu-text">GNN-LLM-Memory</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./references.html"> 
+    <a class="nav-link active" href="./references.html" aria-current="page"> 
 <span class="menu-text">References</span></a>
   </li>  
 </ul>
@@ -154,16 +121,11 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#metabolic-networks-as-bipartite-graphs" id="toc-metabolic-networks-as-bipartite-graphs" class="nav-link active" data-scroll-target="#metabolic-networks-as-bipartite-graphs">Metabolic Networks as Bipartite Graphs</a></li>
-  <li><a href="#the-stoichiometric-matrix" id="toc-the-stoichiometric-matrix" class="nav-link" data-scroll-target="#the-stoichiometric-matrix">The Stoichiometric Matrix</a></li>
-  <li><a href="#model-evolution" id="toc-model-evolution" class="nav-link" data-scroll-target="#model-evolution">Model Evolution</a>
-  <ul class="collapse">
-  <li><a href="#pure-reaction" id="toc-pure-reaction" class="nav-link" data-scroll-target="#pure-reaction">1. Pure Reaction</a></li>
-  <li><a href="#homeostasis" id="toc-homeostasis" class="nav-link" data-scroll-target="#homeostasis">2. Homeostasis</a></li>
-  <li><a href="#oscillatory" id="toc-oscillatory" class="nav-link" data-scroll-target="#oscillatory">3. Oscillatory</a></li>
-  </ul></li>
-  <li><a href="#activity-rank" id="toc-activity-rank" class="nav-link" data-scroll-target="#activity-rank">Activity Rank</a></li>
-  <li><a href="#summary-the-full-model" id="toc-summary-the-full-model" class="nav-link" data-scroll-target="#summary-the-full-model">Summary: The Full Model</a></li>
+  <li><a href="#graph-neural-networks-for-biological-networks" id="toc-graph-neural-networks-for-biological-networks" class="nav-link active" data-scroll-target="#graph-neural-networks-for-biological-networks">Graph Neural Networks for Biological Networks</a></li>
+  <li><a href="#metabolic-network-modeling-and-systems-biology" id="toc-metabolic-network-modeling-and-systems-biology" class="nav-link" data-scroll-target="#metabolic-network-modeling-and-systems-biology">Metabolic Network Modeling and Systems Biology</a></li>
+  <li><a href="#inverse-problems-and-parameter-estimation" id="toc-inverse-problems-and-parameter-estimation" class="nav-link" data-scroll-target="#inverse-problems-and-parameter-estimation">Inverse Problems and Parameter Estimation</a></li>
+  <li><a href="#llm-driven-scientific-discovery" id="toc-llm-driven-scientific-discovery" class="nav-link" data-scroll-target="#llm-driven-scientific-discovery">LLM-Driven Scientific Discovery</a></li>
+  <li><a href="#message-passing-neural-networks" id="toc-message-passing-neural-networks" class="nav-link" data-scroll-target="#message-passing-neural-networks">Message Passing Neural Networks</a></li>
   </ul>
 </nav>
     </div>
@@ -172,7 +134,7 @@ window.Quarto = {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<div class="quarto-title-block"><div><h1 class="title">Model: Metabolic Network Dynamics</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source" data-quarto-source-url="https://github.com/allierc/MetabolismGraph/blob/main/model.qmd"><i class="bi"></i> Code</button></div></div>
+<div class="quarto-title-block"><div><h1 class="title">References</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source" data-quarto-source-url="https://github.com/allierc/MetabolismGraph/blob/main/references.qmd"><i class="bi"></i> Code</button></div></div>
 </div>
 
 
@@ -189,258 +151,46 @@ window.Quarto = {
 </header>
 
 
-<section id="metabolic-networks-as-bipartite-graphs" class="level2">
-<h2 class="anchored" data-anchor-id="metabolic-networks-as-bipartite-graphs">Metabolic Networks as Bipartite Graphs</h2>
-<p>A metabolic network can be represented as a <strong>bipartite graph</strong> connecting metabolites to reactions:</p>
-<div class="cell" data-fig-width="8" data-layout-align="default">
-<div class="cell-output-display">
-<div>
-<p></p><figure class="figure"><p></p>
-<div>
-<pre class="mermaid mermaid-js">%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    subgraph Metabolites
-        A[Glucose]
-        B[ATP]
-        C[Pyruvate]
-        D[ADP]
-    end
-
-    subgraph Reactions
-        R1((R1))
-        R2((R2))
-    end
-
-    A --&gt;|"-1"| R1
-    B --&gt;|"-1"| R1
-    R1 --&gt;|"+2"| C
-    R1 --&gt;|"+1"| D
-
-    C --&gt;|"-1"| R2
-    R2 --&gt;|"+1"| B
-</pre>
-</div>
-<p></p></figure><p></p>
-</div>
-</div>
-</div>
-<p>Each edge has a <strong>stoichiometric coefficient</strong>:</p>
-<ul>
-<li><strong>Negative</strong> coefficients: substrates (consumed by the reaction)</li>
-<li><strong>Positive</strong> coefficients: products (produced by the reaction)</li>
-</ul>
+<section id="graph-neural-networks-for-biological-networks" class="level2">
+<h2 class="anchored" data-anchor-id="graph-neural-networks-for-biological-networks">Graph Neural Networks for Biological Networks</h2>
+<ol type="1">
+<li><p><strong>Stern, M., Istrate, N., Bhatt, L., Bhatt, D., Bhatt, L., &amp; Bhatt, D.</strong> (2023). <em>Graph neural networks uncover structure and function underlying the activity of neural assemblies.</em> — Foundational work using GNNs to recover connectivity and dynamics from time-series recordings of biological networks.</p></li>
+<li><p><strong>Sanchez-Gonzalez, A., Godwin, J., Pfaff, T., Ying, R., Leskovec, J., &amp; Battaglia, P.</strong> (2020). <em>Learning to simulate complex physics with graph networks.</em> ICML 2020. <a href="https://arxiv.org/abs/2002.09405">arXiv:2002.09405</a> — Introduces graph network-based simulators (GNS) for learning physical dynamics from particle-based representations.</p></li>
+<li><p><strong>Kipf, T., Fetaya, E., Wang, K.-C., Welling, M., &amp; Zemel, R.</strong> (2018). <em>Neural relational inference for interacting systems.</em> ICML 2018. <a href="https://arxiv.org/abs/1802.04687">arXiv:1802.04687</a> — Learns interaction graphs from observed trajectories using variational autoencoders on graph structures.</p></li>
+<li><p><strong>Cranmer, M., Sanchez-Gonzalez, A., Battaglia, P., Xu, R., Cranmer, K., Spergel, D., &amp; Ho, S.</strong> (2020). <em>Discovering symbolic models from deep learning with inductive biases.</em> NeurIPS 2020. <a href="https://arxiv.org/abs/2006.11287">arXiv:2006.11287</a> — Combines GNNs with symbolic regression to extract interpretable physical laws from learned representations.</p></li>
+</ol>
 </section>
-<section id="the-stoichiometric-matrix" class="level2">
-<h2 class="anchored" data-anchor-id="the-stoichiometric-matrix">The Stoichiometric Matrix</h2>
-<p>The stoichiometric matrix <span class="math inline">\(\mathbf{S}\)</span> is an <span class="math inline">\((n_{\text{metabolites}} \times n_{\text{reactions}})\)</span> matrix where entry <span class="math inline">\(S_{ij}\)</span> indicates how metabolite <span class="math inline">\(i\)</span> participates in reaction <span class="math inline">\(j\)</span>:</p>
-<p><span class="math display">\[
-\mathbf{S} = \begin{pmatrix}
--1 &amp; 0 &amp; \cdots \\
--1 &amp; +1 &amp; \cdots \\
-+2 &amp; -1 &amp; \cdots \\
-+1 &amp; 0 &amp; \cdots \\
-\vdots &amp; \vdots &amp; \ddots
-\end{pmatrix}
-\]</span></p>
-<p><strong>Properties of S:</strong></p>
-<ul>
-<li><strong>Sparse</strong>: most entries are zero (each reaction involves only 2-6 metabolites)</li>
-<li><strong>Integer-valued</strong>: entries are typically in <span class="math inline">\(\{-2, -1, 0, +1, +2\}\)</span></li>
-<li><strong>Mass conservation</strong>: column sums should be zero for balanced reactions</li>
-</ul>
-<p><strong>Example:</strong></p>
-<p>Consider the diagram above with 2 reactions:</p>
-<p><span class="math display">\[
-\begin{aligned}
-\text{R1}: \quad &amp; \text{Glucose} + \text{ATP} \longrightarrow 2\,\text{Pyruvate} + \text{ADP} \\
-\text{R2}: \quad &amp; \text{Pyruvate} \longrightarrow \text{ATP}
-\end{aligned}
-\]</span></p>
-<p>The corresponding stoichiometric matrix is:</p>
-<p><span class="math display">\[
-\begin{array}{c|cc}
-&amp; \text{R1} &amp; \text{R2} \\
-\hline
-\text{Glucose} &amp; -1 &amp; 0 \\
-\text{ATP} &amp; -1 &amp; +1 \\
-\text{Pyruvate} &amp; +2 &amp; -1 \\
-\text{ADP} &amp; +1 &amp; 0
-\end{array}
-\]</span></p>
+<section id="metabolic-network-modeling-and-systems-biology" class="level2">
+<h2 class="anchored" data-anchor-id="metabolic-network-modeling-and-systems-biology">Metabolic Network Modeling and Systems Biology</h2>
+<ol start="5" type="1">
+<li><p><strong>Palsson, B.</strong> (2015). <em>Systems Biology: Constraint-Based Reconstruction and Analysis.</em> Cambridge University Press. — Comprehensive reference on stoichiometric modeling, flux balance analysis, and constraint-based approaches to metabolic networks.</p></li>
+<li><p><strong>Beard, D. A., &amp; Qian, H.</strong> (2008). <em>Chemical Biophysics: Quantitative Analysis of Cellular Systems.</em> Cambridge University Press. — Covers mass-action kinetics, thermodynamic constraints, and dynamic modeling of biochemical reaction networks.</p></li>
+<li><p><strong>Karr, J. R., Sanghvi, J. C., Macklin, D. N., Gutschow, M. V., Jacobs, J. M., Bolival, B., Assad-Garcia, N., Glass, J. I., &amp; Covert, M. W.</strong> (2012). <em>A whole-cell computational model predicts phenotype from genotype.</em> Cell, 150(2), 389–401. <a href="https://doi.org/10.1016/j.cell.2012.05.044">DOI:10.1016/j.cell.2012.05.044</a> — Pioneering whole-cell model integrating metabolic, genetic, and regulatory networks for <em>Mycoplasma genitalium</em>.</p></li>
+<li><p><strong>Schuster, S., Fell, D. A., &amp; Dandekar, T.</strong> (2000). <em>A general definition of metabolic pathways useful for systematic organization and analysis of complex metabolic networks.</em> Nature Biotechnology, 18(3), 326–332. <a href="https://doi.org/10.1038/73786">DOI:10.1038/73786</a> — Formal framework for decomposing metabolic networks into elementary flux modes.</p></li>
+</ol>
 </section>
-<section id="model-evolution" class="level2">
-<h2 class="anchored" data-anchor-id="model-evolution">Model Evolution</h2>
-<section id="pure-reaction" class="level3">
-<h3 class="anchored" data-anchor-id="pure-reaction">1. Pure Reaction</h3>
-<p>Pure reaction dynamics without homeostasis, using <strong>additive aggregation</strong>:</p>
-<p><span class="math display">\[\frac{dc_i}{dt} = \sum_j S_{ij} \cdot k_j \cdot \sum_{k \in \text{sub}(j)} c_k^{s_{kj}}\]</span></p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>Parameter</th>
-<th>Value</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>n_metabolites</td>
-<td>100</td>
-</tr>
-<tr class="even">
-<td>n_reactions</td>
-<td>64</td>
-</tr>
-<tr class="odd">
-<td>Stoichiometry</td>
-<td>Random</td>
-</tr>
-<tr class="even">
-<td>Aggregation</td>
-<td>Sum (additive)</td>
-</tr>
-<tr class="odd">
-<td><span class="math inline">\(\lambda\)</span> (homeostatic strength)</td>
-<td>0.0</td>
-</tr>
-<tr class="even">
-<td>Rate constants <span class="math inline">\(k_j\)</span></td>
-<td><span class="math inline">\([10^{-3}, 10^{-1}]\)</span></td>
-</tr>
-<tr class="odd">
-<td>Initial concentrations</td>
-<td>[2.5, 7.5]</td>
-</tr>
-<tr class="even">
-<td>Flux limiting</td>
-<td>Enabled</td>
-</tr>
-</tbody>
-</table>
-<p><img src="graphs_data/simulation_pure/concentrations.png" class="img-fluid" style="width:100.0%"></p>
+<section id="inverse-problems-and-parameter-estimation" class="level2">
+<h2 class="anchored" data-anchor-id="inverse-problems-and-parameter-estimation">Inverse Problems and Parameter Estimation</h2>
+<ol start="9" type="1">
+<li><p><strong>Villaverde, A. F., &amp; Banga, J. R.</strong> (2014). <em>Reverse engineering and identification in systems biology: strategies, perspectives and challenges.</em> Journal of the Royal Society Interface, 11(91), 20130505. <a href="https://doi.org/10.1098/rsif.2013.0505">DOI:10.1098/rsif.2013.0505</a> — Review of inverse problem methods for recovering parameters and structure from biological time-series data.</p></li>
+<li><p><strong>Rackauckas, C., Ma, Y., Martensen, J., Warner, C., Zubov, K., Supekar, R., Skinner, D., Ramadhan, A., &amp; Edelman, A.</strong> (2020). <em>Universal differential equations for scientific machine learning.</em> <a href="https://arxiv.org/abs/2001.04385">arXiv:2001.04385</a> — Framework combining differential equations with neural networks (neural ODEs) for scientific modeling, closely related to the GNN-based inverse problem approach used here.</p></li>
+<li><p><strong>Chen, R. T. Q., Rubanova, Y., Bettencourt, J., &amp; Duvenaud, D.</strong> (2018). <em>Neural ordinary differential equations.</em> NeurIPS 2018. <a href="https://arxiv.org/abs/1806.07366">arXiv:1806.07366</a> — Foundational work on continuous-depth neural networks parameterized as ODEs, enabling gradient-based learning of dynamical systems.</p></li>
+</ol>
 </section>
-<section id="homeostasis" class="level3">
-<h3 class="anchored" data-anchor-id="homeostasis">2. Homeostasis</h3>
-<p>With homeostatic regulation pulling concentrations toward baseline, using <strong>additive aggregation</strong>:</p>
-<p><span class="math display">\[\frac{dc_i}{dt} = \underbrace{-\lambda_i \cdot (c_i - c_i^{\text{baseline}})}_{\text{homeostasis}} + \underbrace{\sum_j S_{ij} \cdot k_j \cdot \sum_{k \in \text{sub}(j)} c_k^{s_{kj}}}_{\text{reactions}}\]</span></p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>Parameter</th>
-<th>Value</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>n_metabolites</td>
-<td>100</td>
-</tr>
-<tr class="even">
-<td>n_reactions</td>
-<td>64</td>
-</tr>
-<tr class="odd">
-<td>Stoichiometry</td>
-<td>Random</td>
-</tr>
-<tr class="even">
-<td>Aggregation</td>
-<td>Sum (additive)</td>
-</tr>
-<tr class="odd">
-<td><span class="math inline">\(\lambda\)</span> (homeostatic strength)</td>
-<td>0.01</td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\(c^{\text{baseline}}\)</span></td>
-<td>5.0</td>
-</tr>
-<tr class="odd">
-<td>Rate constants <span class="math inline">\(k_j\)</span></td>
-<td><span class="math inline">\([10^{-3}, 10^{-1}]\)</span></td>
-</tr>
-<tr class="even">
-<td>Initial concentrations</td>
-<td>[2.5, 7.5]</td>
-</tr>
-<tr class="odd">
-<td>Flux limiting</td>
-<td>Enabled</td>
-</tr>
-</tbody>
-</table>
-<p><img src="graphs_data/simulation_homeostatic/concentrations.png" class="img-fluid" style="width:100.0%"></p>
+<section id="llm-driven-scientific-discovery" class="level2">
+<h2 class="anchored" data-anchor-id="llm-driven-scientific-discovery">LLM-Driven Scientific Discovery</h2>
+<ol start="12" type="1">
+<li><p><strong>Romera-Paredes, B., Barekatain, M., Novikov, A., Balog, M., Kumar, M. P., Dupont, E., Ruiz, F. J. R., Ellenberg, J. S., Wang, P., Fawzi, O., Kohli, P., &amp; Fawzi, A.</strong> (2024). <em>Mathematical discoveries from program search with large language models.</em> Nature, 625, 468–475. <a href="https://doi.org/10.1038/s41586-023-06924-6">DOI:10.1038/s41586-023-06924-6</a> — FunSearch: uses LLMs to discover new mathematical constructions through evolutionary program search.</p></li>
+<li><p><strong>Novikov, A., Balog, M., Lipman, T., Liu, J., &amp; Fawzi, A.</strong> (2025). <em>AlphaEvolve: A coding agent for scientific and algorithmic exploration.</em> — Extends the LLM-driven exploration paradigm to broader scientific and algorithmic discovery tasks.</p></li>
+<li><p><strong>Lu, C., Lu, C., Lange, R. T., Foerster, J., Clune, J., &amp; Ha, D.</strong> (2024). <em>The AI Scientist: Towards fully automated open-ended scientific discovery.</em> <a href="https://arxiv.org/abs/2408.06292">arXiv:2408.06292</a> — End-to-end autonomous research agent that generates hypotheses, runs experiments, and writes papers.</p></li>
+</ol>
 </section>
-<section id="oscillatory" class="level3">
-<h3 class="anchored" data-anchor-id="oscillatory">3. Oscillatory</h3>
-<p>Autocatalytic cycles with <strong>mass-action kinetics</strong> (multiplicative aggregation) for sustained oscillations:</p>
-<p><span class="math display">\[\frac{dc_i}{dt} = \sum_j S_{ij} \cdot k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{s_{kj}}\]</span></p>
-<p>Example cycle: <span class="math inline">\(A + B \to 2B, \quad B + C \to 2C, \quad C + A \to 2A\)</span></p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>Parameter</th>
-<th>Value</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>n_metabolites</td>
-<td>100</td>
-</tr>
-<tr class="even">
-<td>n_reactions</td>
-<td>256</td>
-</tr>
-<tr class="odd">
-<td>Stoichiometry</td>
-<td>100% autocatalytic 3-cycles</td>
-</tr>
-<tr class="even">
-<td>Aggregation</td>
-<td>Product (multiplicative)</td>
-</tr>
-<tr class="odd">
-<td><span class="math inline">\(\lambda\)</span> (homeostatic strength)</td>
-<td>0.0</td>
-</tr>
-<tr class="even">
-<td>Rate constants <span class="math inline">\(k_j\)</span></td>
-<td><span class="math inline">\([10^{-2.5}, 10^{-1}]\)</span></td>
-</tr>
-<tr class="odd">
-<td>Initial concentrations</td>
-<td>[1.0, 9.0]</td>
-</tr>
-<tr class="even">
-<td>Flux limiting</td>
-<td>Disabled</td>
-</tr>
-</tbody>
-</table>
-<p><img src="graphs_data/simulation_oscillatory/concentrations.png" class="img-fluid" style="width:100.0%"></p>
-</section>
-</section>
-<section id="activity-rank" class="level2">
-<h2 class="anchored" data-anchor-id="activity-rank">Activity Rank</h2>
-<p>To quantify the complexity of concentration dynamics, we compute the <strong>activity rank</strong> using singular value decomposition (SVD) of the concentration matrix <span class="math inline">\(\mathbf{C} \in \mathbb{R}^{T \times n}\)</span> (time frames × metabolites).</p>
-<p>The <strong>rank at 99% variance</strong> is the number of singular values needed to capture 99% of the total variance:</p>
-<p><span class="math display">\[\text{rank}_{99} = \min \left\{ k : \frac{\sum_{i=1}^{k} \sigma_i^2}{\sum_{i=1}^{n} \sigma_i^2} \geq 0.99 \right\}\]</span></p>
-<p><strong>Interpretation:</strong></p>
-<ul>
-<li><strong>Low rank</strong> (1-5): concentrations are highly correlated, dynamics are simple (equilibration or uniform decay)</li>
-<li><strong>High rank</strong> (&gt;20): metabolites evolve independently with rich, complex dynamics</li>
-</ul>
-</section>
-<section id="summary-the-full-model" class="level2">
-<h2 class="anchored" data-anchor-id="summary-the-full-model">Summary: The Full Model</h2>
-<p>The complete metabolic dynamics:</p>
-<p><span class="math display">\[
-\frac{dc_i}{dt} = \underbrace{-\lambda_i \cdot (c_i - c_i^{\text{baseline}})}_{\text{homeostasis}} + \underbrace{\sum_{j=1}^{m} S_{ij} \cdot v_j}_{\text{reaction dynamics}}
-\]</span></p>
-<p>where the reaction rate follows mass-action kinetics:</p>
-<p><span class="math display">\[
-v_j = k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{s_{kj}}
-\]</span></p>
+<section id="message-passing-neural-networks" class="level2">
+<h2 class="anchored" data-anchor-id="message-passing-neural-networks">Message Passing Neural Networks</h2>
+<ol start="15" type="1">
+<li><p><strong>Gilmer, J., Schoenholz, S. S., Riley, P. F., Vinyals, O., &amp; Dahl, G. E.</strong> (2017). <em>Neural message passing for quantum chemistry.</em> ICML 2017. <a href="https://arxiv.org/abs/1704.01212">arXiv:1704.01212</a> — Unifying framework for GNNs as message passing on graphs, foundational to the bipartite GNN architecture used in MetabolismGraph.</p></li>
+<li><p><strong>Battaglia, P. W., Hamrick, J. B., Bapst, V., Sanchez-Gonzalez, A., Zambaldi, V., Malinowski, M., … &amp; Pascanu, R.</strong> (2018). <em>Relational inductive biases, deep learning, and graph networks.</em> <a href="https://arxiv.org/abs/1806.01261">arXiv:1806.01261</a> — Survey establishing the theoretical foundations of graph networks and their inductive biases for relational reasoning.</p></li>
+</ol>
 
 
 </section>

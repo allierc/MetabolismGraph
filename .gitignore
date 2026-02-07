@@ -5,4 +5,7 @@ build/
 dist/
 .vscode/
 graphs_data/
+!docs/graphs_data/
 log/
+
+/.quarto/

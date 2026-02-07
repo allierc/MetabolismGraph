@@ -12,8 +12,10 @@ website:
         href: index.qmd
       - text: "Model"
         href: model.qmd
-      - text: "GNN"
-        href: gnn.qmd
+      - text: "GNN-LLM-Memory"
+        href: gnn-llm-memory.qmd
+      - text: "References"
+        href: references.qmd
     tools:
       - icon: github
         href: https://github.com/allierc/MetabolismGraph

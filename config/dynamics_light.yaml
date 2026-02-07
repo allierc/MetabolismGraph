@@ -1,5 +1,6 @@
-description: designed by Claude (parallel)
-dataset: metabolism_Claude_01
+description: moderate circadian oscillations (6h period)
+dataset: dynamics_light
+
 simulation:
   n_metabolites: 100
   n_reactions: 256
@@ -8,6 +9,12 @@ simulation:
   delta_t: 1
   start_frame: 0
   seed: 42
+  # moderate homeostatic + circadian
+  homeostatic_strength: 0.005
+  baseline_mode: initial
+  circadian_amplitude: 0.4    # 40% oscillation
+  circadian_period: 360       # 6h period = 8 full cycles in 2880 frames
+
 graph_model:
   model_name: PDE_M1
   prediction: first_derivative
@@ -15,30 +22,20 @@ graph_model:
   output_size: 1
   hidden_dim: 32
   n_layers: 3
-  input_size_update: 3
-  n_layers_update: 3
-  hidden_dim_update: 64
   aggr_type: add
   update_type: none
-claude:
-  n_epochs: 1
-  data_augmentation_loop: 1000
-  n_iter_block: 24
-  ucb_c: 1.414
-  node_name: a100
+
 plotting:
   colormap: tab20
+
 training:
   n_epochs: 1
   n_runs: 1
   device: auto
   batch_size: 8
-  small_init_batch_size: false
   seed: 42
   data_augmentation_loop: 1000
-  sparsity: none
   learning_rate_start: 0.001
-  learning_rate_embedding_start: 0.0001
   learning_rate_S_start: 0.0005
   coeff_S_L1: 0.001
   coeff_S_integer: 0.001

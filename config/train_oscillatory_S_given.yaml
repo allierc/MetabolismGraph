@@ -1,0 +1,53 @@
+description: training on oscillatory dynamics with S given (fixed stoichiometry)
+dataset: simulation_oscillatory
+
+simulation:
+  n_metabolites: 100
+  n_reactions: 256
+  max_metabolites_per_reaction: 4
+  n_frames: 2880
+  delta_t: 0.1
+  start_frame: 0
+  seed: 42
+  concentration_min: 1.0
+  concentration_max: 9.0
+  cycle_fraction: 1.0
+  cycle_length: 3
+  use_mass_action: true
+  log_k_min: -2.5
+  log_k_max: -1.0
+  flux_limit: false
+  homeostatic_strength: 0.0
+  baseline_mode: fixed
+  baseline_concentration: 5.0
+  kinograph_range: 2.0
+  circadian_amplitude: 0.0
+  circadian_period: 1440
+
+graph_model:
+  model_name: Metabolism_Propagation
+  prediction: first_derivative
+  input_size: 2
+  output_size: 1
+  hidden_dim: 32
+  n_layers: 3
+  aggr_type: mul
+  update_type: none
+
+plotting:
+  colormap: tab20
+
+training:
+  n_epochs: 10
+  n_runs: 1
+  device: auto
+  batch_size: 8
+  seed: 42
+  data_augmentation_loop: 1000
+  learning_rate_start: 0.001
+  # S is given (frozen, initialized from ground truth)
+  freeze_stoichiometry: true
+  learning_rate_S_start: 0.0
+  coeff_S_L1: 0.0
+  coeff_S_integer: 0.0
+  coeff_mass_conservation: 0.0

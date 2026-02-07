@@ -168,13 +168,3 @@ where the reaction rate follows mass-action kinetics:
 $$
 v_j = k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{s_{kj}}
 $$
-
-**Given:**
-
-- Concentration trajectories $\{c_i(t)\}_{i=1}^{n}$
-- Stoichiometric matrix $\mathbf{S}$ (known from biochemistry)
-
-**To learn:**
-
-- Rate constants $k_j$
-- Homeostatic parameters $\lambda_i$, $c_i^{\text{baseline}}$

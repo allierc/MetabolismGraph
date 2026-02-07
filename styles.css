@@ -25,6 +25,30 @@ table th {
     text-align: center;
 }
 
+/* Force white backgrounds on all Mermaid elements */
+.mermaid .cluster rect,
+.mermaid .cluster-label,
+.mermaid .flowchart-label,
+.mermaid .node rect,
+.mermaid .node circle,
+.mermaid .node ellipse,
+.mermaid .node polygon,
+.mermaid .label-container,
+.mermaid .edgeLabel,
+.mermaid rect.actor,
+.mermaid .loopLine {
+    fill: #ffffff !important;
+}
+
+.mermaid .cluster rect {
+    stroke: #333333 !important;
+}
+
+.mermaid .edgeLabel rect {
+    fill: #ffffff !important;
+    opacity: 1 !important;
+}
+
 /* Header styling */
 h2 {
     border-bottom: 1px solid #eee;

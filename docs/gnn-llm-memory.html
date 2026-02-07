@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>GNN: Graph Neural Network – MetabolismGraph</title>
+<title>GNN-LLM-Memory – MetabolismGraph</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -19,40 +19,6 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -100,6 +66,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-label": "Search"
   }
 }</script>
+<meta name="mermaid-theme" content="neutral">
+<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
 
   <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
@@ -160,8 +130,12 @@ window.Quarto = {
 <span class="menu-text">Model</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="./gnn.html" aria-current="page"> 
-<span class="menu-text">GNN</span></a>
+    <a class="nav-link active" href="./gnn-llm-memory.html" aria-current="page"> 
+<span class="menu-text">GNN-LLM-Memory</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./references.html"> 
+<span class="menu-text">References</span></a>
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
@@ -180,13 +154,18 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#full-model" id="toc-full-model" class="nav-link active" data-scroll-target="#full-model">Full Model</a></li>
-  <li><a href="#the-inverse-problem" id="toc-the-inverse-problem" class="nav-link" data-scroll-target="#the-inverse-problem">The Inverse Problem</a></li>
-  <li><a href="#gnn-parameterization" id="toc-gnn-parameterization" class="nav-link" data-scroll-target="#gnn-parameterization">GNN Parameterization</a>
+  <li><a href="#the-exploration-loop" id="toc-the-exploration-loop" class="nav-link active" data-scroll-target="#the-exploration-loop">The Exploration Loop</a></li>
+  <li><a href="#training-scheme" id="toc-training-scheme" class="nav-link" data-scroll-target="#training-scheme">Training Scheme</a>
   <ul class="collapse">
-  <li><a href="#learnable-parameters" id="toc-learnable-parameters" class="nav-link" data-scroll-target="#learnable-parameters">Learnable Parameters</a></li>
-  <li><a href="#configuration" id="toc-configuration" class="nav-link" data-scroll-target="#configuration">Configuration</a></li>
+  <li><a href="#separate-learning-rates" id="toc-separate-learning-rates" class="nav-link" data-scroll-target="#separate-learning-rates">Separate Learning Rates</a></li>
+  <li><a href="#regularization-terms" id="toc-regularization-terms" class="nav-link" data-scroll-target="#regularization-terms">Regularization Terms</a></li>
+  <li><a href="#summary-of-hyperparameters" id="toc-summary-of-hyperparameters" class="nav-link" data-scroll-target="#summary-of-hyperparameters">Summary of Hyperparameters</a></li>
   </ul></li>
+  <li><a href="#metrics" id="toc-metrics" class="nav-link" data-scroll-target="#metrics">Metrics</a>
+  <ul class="collapse">
+  <li><a href="#diagnostic-interpretation" id="toc-diagnostic-interpretation" class="nav-link" data-scroll-target="#diagnostic-interpretation">Diagnostic Interpretation</a></li>
+  </ul></li>
+  <li><a href="#ucb-tree-search" id="toc-ucb-tree-search" class="nav-link" data-scroll-target="#ucb-tree-search">UCB Tree Search</a></li>
   </ul>
 </nav>
     </div>
@@ -195,7 +174,8 @@ window.Quarto = {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<div class="quarto-title-block"><div><h1 class="title">GNN: Graph Neural Network</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source" data-quarto-source-url="https://github.com/allierc/MetabolismGraph/blob/main/gnn.qmd"><i class="bi"></i> Code</button></div></div>
+<div class="quarto-title-block"><div><h1 class="title">GNN-LLM-Memory</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source" data-quarto-source-url="https://github.com/allierc/MetabolismGraph/blob/main/gnn-llm-memory.qmd"><i class="bi"></i> Code</button></div></div>
+<p class="subtitle lead">Closed-loop exploration of metabolic rate constant recovery</p>
 </div>
 
 
@@ -212,112 +192,351 @@ window.Quarto = {
 </header>
 
 
-<section id="full-model" class="level2">
-<h2 class="anchored" data-anchor-id="full-model">Full Model</h2>
-<p>The complete metabolic dynamics:</p>
+<section id="the-exploration-loop" class="level2">
+<h2 class="anchored" data-anchor-id="the-exploration-loop">The Exploration Loop</h2>
+<div class="cell" data-fig-width="6" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    A[Experiment] --&gt; B[LLM]
+    B --&gt; A
+
+    B --&gt; C[(Memory)]
+    C --&gt; B
+
+    style A fill:#e1f5fe
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>The framework implements a <strong>closed-loop exploration engine</strong> composed of three interacting components:</p>
+<ol type="1">
+<li><p><strong>Experiment</strong> The metabolic simulator generates concentration dynamics from a known stoichiometric network. A GNN (see <a href="./index.html">Home</a>) is trained to predict <span class="math inline">\(dc/dt\)</span> while jointly recovering rate constants <span class="math inline">\(k_j\)</span> and homeostatic functions. <strong>4 parallel slots</strong> run simultaneously per batch via UCB tree search.</p></li>
+<li><p><strong>LLM</strong> The LLM interprets training results in context of accumulated memory, diagnoses failure modes (scale ambiguity, function degeneracy, MLP compensation), and selects the next hyperparameter mutation via UCB tree search.</p></li>
+<li><p><strong>Memory</strong> Observations, failed attempts, and validated principles are written into explicit long-term memory. This memory persists across experimental blocks, enabling cumulative understanding rather than episodic trial-and-error.</p></li>
+</ol>
+<hr>
+</section>
+<section id="training-scheme" class="level2">
+<h2 class="anchored" data-anchor-id="training-scheme">Training Scheme</h2>
+<p>The GNN is trained by minimizing the prediction error on <span class="math inline">\(dc/dt\)</span>:</p>
 <p><span class="math display">\[
-\frac{dc_i}{dt} = \underbrace{-\lambda_i \cdot (c_i - c_i^{\text{baseline}})}_{\text{homeostasis}} + \underbrace{\sum_{j=1}^{m} S_{ij} \cdot v_j}_{\text{reaction dynamics}}
+\mathcal{L} = \sum_{\text{frames}} \left\| \frac{dc}{dt}_{\text{pred}} - \frac{dc}{dt}_{\text{GT}} \right\|_2 + \mathcal{R}
 \]</span></p>
-<p>where the reaction rate <span class="math inline">\(v_j\)</span> depends on aggregation type:</p>
+<p>where <span class="math inline">\(\mathcal{R}\)</span> is the sum of regularization terms described below.</p>
+<section id="separate-learning-rates" class="level3">
+<h3 class="anchored" data-anchor-id="separate-learning-rates">Separate Learning Rates</h3>
+<p>Each model component has its own learning rate to control the balance between parameter groups:</p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 37%">
-<col style="width: 34%">
-<col style="width: 28%">
+<col style="width: 23%">
+<col style="width: 23%">
+<col style="width: 21%">
+<col style="width: 31%">
 </colgroup>
 <thead>
 <tr class="header">
-<th>Aggregation</th>
-<th>Rate <span class="math inline">\(v_j\)</span></th>
-<th>Use case</th>
+<th>Component</th>
+<th>Config key</th>
+<th>Controls</th>
+<th>Typical range</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Additive</td>
-<td><span class="math inline">\(v_j = k_j \cdot \sum_{k \in \text{sub}(j)} c_k^{s_{kj}}\)</span></td>
-<td>Pure reaction, Homeostasis</td>
+<td>Rate constants <span class="math inline">\(k_j\)</span></td>
+<td><code>learning_rate_k</code></td>
+<td>How fast k values are updated</td>
+<td>1E-4 to 1E-2</td>
 </tr>
 <tr class="even">
-<td>Multiplicative</td>
-<td><span class="math inline">\(v_j = k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{s_{kj}}\)</span></td>
-<td>Oscillatory (mass-action)</td>
+<td>MLP<span class="math inline">\(_{\text{node}}\)</span> (homeostasis)</td>
+<td><code>learning_rate_node</code></td>
+<td>Homeostasis function learning speed</td>
+<td>1E-4 to 1E-2</td>
+</tr>
+<tr class="odd">
+<td>MLP<span class="math inline">\(_{\text{sub}}\)</span> (substrate)</td>
+<td><code>learning_rate_sub</code></td>
+<td>Substrate function learning speed</td>
+<td>1E-4 to 1E-2</td>
 </tr>
 </tbody>
 </table>
-</section>
-<section id="the-inverse-problem" class="level2">
-<h2 class="anchored" data-anchor-id="the-inverse-problem">The Inverse Problem</h2>
-<p><strong>Given:</strong></p>
+<p>The learning rate balance is critical:</p>
 <ul>
-<li>Concentration trajectories <span class="math inline">\(\{c_i(t)\}_{i=1}^{n}\)</span></li>
-<li>Stoichiometric matrix <span class="math inline">\(\mathbf{S}\)</span> (known)</li>
-</ul>
-<p><strong>To learn:</strong></p>
-<ul>
-<li>Rate constants <span class="math inline">\(k_j\)</span></li>
-<li>Homeostatic parameters <span class="math inline">\(\lambda_i\)</span>, <span class="math inline">\(c_i^{\text{baseline}}\)</span></li>
+<li><strong><code>lr_k</code> too high</strong>: <span class="math inline">\(k\)</span> values overshoot, oscillate, or converge to wrong values</li>
+<li><strong><code>lr_k</code> too low</strong>: <span class="math inline">\(k\)</span> barely moves, MLPs compensate</li>
+<li><strong><code>lr_node</code>/<code>lr_sub</code> imbalance</strong>: one function absorbs capacity meant for the other</li>
 </ul>
 </section>
-<section id="gnn-parameterization" class="level2">
-<h2 class="anchored" data-anchor-id="gnn-parameterization">GNN Parameterization</h2>
+<section id="regularization-terms" class="level3">
+<h3 class="anchored" data-anchor-id="regularization-terms">Regularization Terms</h3>
+<p>The total regularization <span class="math inline">\(\mathcal{R}\)</span> is the sum of the following penalties:</p>
+<section id="mlp_textsub-monotonicity-coeff_mlp_sub_diff" class="level4">
+<h4 class="anchored" data-anchor-id="mlp_textsub-monotonicity-coeff_mlp_sub_diff">MLP<span class="math inline">\(_{\text{sub}}\)</span> Monotonicity (<code>coeff_MLP_sub_diff</code>)</h4>
+<p>MLP<span class="math inline">\(_{\text{sub}}\)</span> learns <span class="math inline">\(c^s\)</span> which should be monotonically increasing in concentration. This penalty samples concentration pairs <span class="math inline">\((c, c+\delta)\)</span> and penalizes cases where the output decreases:</p>
 <p><span class="math display">\[
-\frac{dc_i}{dt} = \underbrace{\text{MLP}_{\text{node}}(c_i, a_i)}_{\text{learns } -\lambda_i(c_i - c_i^{\text{baseline}})} + \underbrace{\sum_{j=1}^{m} S_{ij} \cdot k_j \cdot \text{aggr}_{k \in \text{sub}(j)} \text{MLP}_{\text{sub}}(c_k, s_{kj})}_{\text{learns } c_k^{s_{kj}}}
+\mathcal{R}_{\text{sub\_diff}} = \left\| \text{ReLU}\left(\|\text{MLP}_{\text{sub}}(c)\| - \|\text{MLP}_{\text{sub}}(c+\delta)\|\right) \right\|_2 \cdot \lambda_{\text{sub\_diff}}
 \]</span></p>
-<p>where: - <span class="math inline">\(a_i \in \mathbb{R}^d\)</span> is a <strong>learnable embedding</strong> for metabolite <span class="math inline">\(i\)</span> - <span class="math inline">\(k_j\)</span> are <strong>learnable rate constants</strong> - <span class="math inline">\(\text{aggr}\)</span> is sum (additive) or product (multiplicative)</p>
-<section id="learnable-parameters" class="level3">
-<h3 class="anchored" data-anchor-id="learnable-parameters">Learnable Parameters</h3>
+<p>Without this constraint, MLP<span class="math inline">\(_{\text{sub}}\)</span> can develop non-physical local minima that don’t match the true power law behavior.</p>
+</section>
+<section id="mlp_textnode-l1-coeff_mlp_node_l1" class="level4">
+<h4 class="anchored" data-anchor-id="mlp_textnode-l1-coeff_mlp_node_l1">MLP<span class="math inline">\(_{\text{node}}\)</span> L1 (<code>coeff_MLP_node_L1</code>)</h4>
+<p>Penalizes large MLP<span class="math inline">\(_{\text{node}}\)</span> output to keep homeostasis values small relative to reaction terms:</p>
+<p><span class="math display">\[
+\mathcal{R}_{\text{node\_L1}} = \text{mean}\left(|\text{MLP}_{\text{node}}(c_i, a_i)|\right) \cdot \lambda_{\text{node\_L1}}
+\]</span></p>
+<p>MLP<span class="math inline">\(_{\text{node}}\)</span> is <strong>initialized to zero output</strong> so homeostasis starts inactive. Combined with a reduced learning rate, this prevents MLP<span class="math inline">\(_{\text{node}}\)</span> from dominating the dynamics. The true homeostatic <span class="math inline">\(\lambda\)</span> values are small (0.001–0.002), so MLP<span class="math inline">\(_{\text{node}}\)</span> output should remain small.</p>
+</section>
+<section id="k-center-coeff_k_center" class="level4">
+<h4 class="anchored" data-anchor-id="k-center-coeff_k_center"><span class="math inline">\(k\)</span> Center (<code>coeff_k_center</code>)</h4>
+<p>Breaks the <strong>scale ambiguity</strong> between <span class="math inline">\(k\)</span> and MLP<span class="math inline">\(_{\text{sub}}\)</span>. The product <span class="math inline">\(k_j \cdot \text{MLP}_{\text{sub}}(c)\)</span> is invariant under <span class="math inline">\(k \to \alpha k\)</span>, <span class="math inline">\(\text{MLP}_{\text{sub}} \to \text{MLP}_{\text{sub}} / \alpha\)</span>. This penalty anchors the mean of <span class="math inline">\(\log_{10}(k)\)</span> to the center of the known range:</p>
+<p><span class="math display">\[
+\mathcal{R}_{k\_center} = \left(\text{mean}(\log_{10} k) - \frac{\log_{10} k_{\min} + \log_{10} k_{\max}}{2}\right)^2 \cdot \lambda_{k\_center}
+\]</span></p>
+<p>Without this, MLP<span class="math inline">\(_{\text{sub}}\)</span> can absorb a global scale factor and shift all <span class="math inline">\(k\)</span> values, producing high correlation (high <span class="math inline">\(R^2_{\text{shifted}}\)</span>) but poor absolute recovery (low <span class="math inline">\(R^2\)</span>).</p>
+</section>
+</section>
+<section id="summary-of-hyperparameters" class="level3">
+<h3 class="anchored" data-anchor-id="summary-of-hyperparameters">Summary of Hyperparameters</h3>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 42%">
-<col style="width: 23%">
-<col style="width: 34%">
+<col style="width: 22%">
+<col style="width: 22%">
+<col style="width: 26%">
+<col style="width: 30%">
 </colgroup>
 <thead>
 <tr class="header">
 <th>Parameter</th>
-<th>Type</th>
-<th>Purpose</th>
+<th>Config key</th>
+<th>Description</th>
+<th>Typical range</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><span class="math inline">\(a_i\)</span></td>
-<td>Embedding vectors</td>
-<td>Per-metabolite identity</td>
+<td>Learning rate <span class="math inline">\(k\)</span></td>
+<td><code>learning_rate_k</code></td>
+<td>Rate constants update speed</td>
+<td>1E-4 to 1E-2</td>
 </tr>
 <tr class="even">
-<td><span class="math inline">\(k_j\)</span></td>
-<td>Scalars</td>
-<td>Per-reaction rate constants</td>
+<td>Learning rate node</td>
+<td><code>learning_rate_node</code></td>
+<td>MLP<span class="math inline">\(_{\text{node}}\)</span> update speed</td>
+<td>1E-4 to 1E-2</td>
 </tr>
 <tr class="odd">
-<td><span class="math inline">\(\text{MLP}_{\text{node}}\)</span></td>
-<td>Neural network</td>
-<td>Learns <span class="math inline">\(-\lambda_i(c_i - c_i^{\text{baseline}})\)</span></td>
+<td>Learning rate sub</td>
+<td><code>learning_rate_sub</code></td>
+<td>MLP<span class="math inline">\(_{\text{sub}}\)</span> update speed</td>
+<td>1E-4 to 1E-2</td>
 </tr>
 <tr class="even">
-<td><span class="math inline">\(\text{MLP}_{\text{sub}}\)</span></td>
-<td>Neural network</td>
-<td>Learns <span class="math inline">\(c_k^{s_{kj}}\)</span></td>
+<td>Batch size</td>
+<td><code>batch_size</code></td>
+<td>Time frames per gradient step</td>
+<td>4 to 32</td>
+</tr>
+<tr class="odd">
+<td>Training iterations</td>
+<td><code>data_augmentation_loop</code></td>
+<td>Multiplier for iterations per epoch</td>
+<td>100 to 5000</td>
+</tr>
+<tr class="even">
+<td>MLP<span class="math inline">\(_{\text{sub}}\)</span> monotonicity</td>
+<td><code>coeff_MLP_sub_diff</code></td>
+<td>Penalize non-increasing MLP<span class="math inline">\(_{\text{sub}}\)</span></td>
+<td>0 to 500</td>
+</tr>
+<tr class="odd">
+<td>MLP<span class="math inline">\(_{\text{node}}\)</span> L1</td>
+<td><code>coeff_MLP_node_L1</code></td>
+<td>Penalize large homeostasis output</td>
+<td>0 to 10</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(k\)</span> center</td>
+<td><code>coeff_k_center</code></td>
+<td>Anchor mean(<span class="math inline">\(\log k\)</span>) to GT range</td>
+<td>0 to 10</td>
 </tr>
 </tbody>
 </table>
+<hr>
 </section>
-<section id="configuration" class="level3">
-<h3 class="anchored" data-anchor-id="configuration">Configuration</h3>
-<div class="sourceCode" id="cb1"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">graph_model</span><span class="kw">:</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">aggr_type</span><span class="kw">:</span><span class="at"> add</span><span class="co">         # sum (additive) or mul (multiplicative)</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">embedding_dim</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span><span class="co">       # dimension of metabolite embeddings a_i</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hidden_dim</span><span class="kw">:</span><span class="at"> </span><span class="dv">32</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">training</span><span class="kw">:</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">learning_rate_start</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.001</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">freeze_stoichiometry</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span><span class="co">   # S given mode</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">training_single_type</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span><span class="co">  # learn per-metabolite embeddings</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="metrics" class="level2">
+<h2 class="anchored" data-anchor-id="metrics">Metrics</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 24%">
+<col style="width: 39%">
+<col style="width: 36%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Metric</th>
+<th>Description</th>
+<th>Good value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>rate_constants_R2</code></td>
+<td>R² between learned and true rate constants <span class="math inline">\(k\)</span></td>
+<td>&gt; 0.9</td>
+</tr>
+<tr class="even">
+<td><code>rate_constants_R2_shifted</code></td>
+<td>R² after removing mean offset — measures correlation independent of global scale</td>
+<td>&gt; 0.9</td>
+</tr>
+<tr class="odd">
+<td><code>test_R2</code></td>
+<td>R² on held-out test frames</td>
+<td>&gt; 0.9</td>
+</tr>
+<tr class="even">
+<td><code>test_pearson</code></td>
+<td>Pearson correlation on test frames</td>
+<td>&gt; 0.95</td>
+</tr>
+<tr class="odd">
+<td><code>final_loss</code></td>
+<td>Final prediction loss (MSE on <span class="math inline">\(dc/dt\)</span>)</td>
+<td>Lower is better</td>
+</tr>
+</tbody>
+</table>
+<section id="diagnostic-interpretation" class="level3">
+<h3 class="anchored" data-anchor-id="diagnostic-interpretation">Diagnostic Interpretation</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: center;"><span class="math inline">\(R^2\)</span></th>
+<th style="text-align: center;"><span class="math inline">\(R^2_{\text{shifted}}\)</span></th>
+<th>Diagnosis</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">High</td>
+<td style="text-align: center;">High</td>
+<td>Correct recovery</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">Low</td>
+<td style="text-align: center;">High</td>
+<td>Scale ambiguity — increase <code>coeff_k_center</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">Low</td>
+<td style="text-align: center;">Low</td>
+<td>Poor correlation — adjust learning rates</td>
+</tr>
+</tbody>
+</table>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 37%">
+<col style="width: 18%">
+<col style="width: 13%">
+<col style="width: 29%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: center;">test_pearson</th>
+<th style="text-align: center;"><span class="math inline">\(R^2\)</span></th>
+<th style="text-align: center;">Gap</th>
+<th>Diagnosis</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">&gt; 0.95</td>
+<td style="text-align: center;">&gt; 0.9</td>
+<td style="text-align: center;">&lt; 0.1</td>
+<td><strong>Healthy</strong> — good dynamics from correct <span class="math inline">\(k\)</span></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">&gt; 0.95</td>
+<td style="text-align: center;">0.3–0.9</td>
+<td style="text-align: center;">0.1–0.7</td>
+<td><strong>Degenerate</strong> — good dynamics from wrong <span class="math inline">\(k\)</span></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">&gt; 0.95</td>
+<td style="text-align: center;">&lt; 0.3</td>
+<td style="text-align: center;">&gt; 0.7</td>
+<td><strong>Severely degenerate</strong> — MLPs compensating</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">&lt; 0.5</td>
+<td style="text-align: center;">&lt; 0.5</td>
+<td style="text-align: center;">~0</td>
+<td><strong>Failed</strong> — both dynamics and <span class="math inline">\(k\)</span> poor</td>
+</tr>
+</tbody>
+</table>
+<hr>
+</section>
+</section>
+<section id="ucb-tree-search" class="level2">
+<h2 class="anchored" data-anchor-id="ucb-tree-search">UCB Tree Search</h2>
+<p>The LLM selects parent configurations to mutate using an <strong>Upper Confidence Bound</strong> (UCB) strategy that balances exploitation of high-performing branches with exploration of under-visited regions:</p>
+<p><span class="math display">\[
+\text{UCB}(i) = \bar{X}_i + c \cdot \sqrt{\frac{\ln N}{n_i}}
+\]</span></p>
+<p>where <span class="math inline">\(\bar{X}_i\)</span> is the mean reward of node <span class="math inline">\(i\)</span>, <span class="math inline">\(N\)</span> is the total number of visits, <span class="math inline">\(n_i\)</span> is the number of visits to node <span class="math inline">\(i\)</span>, and <span class="math inline">\(c\)</span> is the exploration constant.</p>
+<p><strong>4 parallel slots</strong> run per batch with diversified roles:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 21%">
+<col style="width: 21%">
+<col style="width: 57%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Slot</th>
+<th>Role</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td><strong>exploit</strong></td>
+<td>Highest UCB node, conservative mutation</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td><strong>exploit</strong></td>
+<td>2nd highest UCB, or same parent different param</td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td><strong>explore</strong></td>
+<td>Under-visited node, or new parameter dimension</td>
+</tr>
+<tr class="even">
+<td>3</td>
+<td><strong>principle-test</strong></td>
+<td>Test or challenge one established principle from memory</td>
+</tr>
+</tbody>
+</table>
 
 
-</section>
 </section>
 
 </main> <!-- /main -->

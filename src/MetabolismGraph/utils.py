@@ -98,17 +98,18 @@ def create_log_dir(config=[], erase=True):
             os.remove(f)
         results_dir = os.path.join(log_dir, 'results')
         if os.path.exists(results_dir):
-            shutil.rmtree(results_dir)
+            shutil.rmtree(results_dir, ignore_errors=True)
         os.makedirs(results_dir, exist_ok=True)
         tmp_training_dir = os.path.join(log_dir, 'tmp_training')
         if os.path.exists(tmp_training_dir):
-            shutil.rmtree(tmp_training_dir)
+            shutil.rmtree(tmp_training_dir, ignore_errors=True)
         os.makedirs(os.path.join(log_dir, 'tmp_training/external_input'), exist_ok=True)
         os.makedirs(os.path.join(log_dir, 'tmp_training/matrix'), exist_ok=True)
         os.makedirs(os.path.join(log_dir, 'tmp_training/function'), exist_ok=True)
         os.makedirs(os.path.join(log_dir, 'tmp_training/function/substrate_func'), exist_ok=True)
         os.makedirs(os.path.join(log_dir, 'tmp_training/function/rate_func'), exist_ok=True)
         os.makedirs(os.path.join(log_dir, 'tmp_training/embedding'), exist_ok=True)
+        os.makedirs(os.path.join(log_dir, 'tmp_training/rate_constants'), exist_ok=True)
     os.makedirs(os.path.join(log_dir, 'tmp_recons'), exist_ok=True)
 
     logging.basicConfig(filename=os.path.join(log_dir, 'training.log'),

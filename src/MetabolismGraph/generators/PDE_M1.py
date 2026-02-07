@@ -102,10 +102,24 @@ class PDE_M1(nn.Module):
         self.n_metabolite_types = getattr(sim_cfg, 'n_metabolite_types', 1)
 
         # per-type parameters: p[type, :] = [lambda, c_baseline]
-        # initialize with same values for all types (can be randomized later)
         p = torch.zeros(self.n_metabolite_types, 2)
-        p[:, 0] = self.homeostatic_strength  # lambda per type
-        p[:, 1] = self.baseline_concentration  # c_baseline per type
+
+        # support per-type lambda values via list config
+        lambda_per_type = getattr(sim_cfg, 'homeostatic_lambda_per_type', None)
+        if lambda_per_type is not None and len(lambda_per_type) == self.n_metabolite_types:
+            for t, lam in enumerate(lambda_per_type):
+                p[t, 0] = lam
+        else:
+            p[:, 0] = self.homeostatic_strength  # same lambda for all types
+
+        # support per-type baseline values via list config
+        baseline_per_type = getattr(sim_cfg, 'homeostatic_baseline_per_type', None)
+        if baseline_per_type is not None and len(baseline_per_type) == self.n_metabolite_types:
+            for t, base in enumerate(baseline_per_type):
+                p[t, 1] = base
+        else:
+            p[:, 1] = self.baseline_concentration  # same baseline for all types
+
         self.p = nn.Parameter(p, requires_grad=False)  # fixed parameters
 
         # baseline will be set on first forward pass if baseline_mode="initial"

@@ -1,4 +1,4 @@
-# Parallel Mode Addendum — Metabolism Exploration
+# Parallel Mode Addendum — Metabolism Rate Constants Recovery
 
 This addendum applies when running in **parallel mode** (GNN_LLM_parallel.py). Follow all rules from the base instruction file, with these modifications.
 
@@ -14,7 +14,7 @@ This addendum applies when running in **parallel mode** (GNN_LLM_parallel.py). F
 - Edit all 4 config files listed in the prompt: `{name}_00.yaml` through `{name}_03.yaml`
 - Each config's `dataset` field is pre-set to route data to separate directories — **DO NOT change the `dataset` field**
 - **DO NOT change `simulation:` parameters** — this is a fixed-regime exploration
-- Modify `training:` parameters, `claude:` where allowed, **and GNN code** (see Step 5.2 in base instructions)
+- Modify `training:` parameters: `lr_k`, `lr_node`, `lr_sub`, `batch_size`, `n_epochs`, `data_augmentation_loop`, `coeff_MLP_sub_diff`, `coeff_MLP_node_L1`, `coeff_k_center`
 
 ## Parallel UCB Strategy
 
@@ -29,7 +29,7 @@ When selecting parents for 4 simultaneous mutations, **diversify** your choices:
 
 You may deviate from this split based on context (e.g., all exploit if early in block, all explore if everything fails).
 
-**When stoich_R2 plateaus across config sweeps**: apply a **code-modification** (see Step 5.2 in base instructions). Code changes apply to ALL 4 slots simultaneously (shared codebase). Use the 4 slots to test different config parameters around the same code change — one code change, four different parameter variations per batch.
+**When rate_constants_R2 plateaus across config sweeps**: consider if the dynamics regime itself is the bottleneck (oscillatory vs steady-state).
 
 ### Slot 3: Principle Testing
 
@@ -48,11 +48,11 @@ When the prompt says `PARALLEL START`:
 - Read the base config to understand the starting training parameters
 - Create 4 diverse initial training parameter variations
 - Suggested initial spread across slots:
-  - Slot 0: baseline config (lr_S=1E-3, coeff_S_integer=1E-3, coeff_mass=1E-3)
-  - Slot 1: vary lr_S (e.g. 5E-4 or 5E-3)
-  - Slot 2: vary coeff_S_integer (e.g. 1E-2 or 1E-1)
-  - Slot 3: vary coeff_mass_conservation (e.g. 1E-2 or 1E-1)
-- See "Training Parameters Reference" in base instruction file for parameter descriptions, ranges, and interactions
+  - Slot 0: baseline config (lr_k=1E-3, lr_node=1E-3, lr_sub=1E-3)
+  - Slot 1: vary lr_k (e.g. 5E-4 or 2E-3)
+  - Slot 2: vary lr_node (e.g. 5E-4 or 2E-3)
+  - Slot 3: vary lr_sub (e.g. 5E-4 or 2E-3)
+- See "Training Parameters Reference" in base instruction file for parameter descriptions and ranges
 - All 4 slots share the same simulation parameters (DO NOT change them)
 - Write the planned initial variations to the working memory file
 
@@ -64,13 +64,16 @@ Same as base instructions, but you write 4 entries per batch:
 ## Iter N: [converged/partial/failed]
 Node: id=N, parent=P
 Mode/Strategy: [strategy]
-Config: seed=S, lr=X, lr_emb=Y, lr_S=Z, coeff_S_L1=W, coeff_S_integer=V, coeff_mass=M, batch_size=B, n_epochs=E, data_augmentation_loop=A
-Metrics: stoichiometry_R2=C, test_R2=A, test_pearson=B, final_loss=E
+Config: seed=S, lr_k=X, lr_node=Y, lr_sub=Z, batch_size=B, n_epochs=E, data_augmentation_loop=A, coeff_MLP_node_L1=L, coeff_k_center=K
+Metrics: rate_constants_R2=C, rate_constants_R2_shifted=D, test_R2=A, test_pearson=B, final_loss=E
+Visual: MLP_sub=[good/partial/bad: brief description], MLP_node=[good/partial/bad: brief description]
 Mutation: [param]: [old] -> [new]
 Parent rule: [one line]
 Observation: [one line]
 Next: parent=P
 ```
+
+**CRITICAL**: The `Visual:` line must describe what you see in the last MLP_sub and MLP_node plots. Always read the last (highest iteration) plot in `function/substrate_func/` and `function/rate_func/` before writing this line.
 
 **CRITICAL**: The `Mutation:` line is parsed by the UCB tree builder. Always include the exact parameter change.
 

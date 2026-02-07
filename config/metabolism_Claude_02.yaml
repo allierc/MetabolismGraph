@@ -12,7 +12,7 @@ graph_model:
   model_name: PDE_M1
   prediction: first_derivative
   input_size: 2
-  output_size: 16
+  output_size: 1
   hidden_dim: 32
   n_layers: 3
   input_size_update: 3
@@ -21,7 +21,7 @@ graph_model:
   aggr_type: add
   update_type: none
 claude:
-  n_epochs: 10
+  n_epochs: 1
   data_augmentation_loop: 1000
   n_iter_block: 24
   ucb_c: 1.414
@@ -29,7 +29,7 @@ claude:
 plotting:
   colormap: tab20
 training:
-  n_epochs: 10
+  n_epochs: 1
   n_runs: 1
   device: auto
   batch_size: 8
@@ -39,7 +39,7 @@ training:
   sparsity: none
   learning_rate_start: 0.001
   learning_rate_embedding_start: 0.0001
-  learning_rate_S_start: 0.005
-  coeff_S_L1: 0.0001
-  coeff_S_integer: 0.0
-  coeff_mass_conservation: 0.0
+  learning_rate_S_start: 0.001
+  coeff_S_L1: 0.001
+  coeff_S_integer: 0.01
+  coeff_mass_conservation: 0.001

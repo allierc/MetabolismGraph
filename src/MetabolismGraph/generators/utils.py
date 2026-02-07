@@ -160,7 +160,8 @@ def plot_loss(loss_dict, log_dir, epoch=None, Niter=None, debug=False,
 #  metabolism helpers
 # ---------------------------------------------------------------------------
 
-def init_reaction(n_metabolites, n_reactions, max_metabolites_per_reaction, device, seed=42):
+def init_reaction(n_metabolites, n_reactions, max_metabolites_per_reaction, device, seed=42,
+                  cycle_fraction=0.0, cycle_length=4):
     """build a random sparse stoichiometric matrix as bipartite edge lists.
 
     for each reaction j:
@@ -168,6 +169,12 @@ def init_reaction(n_metabolites, n_reactions, max_metabolites_per_reaction, devi
       - sample 1..max_metabolites_per_reaction products    (stoich > 0)
       - substrates and products are disjoint
       - stoichiometric coefficients are integers in {1, 2}
+
+    Optionally adds autocatalytic cycles for oscillatory dynamics:
+      - cycle_fraction: fraction of reactions dedicated to cycles (0.0 to 1.0)
+      - cycle_length: number of metabolites per cycle (default 4)
+      - Creates autocatalytic chains: A + B → 2B, B + C → 2C, C + D → 2D, D + A → 2A
+        where each species catalyzes the next, creating nonlinear feedback for oscillations
 
     Returns
     -------
@@ -181,7 +188,48 @@ def init_reaction(n_metabolites, n_reactions, max_metabolites_per_reaction, devi
     sub_edges = []   # (metabolite, reaction, |coeff|)
     all_edges = []   # (metabolite, reaction, signed coeff)
 
-    for j in range(n_reactions):
+    # Calculate number of cycle reactions vs random reactions
+    n_cycle_reactions = int(n_reactions * cycle_fraction)
+    n_random_reactions = n_reactions - n_cycle_reactions
+
+    # --- Phase 1: Create autocatalytic cycles ---
+    # Pattern: A + B → 2B, B + C → 2C, C + D → 2D, D + A → 2A
+    # Each species catalyzes the growth of the next, creating oscillatory dynamics
+    if n_cycle_reactions > 0:
+        n_cycles = n_cycle_reactions // cycle_length
+        metabolites_used_in_cycles = set()
+
+        for cycle_idx in range(n_cycles):
+            # Select metabolites for this cycle (avoiding reuse for cleaner cycles)
+            available = [m for m in range(n_metabolites) if m not in metabolites_used_in_cycles]
+            if len(available) < cycle_length:
+                # Reuse metabolites if we run out (creates interconnected cycles)
+                available = list(range(n_metabolites))
+
+            cycle_mets = rng.choice(available, size=min(cycle_length, len(available)), replace=False)
+            metabolites_used_in_cycles.update(cycle_mets)
+
+            # Create autocatalytic cycle: A + B → 2B, B + C → 2C, etc.
+            for i in range(len(cycle_mets)):
+                rxn_idx = cycle_idx * cycle_length + i
+                if rxn_idx >= n_cycle_reactions:
+                    break
+
+                # Reaction: m_i + m_{i+1} → 2 * m_{i+1}
+                # m_i is consumed (food), m_{i+1} catalyzes and grows
+                # Net stoichiometry: food -1, catalyst +1 (column sum = 0)
+                food = cycle_mets[i]
+                catalyst = cycle_mets[(i + 1) % len(cycle_mets)]
+
+                # Substrates for rate computation: both food and catalyst
+                sub_edges.append((int(food), rxn_idx, 1.0))
+                sub_edges.append((int(catalyst), rxn_idx, 1.0))
+                # Net stoichiometry for concentration update (mass conserved)
+                all_edges.append((int(food), rxn_idx, -1.0))      # food consumed
+                all_edges.append((int(catalyst), rxn_idx, 1.0))   # catalyst net +1
+
+    # --- Phase 2: Create random reactions (as before) ---
+    for j in range(n_cycle_reactions, n_reactions):
         n_participants = min(max_metabolites_per_reaction, n_metabolites // 2)
         # at least 1 substrate and 1 product
         n_sub = rng.randint(1, max(2, n_participants))
@@ -233,7 +281,7 @@ def init_reaction(n_metabolites, n_reactions, max_metabolites_per_reaction, devi
     return stoich_graph, S
 
 
-def init_concentration(n_metabolites, device, mode='uniform', seed=42):
+def init_concentration(n_metabolites, device, mode='uniform', seed=42, c_min=2.5, c_max=7.5):
     """initialise metabolite concentrations.
 
     Parameters
@@ -242,6 +290,8 @@ def init_concentration(n_metabolites, device, mode='uniform', seed=42):
     device : torch.device
     mode : str   'uniform' | 'random'
     seed : int
+    c_min : float   minimum concentration (for random mode)
+    c_max : float   maximum concentration (for random mode)
 
     Returns
     -------
@@ -251,14 +301,14 @@ def init_concentration(n_metabolites, device, mode='uniform', seed=42):
     rng.manual_seed(seed)
 
     if mode == 'random':
-        concentrations = torch.rand(n_metabolites, generator=rng, device=device) * 2.0
+        concentrations = torch.rand(n_metabolites, generator=rng, device=device) * (c_max - c_min) + c_min
     else:  # uniform
-        concentrations = torch.ones(n_metabolites, device=device) * 0.5
+        concentrations = torch.ones(n_metabolites, device=device) * ((c_max + c_min) / 2)
 
     return concentrations
 
 
-def plot_metabolism_concentrations(x_list, n_metabolites, n_frames, dataset_name, delta_t):
+def plot_metabolism_concentrations(x_list, n_metabolites, n_frames, dataset_name, delta_t, activity_rank=None):
     """plot metabolite concentration traces -- same layout as activity.png in signal.
 
     offset waterfall plot with metabolite indices on the left margin.
@@ -286,20 +336,26 @@ def plot_metabolism_concentrations(x_list, n_metabolites, n_frames, dataset_name
 
     for i in range(0, n_plot, 5):
         plt.text(-100, conc_plot[i, 0], str(sampled_indices[i]),
-                 fontsize=24, va='center', ha='right')
+                 fontsize=12, va='center', ha='right')
 
     ax = plt.gca()
     ax.text(-n_frames * 0.12, conc_plot.mean(), 'metabolite index',
-            fontsize=32, va='center', ha='center', rotation=90)
-    plt.xlabel('time (min)', fontsize=32)
-    plt.xticks(fontsize=24)
+            fontsize=18, va='center', ha='center', rotation=90)
+    plt.xlabel('time (min)', fontsize=18)
+    plt.xticks(fontsize=14)
     ax.spines['left'].set_visible(False)
     ax.spines['top'].set_visible(False)
     ax.yaxis.set_ticks_position('right')
     ax.set_yticks([])
     plt.xlim([0, min(n_frames, conc_plot.shape[1])])
+
+    # add activity rank in top left
+    if activity_rank is not None:
+        ax.text(0.02, 0.98, f'activity rank = {activity_rank}',
+                transform=ax.transAxes, fontsize=16, va='top', ha='left')
+
     plt.tight_layout()
-    plt.savefig(f'graphs_data/{dataset_name}/concentration.png', dpi=300)
+    plt.savefig(f'graphs_data/{dataset_name}/concentrations.png', dpi=300)
     plt.close()
 
 
@@ -431,6 +487,58 @@ def plot_rate_distribution(model, dataset_name):
     print(f'  k range: [{k.min():.4f}, {k.max():.4f}], median: {np.median(k):.4f}')
 
 
+def plot_homeostasis_function(model, x_list, dataset_name, colormap='tab10'):
+    """plot per-type homeostasis function: -λ_type * (c - c_baseline_type).
+
+    For each metabolite type, plots the homeostasis term as a function of concentration.
+    Includes a small concentration histogram in the top-right corner.
+    Saves to graphs_data/{dataset_name}/homeostasis_function.png
+    """
+    if not hasattr(model, 'p') or model.p.shape[0] < 1:
+        return
+
+    n_types = model.p.shape[0]
+    p = to_numpy(model.p.detach().cpu())
+
+    # concentration range based on data
+    conc_data = x_list[:, :, 3].flatten()
+    c_min = np.min(conc_data) * 0.5
+    c_max = np.max(conc_data) * 1.5
+    c_range = np.linspace(c_min, c_max, 200)
+
+    cmap = plt.cm.get_cmap(colormap)
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    for t in range(n_types):
+        lambda_t = p[t, 0]
+        c_baseline_t = p[t, 1]
+        homeostasis = -lambda_t * (c_range - c_baseline_t)
+        ax.plot(c_range, homeostasis, linewidth=2, color=cmap(t),
+                label=f'type {t}: λ={lambda_t:.3f}, c₀={c_baseline_t:.2f}')
+        # mark baseline
+        ax.axvline(x=c_baseline_t, color=cmap(t), linestyle='--', alpha=0.5)
+
+    ax.axhline(y=0, color='gray', linestyle='-', alpha=0.3)
+    ax.set_xlabel('concentration $c$', fontsize=24)
+    ax.set_ylabel(r'$-\lambda (c - c^{\mathrm{baseline}})$', fontsize=24)
+    ax.legend(fontsize=12)
+    ax.tick_params(labelsize=16)
+    ax.set_title(f'Homeostasis function ({n_types} types)', fontsize=18)
+    ax.grid(True, linestyle='--', alpha=0.3)
+
+    # add concentration histogram as inset in top-right (smaller)
+    ax_inset = fig.add_axes([0.72, 0.72, 0.15, 0.15])
+    ax_inset.hist(conc_data, bins=30, color='steelblue', alpha=0.7, edgecolor='white', linewidth=0.5)
+    ax_inset.set_xlabel('c', fontsize=7)
+    ax_inset.set_ylabel('count', fontsize=7)
+    ax_inset.tick_params(labelsize=6)
+
+    plt.savefig(f'graphs_data/{dataset_name}/homeostasis_function.png', dpi=200)
+    plt.close()
+    print(f'  saved graphs_data/{dataset_name}/homeostasis_function.png')
+
+
 def plot_metabolism_mlp_functions(model, x_list, dataset_name, device):
     """plot ground-truth substrate_func and rate_func functions for the metabolism generator.
 
@@ -455,43 +563,22 @@ def plot_metabolism_mlp_functions(model, x_list, dataset_name, device):
 
     conc_range = torch.linspace(0, conc_max, n_pts, device=device)
 
-    stoich_values = [0.5, 1.0, 2.0]
-    colors = ['tab:blue', 'tab:orange', 'tab:green']
+    stoich_values = [1, 2]
+    colors = ['tab:blue', 'tab:orange']
 
-    fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+    fig, ax = plt.subplots(1, 1, figsize=(8, 7))
 
-    # left panel: ||msg|| vs concentration
-    with torch.no_grad():
-        for s_val, color in zip(stoich_values, colors):
-            s_abs = torch.full((n_pts, 1), s_val, device=device)
-            msg_in = torch.cat([conc_range.unsqueeze(-1), s_abs], dim=-1)
-            msg_out = model.substrate_func(msg_in)
-            msg_norm = msg_out.norm(dim=-1)
-            axes[0].plot(to_numpy(conc_range), to_numpy(msg_norm),
-                         linewidth=2, color=color, label=f'|s|={s_val}')
+    # true power laws c^s
+    c_np = to_numpy(conc_range)
+    for s_val, color in zip(stoich_values, colors):
+        true_power = np.power(c_np + 1e-8, s_val)
+        ax.plot(c_np, true_power, linewidth=2, color=color, label=f'$c^{{{s_val}}}$')
 
-    axes[0].set_xlabel('concentration', fontsize=24)
-    axes[0].set_ylabel(r'$\|\mathrm{substrate\_func}(c, |s|)\|$', fontsize=24)
-    axes[0].legend(fontsize=16)
-    axes[0].tick_params(labelsize=16)
-    axes[0].set_title('substrate_func: output norm vs concentration', fontsize=16)
-
-    # right panel: individual output dimensions at |stoich|=1
-    with torch.no_grad():
-        s_abs = torch.full((n_pts, 1), 1.0, device=device)
-        msg_in = torch.cat([conc_range.unsqueeze(-1), s_abs], dim=-1)
-        msg_out = model.substrate_func(msg_in)  # (n_pts, msg_dim)
-        msg_dim = msg_out.shape[1]
-        for d in range(msg_dim):
-            axes[1].plot(to_numpy(conc_range), to_numpy(msg_out[:, d]),
-                         linewidth=1, alpha=0.6, label=f'dim {d}' if d < 4 else None)
-
-    axes[1].set_xlabel('concentration', fontsize=24)
-    axes[1].set_ylabel(r'$\mathrm{substrate\_func}(c, 1)_d$', fontsize=24)
-    axes[1].tick_params(labelsize=16)
-    axes[1].set_title(f'substrate_func: {msg_dim} output dimensions (|s|=1)', fontsize=16)
-    if msg_dim <= 8:
-        axes[1].legend(fontsize=10)
+    ax.set_xlabel('concentration $c$', fontsize=24)
+    ax.set_ylabel(r'$c^{|s|}$', fontsize=24)
+    ax.legend(fontsize=16)
+    ax.tick_params(labelsize=16)
+    ax.set_title('power law substrate functions', fontsize=16)
 
     plt.tight_layout()
     plt.savefig(f'{folder}/substrate_function.png', dpi=200)
@@ -516,7 +603,7 @@ def plot_metabolism_mlp_functions(model, x_list, dataset_name, device):
         )
         h_rxn.index_add_(0, model.rxn_sub, msg)
 
-        base_rate = model.softplus(model.rate_func(h_rxn).squeeze(-1))
+        base_rate = model.rate_func(h_rxn).squeeze(-1)
         k = torch.pow(10.0, model.log_k)
         full_rate = k * base_rate
         h_norm = h_rxn.norm(dim=-1)
@@ -524,7 +611,7 @@ def plot_metabolism_mlp_functions(model, x_list, dataset_name, device):
     # left panel: base rate (before k scaling) vs ||h_rxn||
     axes[0].scatter(to_numpy(h_norm), to_numpy(base_rate), s=12, c='k', alpha=0.5)
     axes[0].set_xlabel(r'$\|h_{rxn}\|$', fontsize=24)
-    axes[0].set_ylabel(r'softplus(rate\_func($h$))', fontsize=24)
+    axes[0].set_ylabel(r'rate\_func($h$)', fontsize=24)
     axes[0].tick_params(labelsize=16)
     axes[0].set_title(f'base rate vs aggregated message ({model.n_rxn} reactions)', fontsize=14)
 
@@ -533,7 +620,7 @@ def plot_metabolism_mlp_functions(model, x_list, dataset_name, device):
                          c=to_numpy(model.log_k.detach()), cmap='coolwarm', alpha=0.6)
     plt.colorbar(sc, ax=axes[1], label=r'$\log_{10}(k_j)$')
     axes[1].set_xlabel(r'$\|h_{rxn}\|$', fontsize=24)
-    axes[1].set_ylabel(r'$k_j \cdot$ softplus(rate\_func($h$))', fontsize=24)
+    axes[1].set_ylabel(r'$k_j \cdot$ rate\_func($h$)', fontsize=24)
     axes[1].tick_params(labelsize=16)
     axes[1].set_title('full rate (k-scaled)', fontsize=14)
 
@@ -543,20 +630,33 @@ def plot_metabolism_mlp_functions(model, x_list, dataset_name, device):
     print(f'  saved {folder}/substrate_function.png and {folder}/rate_function.png')
 
 
-def plot_metabolism_kinograph(x_list, n_metabolites, n_frames, dataset_name, delta_t):
+def plot_metabolism_kinograph(x_list, n_metabolites, n_frames, dataset_name, delta_t, c_center=None, c_range=1.0):
     """kinograph (imshow heatmap) of metabolite concentrations over time.
 
     rows = metabolites, columns = time frames.
     saves to graphs_data/{dataset_name}/kinograph.png
+
+    Parameters
+    ----------
+    c_center : float or None
+        Center of colormap range. If None, uses data-driven range [0, max].
+    c_range : float
+        Half-width of colormap range around c_center (i.e., vmin=c_center-c_range, vmax=c_center+c_range).
     """
     print('plot kinograph ...')
     conc = x_list[:, :, 3].T  # (n_met, T)
 
-    vmax = np.abs(conc).max()
     n_frames_plot = conc.shape[1]
 
+    if c_center is not None:
+        vmin = c_center - c_range
+        vmax = c_center + c_range
+    else:
+        vmin = 0
+        vmax = np.abs(conc).max()
+
     plt.figure(figsize=(15, 10))
-    plt.imshow(conc, aspect='auto', cmap='viridis', vmin=0, vmax=vmax, origin='lower', interpolation='nearest')
+    plt.imshow(conc, aspect='auto', cmap='viridis', vmin=vmin, vmax=vmax, origin='lower', interpolation='nearest')
     cbar = plt.colorbar(fraction=0.046, pad=0.04)
     cbar.ax.tick_params(labelsize=32)
     cbar.set_label('concentration', fontsize=32)

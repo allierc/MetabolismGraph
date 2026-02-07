@@ -54,7 +54,7 @@ training:
   learning_rate_start: 0.001
   learning_rate_k: 0.005
   learning_rate_node: 0.001
-  learning_rate_sub: 0.001
+  learning_rate_sub: 0.0005
   freeze_stoichiometry: true
   learning_rate_S_start: 0.0
   coeff_S_L1: 0.0

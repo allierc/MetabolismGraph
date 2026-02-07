@@ -52,7 +52,7 @@ training:
   seed: 42
   data_augmentation_loop: 1000
   learning_rate_start: 0.001
-  learning_rate_k: 0.002
+  learning_rate_k: 0.005
   learning_rate_node: 0.001
   learning_rate_sub: 0.0005
   freeze_stoichiometry: true

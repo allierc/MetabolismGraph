@@ -55,8 +55,13 @@ class PDE_M1(nn.Module):
 
         n_met = config.simulation.n_metabolites
         n_rxn = config.simulation.n_reactions
-        hidden = config.graph_model.hidden_dim
         msg_dim = config.graph_model.output_size
+
+        # per-MLP architecture from config (with fallbacks)
+        hidden_sub = getattr(config.graph_model, 'hidden_dim_sub', config.graph_model.hidden_dim)
+        n_layers_sub = getattr(config.graph_model, 'n_layers_sub', 2)
+        hidden_node = getattr(config.graph_model, 'hidden_dim_node', config.graph_model.hidden_dim)
+        n_layers_node = getattr(config.graph_model, 'n_layers_node', 2)
 
         self.n_met = n_met
         self.n_rxn = n_rxn
@@ -68,9 +73,13 @@ class PDE_M1(nn.Module):
         # flux limiting: prevent negative concentrations (can dampen oscillations)
         self.flux_limit_enabled = getattr(config.simulation, 'flux_limit', True)
 
-        # learnable functions (larger init for diverse outputs)
-        self.substrate_func = mlp([2, hidden, msg_dim], activation=nn.Tanh)
-        self.rate_func = mlp([msg_dim, hidden, 1], activation=nn.Tanh)
+        # substrate_func (MLP_sub): input=2 (c, |s|), output=msg_dim
+        sub_sizes = [2] + [hidden_sub] * (n_layers_sub - 1) + [msg_dim]
+        self.substrate_func = mlp(sub_sizes, activation=nn.Tanh)
+
+        # rate_func (MLP_node): input=msg_dim, output=1
+        node_sizes = [msg_dim] + [hidden_node] * (n_layers_node - 1) + [1]
+        self.rate_func = mlp(node_sizes, activation=nn.Tanh)
 
         # per-reaction rate constants: log-uniform in configurable range
         log_k_min = getattr(config.simulation, 'log_k_min', -3.0)

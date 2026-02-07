@@ -171,6 +171,12 @@ window.Quarto = {
   <li><a href="#increasing-activity-rank" id="toc-increasing-activity-rank" class="nav-link" data-scroll-target="#increasing-activity-rank">Increasing Activity Rank</a></li>
   </ul></li>
   <li><a href="#summary-the-full-model" id="toc-summary-the-full-model" class="nav-link" data-scroll-target="#summary-the-full-model">Summary: The Full Model</a></li>
+  <li><a href="#the-inverse-problem" id="toc-the-inverse-problem" class="nav-link" data-scroll-target="#the-inverse-problem">The Inverse Problem</a>
+  <ul class="collapse">
+  <li><a href="#learned-components" id="toc-learned-components" class="nav-link" data-scroll-target="#learned-components">Learned Components</a></li>
+  <li><a href="#gnn-forward-pass" id="toc-gnn-forward-pass" class="nav-link" data-scroll-target="#gnn-forward-pass">GNN Forward Pass</a></li>
+  <li><a href="#learning-modes" id="toc-learning-modes" class="nav-link" data-scroll-target="#learning-modes">Learning Modes</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -520,8 +526,69 @@ flowchart LR
 <p><span class="math display">\[
 v_j = k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{s_{kj}}
 \]</span></p>
+</section>
+<section id="the-inverse-problem" class="level2">
+<h2 class="anchored" data-anchor-id="the-inverse-problem">The Inverse Problem</h2>
+<p>Given observed concentration time series <span class="math inline">\(\mathbf{C}(t)\)</span> and the bipartite graph structure, the goal is to recover the model parameters that generated the dynamics. A <strong>graph neural network</strong> (GNN) operates on the bipartite metabolite–reaction graph and learns three components:</p>
+<section id="learned-components" class="level3">
+<h3 class="anchored" data-anchor-id="learned-components">Learned Components</h3>
+<p><strong>1. Substrate function — <span class="math inline">\(\text{MLP}_{\text{sub}}(c_k, |S_{kj}|)\)</span></strong></p>
+<p>An MLP that maps each substrate concentration <span class="math inline">\(c_k\)</span> and its stoichiometric coefficient <span class="math inline">\(|S_{kj}|\)</span> to the substrate’s contribution to the reaction rate. In the ground truth, this function computes the power-law <span class="math inline">\(c_k^{|S_{kj}|}\)</span>. The learned MLP should recover this mapping:</p>
+<p><span class="math display">\[
+\text{MLP}_{\text{sub}}(c_k, |S_{kj}|) \approx c_k^{|S_{kj}|}
+\]</span></p>
+<p><strong>2. Homeostasis function — <span class="math inline">\(\text{MLP}_{\text{node}}(c_i)\)</span></strong></p>
+<p>An MLP that maps each metabolite’s concentration to a per-metabolite correction term, capturing homeostatic regulation. In the ground truth, this is a linear function with small magnitude:</p>
+<p><span class="math display">\[
+\text{MLP}_{\text{node}}(c_i) \approx -\lambda_{\text{type}(i)} \cdot (c_i - c_i^{\text{baseline}})
+\]</span></p>
+<p><strong>3. Rate constants — <span class="math inline">\(k_j\)</span></strong></p>
+<p>A vector of 256 learnable per-reaction rate constants (in log-space). These scale the reaction fluxes and must be recovered up to the correct global scale.</p>
+</section>
+<section id="gnn-forward-pass" class="level3">
+<h3 class="anchored" data-anchor-id="gnn-forward-pass">GNN Forward Pass</h3>
+<p>The GNN assembles these learned components into the full dynamics prediction on the bipartite graph:</p>
+<p><span class="math display">\[
+\widehat{\frac{dc_i}{dt}} = \text{MLP}_{\text{node}}(c_i) + \sum_{j=1}^{m} S_{ij} \cdot k_j \cdot \underset{k \in \text{sub}(j)}{\text{aggr}} \; \text{MLP}_{\text{sub}}(c_k, |S_{kj}|)
+\]</span></p>
+<p>where <span class="math inline">\(\text{aggr}\)</span> is either sum (additive) or product (multiplicative, for mass-action kinetics). The model is trained by minimizing the prediction error on <span class="math inline">\(dc/dt\)</span> computed from the observed concentration trajectories.</p>
+</section>
+<section id="learning-modes" class="level3">
+<h3 class="anchored" data-anchor-id="learning-modes">Learning Modes</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 13%">
+<col style="width: 23%">
+<col style="width: 37%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Mode</th>
+<th>S matrix</th>
+<th>Primary metric</th>
+<th>Challenge</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>S learning</strong></td>
+<td>Learnable</td>
+<td>stoichiometry <span class="math inline">\(R^2\)</span></td>
+<td>Recovering integer coefficients and sparsity</td>
+</tr>
+<tr class="even">
+<td><strong>S given</strong></td>
+<td>Frozen from GT</td>
+<td>rate constants <span class="math inline">\(R^2\)</span></td>
+<td>Disentangling <span class="math inline">\(k\)</span>, <span class="math inline">\(\text{MLP}_{\text{sub}}\)</span>, <span class="math inline">\(\text{MLP}_{\text{node}}\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>A key challenge is <strong>scale ambiguity</strong>: the product <span class="math inline">\(k_j \cdot \text{MLP}_{\text{sub}}\)</span> is invariant under <span class="math inline">\(k \to \alpha k\)</span>, <span class="math inline">\(\text{MLP}_{\text{sub}} \to \text{MLP}_{\text{sub}} / \alpha\)</span>. Regularization (<span class="math inline">\(\texttt{coeff\_k\_center}\)</span>) anchors the global scale of <span class="math inline">\(k\)</span> to break this degeneracy.</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

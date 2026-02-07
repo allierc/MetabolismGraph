@@ -93,6 +93,14 @@ class GraphModelConfig(BaseModel):
     hidden_dim: int = 32
     n_layers: int = 3
 
+    # MLP_sub (substrate_func): (c_k, |s_kj|) -> substrate contribution
+    hidden_dim_sub: int = 64
+    n_layers_sub: int = 3
+
+    # MLP_node (rate_func / node_func): homeostasis function
+    hidden_dim_node: int = 64
+    n_layers_node: int = 3
+
     input_size_update: int = 3
     n_layers_update: int = 3
     hidden_dim_update: int = 64

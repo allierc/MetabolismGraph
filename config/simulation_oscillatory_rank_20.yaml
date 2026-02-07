@@ -40,6 +40,10 @@ graph_model:
   output_size: 1
   hidden_dim: 64
   n_layers: 3
+  hidden_dim_sub: 64
+  n_layers_sub: 3
+  hidden_dim_node: 64
+  n_layers_node: 3
   aggr_type: mul
   update_type: none
 
@@ -65,3 +69,6 @@ training:
   coeff_MLP_sub_diff: 10
   coeff_MLP_node_L1: 1.0
   coeff_k_center: 1.0
+  # recurrent rollout training: multi-step integration to break degeneracy
+  recurrent_training: false
+  time_step: 1

@@ -14,7 +14,8 @@ This addendum applies when running in **parallel mode** (GNN_LLM_parallel.py). F
 - Edit all 4 config files listed in the prompt: `{name}_00.yaml` through `{name}_03.yaml`
 - Each config's `dataset` field is pre-set to route data to separate directories — **DO NOT change the `dataset` field**
 - **DO NOT change `simulation:` parameters** — this is a fixed-regime exploration
-- Modify `training:` parameters: `lr_k`, `lr_node`, `lr_sub`, `batch_size`, `n_epochs`, `data_augmentation_loop`, `coeff_MLP_sub_diff`, `coeff_MLP_node_L1`, `coeff_k_center`
+- Modify `training:` parameters: `lr_k`, `lr_node`, `lr_sub`, `batch_size`, `n_epochs`, `data_augmentation_loop`, `coeff_MLP_sub_diff`, `coeff_MLP_node_L1`, `coeff_k_center`, `time_step`, `recurrent_training`
+- Modify `graph_model:` architecture: `hidden_dim_sub`, `n_layers_sub`, `hidden_dim_node`, `n_layers_node`
 
 ## Parallel UCB Strategy
 

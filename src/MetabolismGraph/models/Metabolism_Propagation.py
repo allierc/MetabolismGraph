@@ -56,8 +56,13 @@ class Metabolism_Propagation(nn.Module):
 
         n_met = simulation_config.n_metabolites
         n_rxn = simulation_config.n_reactions
-        hidden = model_config.hidden_dim
         msg_dim = model_config.output_size
+
+        # per-MLP architecture from config (with fallbacks)
+        hidden_sub = getattr(model_config, 'hidden_dim_sub', 64)
+        n_layers_sub = getattr(model_config, 'n_layers_sub', 3)
+        hidden_node = getattr(model_config, 'hidden_dim_node', 64)
+        n_layers_node = getattr(model_config, 'n_layers_node', 3)
 
         self.n_met = n_met
         self.n_rxn = n_rxn
@@ -77,16 +82,16 @@ class Metabolism_Propagation(nn.Module):
         self.a = nn.Parameter(torch.randn(n_met, embedding_dim) * 0.1)
 
         # MLP_node: (c_i, a_i) -> homeostasis term (learns -λ_i(c_i - c_baseline))
-        # 3 layers with hidden_dim=64
         # initialized to zero output so homeostasis starts inactive
-        self.node_func = mlp([1 + embedding_dim, 64, 64, 1], activation=nn.Tanh)
+        node_sizes = [1 + embedding_dim] + [hidden_node] * (n_layers_node - 1) + [1]
+        self.node_func = mlp(node_sizes, activation=nn.Tanh)
         with torch.no_grad():
             for p in self.node_func.parameters():
                 p.zero_()
 
         # MLP_sub: (c_k, |s_kj|) -> substrate contribution (learns c^s)
-        # 3 layers with hidden_dim=64
-        self.substrate_func = mlp([2, 64, 64, 1], activation=nn.Tanh)
+        sub_sizes = [2] + [hidden_sub] * (n_layers_sub - 1) + [1]
+        self.substrate_func = mlp(sub_sizes, activation=nn.Tanh)
         self.softplus = nn.Softplus(beta=1.0)
 
         # per-reaction rate constants k_j

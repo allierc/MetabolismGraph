@@ -4,7 +4,7 @@ dataset: simulation_oscillatory
 simulation:
   n_metabolites: 100
   n_metabolite_types: 2
-  n_reactions: 256
+  n_reactions: 512
   max_metabolites_per_reaction: 4
   n_frames: 2880
   delta_t: 0.1
@@ -19,7 +19,7 @@ simulation:
   # use true mass-action kinetics: v = k * Π(c^s) for oscillations
   use_mass_action: true
   # rate constants: k in [0.003, 0.1] - moderate for stable oscillations
-  log_k_min: -2.5
+  log_k_min: -2.0
   log_k_max: -1.0
   # no flux limiting for freer oscillatory dynamics
   flux_limit: false
@@ -40,6 +40,10 @@ graph_model:
   output_size: 1
   hidden_dim: 64
   n_layers: 3
+  hidden_dim_sub: 64
+  n_layers_sub: 3
+  hidden_dim_node: 64
+  n_layers_node: 3
   aggr_type: mul # multiplicative for oscillatory (mass-action) dynamics
   update_type: none
 
@@ -70,3 +74,6 @@ training:
   coeff_MLP_node_L1: 1.0
   # k center regularization: anchor mean(log_k) to GT range center
   coeff_k_center: 1.0
+  # recurrent rollout training: multi-step integration to break degeneracy
+  recurrent_training: false
+  time_step: 1

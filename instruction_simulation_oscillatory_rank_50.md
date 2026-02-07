@@ -90,6 +90,35 @@ All parameters below are in the `training:` section of the YAML config. **Simula
 
 **Key insight**: `coeff_k_center` addresses the scale ambiguity: $k \cdot \text{MLP}_{\text{sub}}$ is invariant under $k \to \alpha k$, $\text{MLP}_{\text{sub}} \to \text{MLP}_{\text{sub}} / \alpha$. The target is the midpoint of `[log_k_min, log_k_max]` from the simulation config.
 
+### Recurrent Rollout Training
+
+| Parameter | Config key | Description | Typical range |
+|-----------|-----------|-------------|---------------|
+| `time_step` | `time_step` | Number of Euler integration steps per training sample. At `time_step=1` (default), the model only predicts single-step dc/dt. At `time_step=N`, the model predicts dc/dt, integrates forward, feeds the result back, and repeats N times. Loss is on final concentration error vs ground truth at frame k+N | 1 to 16 |
+| `recurrent_training` | `recurrent_training` | Enable multi-step rollout training. Must be `true` for `time_step > 1` to take effect | true/false |
+
+**Key insight**: Single-step training can find **degenerate solutions** — wrong k values that produce similar local dc/dt (the degeneracy gap problem). Multi-step rollout forces the model to produce trajectories that stay accurate over multiple steps. Errors from incorrect k compound over the rollout, creating a stronger gradient signal to correct them.
+
+**Key insight**: Rollout training costs ~N× more compute per sample (N forward passes instead of 1). Use as a **second-phase refinement**: first converge with `time_step=1`, then increase to 4 → 8 → 16 to break degeneracy.
+
+**Typical interactions:**
+- **time_step ↑ + lr_k ↓**: Longer rollouts amplify gradients; reduce lr_k to prevent overshooting
+- **time_step ↑ + data_augmentation_loop ↓**: Compensate for the N× compute cost per step
+- **Degeneracy gap > 0.3**: Try enabling `recurrent_training=true` with `time_step=4` before increasing further
+
+### MLP Architecture
+
+These parameters are in the `graph_model:` section. They control the architecture of the two learned MLPs.
+
+| Parameter | Config key | Description | Typical range |
+|-----------|-----------|-------------|---------------|
+| `hidden_dim_sub` | `hidden_dim_sub` | Hidden width of MLP_sub (substrate function) | 16 to 128 |
+| `n_layers_sub` | `n_layers_sub` | Depth of MLP_sub (number of linear layers) | 2 to 5 |
+| `hidden_dim_node` | `hidden_dim_node` | Hidden width of MLP_node (homeostasis function) | 16 to 128 |
+| `n_layers_node` | `n_layers_node` | Depth of MLP_node (number of linear layers) | 2 to 5 |
+
+**Key insight**: MLP_sub learns c^s (power law) — a simple function that may not need large capacity. MLP_node learns per-type linear homeostasis — also simple. Reducing `hidden_dim` or `n_layers` can act as implicit regularization, preventing the MLPs from compensating for incorrect k values.
+
 ### Frozen Parameters (DO NOT CHANGE)
 
 | Parameter | Config key | Value | Reason |
@@ -106,6 +135,7 @@ The following metrics are written to `analysis.log` at the end of training:
 
 | Metric | Description | Good value |
 |--------|-------------|------------|
+| `training_time_min` | Wall-clock training time in minutes | Informational |
 | `final_loss` | Final prediction loss (MSE on dc/dt) | Lower is better |
 | `rate_constants_R2` | R² between learned and true rate constants k | > 0.9 |
 | `rate_constants_R2_shifted` | R² after removing mean offset in log-space — measures correlation independent of global scale | > 0.9 |

@@ -152,13 +152,16 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     gt_model = None
     gt_model_path = f'graphs_data/{dataset_name}/gt_model.pt'
     if os.path.exists(gt_model_path):
-        # infer hidden_dim from checkpoint to avoid size mismatch
+        # infer per-MLP architecture from checkpoint to avoid size mismatch
         gt_state = torch.load(gt_model_path, map_location=device)
-        gt_hidden_dim = gt_state.get('substrate_func.0.weight', torch.zeros(32, 2)).shape[0]
-        # create a temporary config with the correct hidden_dim
         from copy import deepcopy
         gt_config = deepcopy(config)
-        gt_config.graph_model.hidden_dim = gt_hidden_dim
+        # infer hidden_dim and n_layers for each MLP from saved weights
+        gt_config.graph_model.hidden_dim_sub = gt_state.get('substrate_func.0.weight', torch.zeros(64, 2)).shape[0]
+        gt_config.graph_model.n_layers_sub = sum(1 for k in gt_state if k.startswith('substrate_func.') and k.endswith('.weight'))
+        if 'rate_func.0.weight' in gt_state:
+            gt_config.graph_model.hidden_dim_node = gt_state['rate_func.0.weight'].shape[0]
+        gt_config.graph_model.n_layers_node = sum(1 for k in gt_state if k.startswith('rate_func.') and k.endswith('.weight'))
         if "PDE_M2" in config.graph_model.model_name:
             from MetabolismGraph.generators.PDE_M2 import PDE_M2
             gt_model = PDE_M2(config=gt_config, stoich_graph=stoich_graph, device=device)
@@ -321,6 +324,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     loss_components = {'loss': [], 'regul_total': [], 'S_L1': [], 'S_integer': [], 'mass_conservation': [], 'MLP_sub_diff': [], 'MLP_node_L1': [], 'k_center': []}
 
     print("start training ...")
+    training_start_time = time.time()
     check_and_clear_memory(
         device=device, iteration_number=0, every_n_iterations=1,
         memory_percentage_threshold=0.6,
@@ -637,7 +641,8 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     # --- compare learned vs GT functions ---
     func_metrics = _compare_functions(model, gt_model, device)
 
-    print(f"\n=== training complete ===")
+    training_elapsed_min = (time.time() - training_start_time) / 60.0
+    print(f"\n=== training complete ({training_elapsed_min:.1f} min) ===")
     print(f"  final prediction loss: {final_loss:.6f}")
     print(f"  {r2_name} R2: {final_r2:.4f}")
     if freeze_stoichiometry:
@@ -650,6 +655,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     logger.info(f"MLP_sub R2: {func_metrics['MLP_sub_r2']:.4f}")
 
     if log_file is not None:
+        log_file.write(f"training_time_min: {training_elapsed_min:.1f}\n")
         log_file.write(f"final_loss: {final_loss:.6f}\n")
         log_file.write(f"{r2_name}_R2: {final_r2:.4f}\n")
         if freeze_stoichiometry:

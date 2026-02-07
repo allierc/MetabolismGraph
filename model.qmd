@@ -191,3 +191,48 @@ where the reaction rate follows mass-action kinetics:
 $$
 v_j = k_j \cdot \prod_{k \in \text{sub}(j)} c_k^{s_{kj}}
 $$
+
+## The Inverse Problem
+
+Given observed concentration time series $\mathbf{C}(t)$ and the bipartite graph structure, the goal is to recover the model parameters that generated the dynamics. A **graph neural network** (GNN) operates on the bipartite metabolite–reaction graph and learns three components:
+
+### Learned Components
+
+**1. Substrate function — $\text{MLP}_{\text{sub}}(c_k, |S_{kj}|)$**
+
+An MLP that maps each substrate concentration $c_k$ and its stoichiometric coefficient $|S_{kj}|$ to the substrate's contribution to the reaction rate. In the ground truth, this function computes the power-law $c_k^{|S_{kj}|}$. The learned MLP should recover this mapping:
+
+$$
+\text{MLP}_{\text{sub}}(c_k, |S_{kj}|) \approx c_k^{|S_{kj}|}
+$$
+
+**2. Homeostasis function — $\text{MLP}_{\text{node}}(c_i)$**
+
+An MLP that maps each metabolite's concentration to a per-metabolite correction term, capturing homeostatic regulation. In the ground truth, this is a linear function with small magnitude:
+
+$$
+\text{MLP}_{\text{node}}(c_i) \approx -\lambda_{\text{type}(i)} \cdot (c_i - c_i^{\text{baseline}})
+$$
+
+**3. Rate constants — $k_j$**
+
+A vector of 256 learnable per-reaction rate constants (in log-space). These scale the reaction fluxes and must be recovered up to the correct global scale.
+
+### GNN Forward Pass
+
+The GNN assembles these learned components into the full dynamics prediction on the bipartite graph:
+
+$$
+\widehat{\frac{dc_i}{dt}} = \text{MLP}_{\text{node}}(c_i) + \sum_{j=1}^{m} S_{ij} \cdot k_j \cdot \underset{k \in \text{sub}(j)}{\text{aggr}} \; \text{MLP}_{\text{sub}}(c_k, |S_{kj}|)
+$$
+
+where $\text{aggr}$ is either sum (additive) or product (multiplicative, for mass-action kinetics). The model is trained by minimizing the prediction error on $dc/dt$ computed from the observed concentration trajectories.
+
+### Learning Modes
+
+| Mode | S matrix | Primary metric | Challenge |
+|------|----------|----------------|-----------|
+| **S learning** | Learnable | stoichiometry $R^2$ | Recovering integer coefficients and sparsity |
+| **S given** | Frozen from GT | rate constants $R^2$ | Disentangling $k$, $\text{MLP}_{\text{sub}}$, $\text{MLP}_{\text{node}}$ |
+
+A key challenge is **scale ambiguity**: the product $k_j \cdot \text{MLP}_{\text{sub}}$ is invariant under $k \to \alpha k$, $\text{MLP}_{\text{sub}} \to \text{MLP}_{\text{sub}} / \alpha$. Regularization ($\texttt{coeff\_k\_center}$) anchors the global scale of $k$ to break this degeneracy.

@@ -318,25 +318,22 @@ def plot_metabolism_concentrations(x_list, n_metabolites, n_frames, dataset_name
     spacing = np.std(conc_plot) * 3 if np.std(conc_plot) > 0 else 1.0
     conc_plot = conc_plot - spacing * np.arange(n_plot)[:, None] + spacing * n_plot / 2
 
-    plt.figure(figsize=(16, 10))
-    plt.plot(conc_plot.T, linewidth=2, alpha=0.7)
+    fig, ax = plt.subplots(figsize=(12, 8))
+    ax.plot(conc_plot.T, linewidth=1, alpha=0.7)
 
     for i in range(0, n_plot, 5):
-        plt.text(-100, conc_plot[i, 0], str(sampled_indices[i]),
-                 fontsize=10, va='center', ha='right')
+        ax.text(-n_frames * 0.02, conc_plot[i, 0], str(sampled_indices[i]),
+                fontsize=10, va='center', ha='right')
 
-    ax = plt.gca()
-    ax.text(-n_frames * 0.12, conc_plot.mean(), 'metabolite index',
-            fontsize=14, va='center', ha='center', rotation=90)
-    plt.xlabel('time (min)', fontsize=14)
-    plt.xticks(fontsize=12)
+    ax.set_ylabel('metabolite index', fontsize=14, labelpad=40)
+    ax.set_xlabel('time (min)', fontsize=14)
+    ax.tick_params(axis='x', labelsize=12)
     ax.spines['left'].set_visible(False)
     ax.spines['top'].set_visible(False)
     ax.yaxis.set_ticks_position('right')
     ax.set_yticks([])
-    plt.xlim([0, min(n_frames, conc_plot.shape[1])])
+    ax.set_xlim([0, min(n_frames, conc_plot.shape[1])])
 
-    # add activity rank in top left
     if activity_rank is not None:
         ax.text(0.02, 0.98, f'activity rank = {activity_rank}',
                 transform=ax.transAxes, fontsize=12, va='top', ha='left')
@@ -370,15 +367,6 @@ def plot_stoichiometric_matrix(S, dataset_name):
     plt.xticks(rotation=0)
     plt.xlabel('reaction', fontsize=14)
     plt.ylabel('metabolite', fontsize=14)
-
-    # zoom inset (top-left corner)
-    zoom = min(20, n_met, n_rxn)
-    if zoom > 0:
-        plt.subplot(2, 2, 1)
-        sns.heatmap(S_np[0:zoom, 0:zoom], cbar=False,
-                    center=0, square=False, cmap='bwr', vmin=-vmax, vmax=vmax)
-        plt.xticks([])
-        plt.yticks([])
 
     plt.tight_layout()
     plt.savefig(f'graphs_data/{dataset_name}/connectivity_matrix.png', dpi=150)
@@ -433,41 +421,6 @@ def plot_stoichiometric_eigenvalues(S, dataset_name):
     print(f'  SVD rank: {np.sum(sigma > 1e-6)}, rank(90%): {rank_90}, rank(99%): {rank_99}')
 
 
-def plot_rate_distribution(model, dataset_name):
-    """histogram of per-reaction rate constants k_j.
-
-    plots both log10(k_j) distribution and the raw k_j distribution.
-    saves to graphs_data/{dataset_name}/rate_distribution.png
-    """
-    print('plot rate distribution ...')
-    log_k = to_numpy(model.log_k.detach())
-    k = 10.0 ** log_k
-
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
-
-    # log10(k_j) histogram
-    ax1.hist(log_k, bins=20, color='steelblue', edgecolor='black', alpha=0.8)
-    ax1.set_xlabel('log$_{10}$(k$_j$)', fontsize=14)
-    ax1.set_ylabel('count', fontsize=14)
-    ax1.tick_params(labelsize=12)
-    ax1.axvline(x=np.median(log_k), color='red', linestyle='--', linewidth=2,
-                label=f'median = {np.median(k):.3f}')
-    ax1.legend(fontsize=10)
-
-    # raw k_j histogram (log x-axis)
-    ax2.hist(k, bins=np.logspace(np.log10(k.min()), np.log10(k.max()), 20),
-             color='coral', edgecolor='black', alpha=0.8)
-    ax2.set_xscale('log')
-    ax2.set_xlabel('k$_j$', fontsize=14)
-    ax2.set_ylabel('count', fontsize=14)
-    ax2.tick_params(labelsize=12)
-    ax2.axvline(x=np.median(k), color='red', linestyle='--', linewidth=2)
-
-    plt.tight_layout()
-    plt.savefig(f'graphs_data/{dataset_name}/rate_distribution.png', dpi=150)
-    plt.close()
-    print(f'  k range: [{k.min():.4f}, {k.max():.4f}], median: {np.median(k):.4f}')
-
 
 def plot_homeostasis_function(model, x_list, dataset_name, colormap='tab10'):
     """plot per-type homeostasis function: -λ_type * (c - c_baseline_type).
@@ -521,23 +474,18 @@ def plot_homeostasis_function(model, x_list, dataset_name, colormap='tab10'):
 
 
 def plot_metabolism_mlp_functions(model, x_list, dataset_name, device):
-    """plot ground-truth substrate_func and rate_func functions for the metabolism generator.
-
-    analogous to plot_synaptic_mlp_functions for signal models (MLP0/MLP1).
+    """plot ground-truth substrate_func power laws for the metabolism generator.
 
     saves:
       graphs_data/{dataset_name}/substrate_function.png
-      graphs_data/{dataset_name}/rate_function.png
     """
-    print('plot substrate_func and rate_func functions ...')
+    print('plot substrate_func functions ...')
     import torch
-    from torch_geometric.data import Data as pyg_Data
 
     n_pts = 500
     folder = f'graphs_data/{dataset_name}'
 
     # --- substrate_func: sweep concentration at fixed |stoich| values ---
-    # use std-based range (like signal model) so Tanh region is visible
     conc_data = x_list[:, :, 3]
     conc_std = max(np.std(conc_data), 1e-6)
     conc_max = conc_std * 3.0
@@ -549,7 +497,6 @@ def plot_metabolism_mlp_functions(model, x_list, dataset_name, device):
 
     fig, ax = plt.subplots(1, 1, figsize=(8, 7))
 
-    # true power laws c^s
     c_np = to_numpy(conc_range)
     for s_val, color in zip(stoich_values, colors):
         true_power = np.power(c_np + 1e-8, s_val)
@@ -563,49 +510,7 @@ def plot_metabolism_mlp_functions(model, x_list, dataset_name, device):
     plt.tight_layout()
     plt.savefig(f'{folder}/substrate_function.png', dpi=150)
     plt.close()
-
-    # --- rate_func: compute actual h_rxn from a data frame, plot rate vs ||h_rxn|| ---
-    # pick a frame near the middle of the simulation
-    mid_frame = x_list.shape[0] // 2
-    x = torch.tensor(x_list[mid_frame], dtype=torch.float32, device=device)
-
-    fig, axes = plt.subplots(1, 2, figsize=(16, 7))
-
-    with torch.no_grad():
-        concentrations = x[:, 3]
-        x_src = concentrations[model.met_sub].unsqueeze(-1)
-        s_abs = model.sto_sub.unsqueeze(-1)
-        msg_in = torch.cat([x_src, s_abs], dim=-1)
-        msg = model.substrate_func(msg_in)
-
-        h_rxn = torch.zeros(
-            model.n_rxn, msg.shape[1], dtype=msg.dtype, device=msg.device
-        )
-        h_rxn.index_add_(0, model.rxn_sub, msg)
-
-        base_rate = model.rate_func(h_rxn).squeeze(-1)
-        k = torch.pow(10.0, model.log_k)
-        full_rate = k * base_rate
-        h_norm = h_rxn.norm(dim=-1)
-
-    # left panel: base rate (before k scaling) vs ||h_rxn||
-    axes[0].scatter(to_numpy(h_norm), to_numpy(base_rate), s=12, c='k', alpha=0.5, edgecolors=None)
-    axes[0].set_xlabel(r'$\|h_{rxn}\|$', fontsize=14)
-    axes[0].set_ylabel(r'rate\_func($h$)', fontsize=14)
-    axes[0].tick_params(labelsize=12)
-
-    # right panel: full rate (k * base) vs ||h_rxn||, colored by log_k
-    sc = axes[1].scatter(to_numpy(h_norm), to_numpy(full_rate), s=12,
-                         c=to_numpy(model.log_k.detach()), cmap='coolwarm', alpha=0.6, edgecolors=None)
-    plt.colorbar(sc, ax=axes[1], label=r'$\log_{10}(k_j)$')
-    axes[1].set_xlabel(r'$\|h_{rxn}\|$', fontsize=14)
-    axes[1].set_ylabel(r'$k_j \cdot$ rate\_func($h$)', fontsize=14)
-    axes[1].tick_params(labelsize=12)
-
-    plt.tight_layout()
-    plt.savefig(f'{folder}/rate_function.png', dpi=150)
-    plt.close()
-    print(f'  saved {folder}/substrate_function.png and {folder}/rate_function.png')
+    print(f'  saved {folder}/substrate_function.png')
 
 
 def plot_metabolism_kinograph(x_list, n_metabolites, n_frames, dataset_name, delta_t, c_center=None, c_range=1.0):

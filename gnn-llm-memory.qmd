@@ -82,15 +82,41 @@ $$
 
 MLP$_{\text{node}}$ is **initialized to zero output** so homeostasis starts inactive. Combined with a reduced learning rate, this prevents MLP$_{\text{node}}$ from dominating the dynamics. The true homeostatic $\lambda$ values are small (0.001--0.002), so MLP$_{\text{node}}$ output should remain small.
 
-#### $k$ Center (`coeff_k_center`)
+#### MLP$_{\text{sub}}$ Normalization (`coeff_MLP_sub_norm`)
 
-Breaks the **scale ambiguity** between $k$ and MLP$_{\text{sub}}$. The product $k_j \cdot \text{MLP}_{\text{sub}}(c)$ is invariant under $k \to \alpha k$, $\text{MLP}_{\text{sub}} \to \text{MLP}_{\text{sub}} / \alpha$. This penalty anchors the mean of $\log_{10}(k)$ to the center of the known range:
+Breaks the **scale ambiguity** between $k$ and MLP$_{\text{sub}}$ at the source. The product $k_j \cdot \text{MLP}_{\text{sub}}(c)$ is invariant under $k \to \alpha k$, $\text{MLP}_{\text{sub}} \to \text{MLP}_{\text{sub}} / \alpha$. This penalty enforces that MLP$_{\text{sub}}$ outputs 1 at the reference point $c=1, |s|=1$, where the true value $c^s = 1^1 = 1$:
 
 $$
-\mathcal{R}_{k\_center} = \left(\text{mean}(\log_{10} k) - \frac{\log_{10} k_{\min} + \log_{10} k_{\max}}{2}\right)^2 \cdot \lambda_{k\_center}
+\mathcal{R}_{\text{sub\_norm}} = \left(\|\text{MLP}_{\text{sub}}(c{=}1, |s|{=}1)\| - 1\right)^2 \cdot \lambda_{\text{sub\_norm}}
 $$
 
-Without this, MLP$_{\text{sub}}$ can absorb a global scale factor and shift all $k$ values, producing high correlation (high $R^2_{\text{shifted}}$) but poor absolute recovery (low $R^2$).
+Since $c^s = 1$ at $c=1$ for any stoichiometry $s$, this pins the MLP$_{\text{sub}}$ scale factor $\alpha$ to 1 and prevents $k$ from absorbing a global factor.
+
+#### Rate Constant Floor (`coeff_k_floor`)
+
+Prevents $\log_{10} k_j$ from drifting far below the physically plausible range. Without this, some reactions develop outlier values (e.g. $\log k = -4$ when the true range is $[-2, -1]$), which distorts the $R^2$ even when most reactions are well-recovered:
+
+$$
+\mathcal{R}_{\text{k\_floor}} = \sum_j \text{ReLU}\left(\tau - \log_{10} k_j\right)^2 \cdot \lambda_{\text{k\_floor}}
+$$
+
+where $\tau$ is the configurable threshold (`k_floor_threshold`, default $-3$). Only $\log k$ values below $\tau$ are penalized.
+
+### Scalar Correction
+
+Even without the normalization regularization, a post-hoc **scalar correction** is applied when evaluating rate constants. The MLP$_{\text{sub}}$ scale factor $\alpha$ is measured by evaluating MLP$_{\text{sub}}$ at the reference point:
+
+$$
+\alpha = \|\text{MLP}_{\text{sub}}(c{=}1, |s|{=}1)\|
+$$
+
+With multiplicative aggregation, each reaction rate absorbs $\alpha^{n_j}$ where $n_j$ is the number of substrates. The corrected rate constants are:
+
+$$
+\log_{10} k_j^{\text{corrected}} = \log_{10} k_j^{\text{learned}} + n_j \cdot \log_{10} \alpha
+$$
+
+The reported `rate_constants_R2` is computed on these corrected values against the identity line $y=x$.
 
 ### Summary of Hyperparameters
 
@@ -103,7 +129,9 @@ Without this, MLP$_{\text{sub}}$ can absorb a global scale factor and shift all 
 | Training iterations | `data_augmentation_loop` | Multiplier for iterations per epoch | 100 to 5000 |
 | MLP$_{\text{sub}}$ monotonicity | `coeff_MLP_sub_diff` | Penalize non-increasing MLP$_{\text{sub}}$ | 0 to 500 |
 | MLP$_{\text{node}}$ L1 | `coeff_MLP_node_L1` | Penalize large homeostasis output | 0 to 10 |
-| $k$ center | `coeff_k_center` | Anchor mean($\log k$) to GT range | 0 to 10 |
+| MLP$_{\text{sub}}$ normalization | `coeff_MLP_sub_norm` | Pin MLP$_{\text{sub}}(c{=}1, |s|{=}1)$ to 1 | 0 to 10 |
+| Rate constant floor | `coeff_k_floor` | Penalize $\log k$ below threshold | 0 to 10 |
+| Floor threshold | `k_floor_threshold` | Threshold for k floor penalty | $-3$ (default) |
 
 ---
 
@@ -111,19 +139,14 @@ Without this, MLP$_{\text{sub}}$ can absorb a global scale factor and shift all 
 
 | Metric | Description | Good value |
 |--------|-------------|------------|
-| `rate_constants_R2` | R² between learned and true rate constants $k$ | > 0.9 |
-| `rate_constants_R2_shifted` | R² after removing mean offset — measures correlation independent of global scale | > 0.9 |
+| `rate_constants_R2` | R² between learned and true rate constants $k$ (after scalar correction) | > 0.9 |
 | `test_R2` | R² on held-out test frames | > 0.9 |
 | `test_pearson` | Pearson correlation on test frames | > 0.95 |
 | `final_loss` | Final prediction loss (MSE on $dc/dt$) | Lower is better |
 
 ### Diagnostic Interpretation
 
-| $R^2$ | $R^2_{\text{shifted}}$ | Diagnosis |
-|:-----:|:----------------------:|-----------|
-| High  | High | Correct recovery |
-| Low   | High | Scale ambiguity — increase `coeff_k_center` |
-| Low   | Low  | Poor correlation — adjust learning rates |
+The **degeneracy gap** = `test_pearson` $-$ `rate_constants_R2` diagnoses whether the model found the true rate constants or a degenerate solution:
 
 | test_pearson | $R^2$ | Gap | Diagnosis |
 |:------------:|:-----:|:---:|-----------|

@@ -14,7 +14,7 @@ This addendum applies when running in **parallel mode** (GNN_LLM_parallel.py). F
 - Edit all 4 config files listed in the prompt: `{name}_00.yaml` through `{name}_03.yaml`
 - Each config's `dataset` field is pre-set to route data to separate directories — **DO NOT change the `dataset` field**
 - **DO NOT change `simulation:` parameters** — this is a fixed-regime exploration
-- Modify `training:` parameters: `lr_k`, `lr_node`, `lr_sub`, `batch_size`, `n_epochs`, `data_augmentation_loop`, `coeff_MLP_sub_diff`, `coeff_MLP_node_L1`, `coeff_k_center`, `time_step`, `recurrent_training`
+- Modify `training:` parameters: `lr_k`, `lr_node`, `lr_sub`, `batch_size`, `n_epochs`, `data_augmentation_loop`, `coeff_MLP_sub_diff`, `coeff_MLP_node_L1`, `coeff_MLP_sub_norm`, `coeff_k_floor`, `k_floor_threshold`, `time_step`, `recurrent_training`
 - Modify `graph_model:` architecture: `hidden_dim_sub`, `n_layers_sub`, `hidden_dim_node`, `n_layers_node`
 
 ## Parallel UCB Strategy
@@ -65,8 +65,8 @@ Same as base instructions, but you write 4 entries per batch:
 ## Iter N: [converged/partial/failed]
 Node: id=N, parent=P
 Mode/Strategy: [strategy]
-Config: seed=S, lr_k=X, lr_node=Y, lr_sub=Z, batch_size=B, n_epochs=E, data_augmentation_loop=A, coeff_MLP_node_L1=L, coeff_k_center=K
-Metrics: rate_constants_R2=C, rate_constants_R2_shifted=D, test_R2=A, test_pearson=B, final_loss=E
+Config: seed=S, lr_k=X, lr_node=Y, lr_sub=Z, batch_size=B, n_epochs=E, data_augmentation_loop=A, coeff_MLP_node_L1=L, coeff_MLP_sub_norm=N, coeff_k_floor=K
+Metrics: rate_constants_R2=C, test_R2=A, test_pearson=B, final_loss=E
 Visual: MLP_sub=[good/partial/bad: brief description], MLP_node=[good/partial/bad: brief description], k_scatter=[good/partial/bad: brief description]
 Mutation: [param]: [old] -> [new]
 Parent rule: [one line]

@@ -173,9 +173,13 @@ class TrainingConfig(BaseModel):
     # keeps MLP_node values small relative to the reaction terms
     coeff_MLP_node_L1: float = 0.0
 
-    # k center regularization: penalize mean(log_k) deviating from GT range center
-    # breaks scale ambiguity between k and MLP_sub
-    coeff_k_center: float = 0.0
+    # MLP_sub normalization: penalize substrate_func(c=1, |s|=1) deviating from 1
+    # breaks scale ambiguity between k and MLP_sub at the source
+    coeff_MLP_sub_norm: float = 0.0
+
+    # k floor: penalize log_k values below threshold (prevents outlier reactions)
+    coeff_k_floor: float = 0.0
+    k_floor_threshold: float = -3.0
 
     # phase-1 regularization
     first_coeff_L1: float = 0.0

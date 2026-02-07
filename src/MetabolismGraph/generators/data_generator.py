@@ -12,7 +12,6 @@ from MetabolismGraph.generators.utils import (
     init_concentration,
     plot_stoichiometric_matrix,
     plot_stoichiometric_eigenvalues,
-    plot_rate_distribution,
     plot_metabolism_concentrations,
     plot_metabolism_kinograph,
     plot_metabolism_external_input_kinograph,
@@ -106,10 +105,9 @@ def data_generate(
         torch.save(stoich_graph, f'{folder}/stoich_graph.pt')
         torch.save(model.state_dict(), f'{folder}/gt_model.pt')
 
-    # --- plots: stoichiometric matrix + SVD + rates ---
+    # --- plots: stoichiometric matrix + SVD ---
     plot_stoichiometric_matrix(S, dataset_name)
     plot_stoichiometric_eigenvalues(S, dataset_name)
-    plot_rate_distribution(model, dataset_name)
 
     # --- x tensor: 8-column layout ---
     x = torch.zeros((n_metabolites, 8), dtype=torch.float32, device=device)

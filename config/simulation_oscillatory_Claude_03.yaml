@@ -58,7 +58,9 @@ training:
   coeff_mass_conservation: 0.0
   coeff_MLP_sub_diff: 5
   coeff_MLP_node_L1: 1.0
-  coeff_k_center: 5.0
+  coeff_MLP_sub_norm: 0.0
+  coeff_k_floor: 0.0
+  k_floor_threshold: -3.0
 claude:
   n_epochs: 1
   data_augmentation_loop: 1000

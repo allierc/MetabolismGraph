@@ -76,13 +76,17 @@ All parameters below are in the `training:` section of the YAML config. **Simula
 |-----------|-----------|-------------|---------------|
 | `coeff_MLP_sub_diff` | `coeff_MLP_sub_diff` | Monotonicity constraint for MLP_sub — penalizes decreasing output as concentration increases. MLP_sub learns c^s which should be increasing. Higher values enforce stronger monotonicity | 0 to 500 |
 | `coeff_MLP_node_L1` | `coeff_MLP_node_L1` | L1 penalty on MLP_node output magnitude — keeps homeostasis values small relative to reaction terms. Prevents MLP_node from dominating the dynamics | 0 to 10 |
-| `coeff_k_center` | `coeff_k_center` | Penalizes `mean(log_k)` deviating from the GT range center. Breaks the scale ambiguity between k and MLP_sub: without this, MLP_sub can absorb a global scale factor and shift all k values | 0 to 10 |
+| `coeff_MLP_sub_norm` | `coeff_MLP_sub_norm` | Penalizes `substrate_func(c=1, |s|=1)` deviating from 1. Removes scale ambiguity at the source — forces MLP_sub to learn c^s with unit normalization at c=1 | 0 to 10 |
+| `coeff_k_floor` | `coeff_k_floor` | Penalizes log_k values below `k_floor_threshold` via `relu(threshold - log_k)²`. Prevents outlier reactions from drifting to unrealistically small rate constants | 0 to 10 |
+| `k_floor_threshold` | `k_floor_threshold` | Threshold for k_floor penalty. log_k values below this are penalized. Should match `log_k_min` from simulation config | -3.0 (default) |
 
 **Key insight**: `coeff_MLP_sub_diff` prevents MLP_sub from learning non-physical functions. Without this constraint, MLP_sub can develop spurious local minima that don't match the true c^s power law behavior.
 
 **Key insight**: MLP_node is initialized to zero output, so homeostasis starts inactive. `coeff_MLP_node_L1` + reduced `learning_rate_node` keep it from growing too large and overwhelming the reaction terms (k * MLP_sub). The true homeostatic lambdas are small (0.001–0.002), so MLP_node output should stay small.
 
-**Key insight**: `coeff_k_center` addresses the scale ambiguity: $k \cdot \text{MLP}_{\text{sub}}$ is invariant under $k \to \alpha k$, $\text{MLP}_{\text{sub}} \to \text{MLP}_{\text{sub}} / \alpha$. The target is the midpoint of `[log_k_min, log_k_max]` from the simulation config.
+**Key insight**: `coeff_MLP_sub_norm` enforces substrate_func(c=1, |s|=1) = 1. Since the true c^s = 1 at c=1 for any s, this pins the MLP_sub scale and prevents k from absorbing a global factor α.
+
+**Key insight**: `coeff_k_floor` prevents log_k from drifting far below the true range. Without this, some reactions develop outlier log_k values (e.g. -4 when true range is [-2, -1]), which distorts the R² even when most reactions are well-recovered. Set `k_floor_threshold` to match `log_k_min` from the simulation config.
 
 ### Recurrent Rollout Training
 
@@ -118,15 +122,13 @@ The following metrics are written to `analysis.log` at the end of training:
 |--------|-------------|------------|
 | `training_time_min` | Wall-clock training time in minutes | Informational |
 | `final_loss` | Final prediction loss (MSE on dc/dt) | Lower is better |
-| `rate_constants_R2` | R² between learned and true rate constants k | > 0.9 |
-| `rate_constants_R2_shifted` | R² after removing mean offset in log-space — measures correlation independent of global scale | > 0.9 |
+| `rate_constants_R2` | R² between learned and true rate constants k (after MLP_sub scalar correction) | > 0.9 |
 | `test_R2` | R² on held-out test frames | > 0.9 |
 | `test_pearson` | Pearson correlation on test frames | > 0.95 |
 
 ### Interpretation
 
-- **High rate_constants_R2**: Model recovered the true reaction rate constants
-- **High R2_shifted + low R2**: Scale ambiguity — k values are correlated but globally shifted. Increase `coeff_k_center` to anchor the scale
+- **High rate_constants_R2**: Model recovered the true reaction rate constants (after correcting for MLP_sub scale factor α)
 - **High test_R2 + low rate_constants_R2**: Model found alternative k values that produce similar dynamics (degeneracy)
 - **Low both**: Training failed — try different learning rates
 
@@ -142,8 +144,7 @@ Read `{config}_memory.md` to recall:
 ### Step 2: Analyze Current Results
 
 **Metrics from `analysis.log`:**
-- `rate_constants_R2`: Primary metric — R² of learned vs true k values
-- `rate_constants_R2_shifted`: R² after removing mean offset — measures correlation independent of global scale
+- `rate_constants_R2`: Primary metric — R² of learned vs true k values (after MLP_sub scalar correction)
 - `test_R2`: Dynamics prediction quality
 - `test_pearson`: Correlation on test frames
 - `final_loss`: Training loss
@@ -187,8 +188,8 @@ Append to Full Log (`{config}_analysis.md`) and Working Memory (`{config}_memory
 ## Iter N: [converged/partial/failed]
 Node: id=N, parent=P
 Mode/Strategy: [exploit/explore/boundary]
-Config: seed=S, lr_k=X, lr_node=Y, lr_sub=Z, batch_size=B, n_epochs=E, data_augmentation_loop=A, coeff_MLP_node_L1=L, coeff_k_center=K
-Metrics: rate_constants_R2=C, rate_constants_R2_shifted=D, test_R2=A, test_pearson=B, final_loss=E
+Config: seed=S, lr_k=X, lr_node=Y, lr_sub=Z, batch_size=B, n_epochs=E, data_augmentation_loop=A, coeff_MLP_node_L1=L, coeff_MLP_sub_norm=N, coeff_k_floor=K
+Metrics: rate_constants_R2=C, test_R2=A, test_pearson=B, final_loss=E
 Visual: MLP_sub=[good/partial/bad: brief description], MLP_node=[good/partial/bad: brief description], k_scatter=[good/partial/bad: brief description]
 Mutation: [param]: [old] -> [new]
 Parent rule: [one line]

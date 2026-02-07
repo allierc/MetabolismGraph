@@ -68,7 +68,9 @@ training:
   coeff_mass_conservation: 0.0
   coeff_MLP_sub_diff: 10
   coeff_MLP_node_L1: 1.0
-  coeff_k_center: 1.0
+  coeff_MLP_sub_norm: 0.0
+  coeff_k_floor: 0.0
+  k_floor_threshold: -3.0
   # recurrent rollout training: multi-step integration to break degeneracy
   recurrent_training: false
   time_step: 1

@@ -278,3 +278,19 @@ To recover homeostasis, we propose a two-phase training scheme:
 2. **Phase 2 — Homeostasis recovery** (recurrent, $t \to t+T$): With the reaction term frozen, train only MLP$_{\text{node}}$ and embeddings $a_i$ using multi-step rollout. The recurrent loss forces the model to match trajectories over $T$ steps, where the homeostatic drift becomes visible.
 
 This separates the two learning problems by time scale: fast reactions are learned from instantaneous gradients, slow homeostasis from trajectory matching. The key insight is that recurrent training is not needed for $k_j$ recovery (it was tried and failed — iter 13, 34), but may be essential specifically for homeostasis once the reaction parameters are frozen.
+
+### Related work
+
+The difficulty of learning slow dynamics from single-step training is well established in the literature:
+
+- **Teacher forcing and long-term dependencies.** [Williams & Zipser (1989)](https://direct.mit.edu/neco/article/1/2/270/5490/) introduced teacher forcing for RNNs: feeding ground-truth inputs at each step. [Bengio et al. (1994)](https://ieeexplore.ieee.org/document/279181) showed that gradient-based learning of long-term dependencies is fundamentally difficult because short-term gradient contributions dominate, exactly the mechanism that prevents our GNN from learning homeostasis.
+
+- **Scheduled sampling.** [Bengio et al. (2015)](https://arxiv.org/abs/1506.03099) proposed a curriculum strategy that gradually transitions from teacher forcing (single-step) to free-running (multi-step) prediction, reducing the train–inference discrepancy. Our two-phase proposal is conceptually related: Phase 1 is teacher-forced, Phase 2 uses multi-step rollout.
+
+- **Multiple shooting for Neural ODEs.** [Massaroli et al. (2021)](https://arxiv.org/abs/2106.03885) introduced differentiable multiple shooting layers that parallelize trajectory integration. [Turan & Jäschke (2021)](https://arxiv.org/abs/2109.06786) showed that standard Neural ODE fitting on oscillatory data produces "flattened" trajectories — multiple shooting recovers the true dynamics by breaking long horizons into segments. This directly addresses the failure mode we observe.
+
+- **Stiff Neural ODEs.** [Kim et al. (2021)](https://arxiv.org/abs/2103.15341) showed that learning neural ODEs for systems with widely separated time scales (stiff systems) requires proper output scaling and stabilized gradients — the fast dynamics otherwise dominate training, exactly as in our reaction-vs-homeostasis scale mismatch.
+
+- **Multi-scale separation in dynamical systems.** [Fenichel (1979)](https://doi.org/10.1016/0022-0396(79)90152-9) established geometric singular perturbation theory: for systems with fast and slow time scales, the fast subsystem is solved first, then the dynamics are reduced to a slow manifold. Our two-phase training mirrors this decomposition — Phase 1 recovers the fast reaction dynamics, Phase 2 learns the slow homeostatic manifold.
+
+- **Latent timescales in Neural ODEs.** [Gupta et al. (2024)](https://arxiv.org/abs/2403.02224) showed that training trajectory length directly controls the timescales a Neural ODE can recover: longer trajectories are needed to capture slower dynamics. This supports the need for multi-step rollout in Phase 2.

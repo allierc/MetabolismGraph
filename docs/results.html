@@ -217,6 +217,7 @@ window.Quarto = {
   <li><a href="#the-scale-mismatch-problem" id="toc-the-scale-mismatch-problem" class="nav-link" data-scroll-target="#the-scale-mismatch-problem">The scale mismatch problem</a></li>
   <li><a href="#homeostasis-is-an-integral-problem" id="toc-homeostasis-is-an-integral-problem" class="nav-link" data-scroll-target="#homeostasis-is-an-integral-problem">Homeostasis is an integral problem</a></li>
   <li><a href="#proposed-approach-two-phase-training" id="toc-proposed-approach-two-phase-training" class="nav-link" data-scroll-target="#proposed-approach-two-phase-training">Proposed approach: two-phase training</a></li>
+  <li><a href="#related-work" id="toc-related-work" class="nav-link" data-scroll-target="#related-work">Related work</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -782,6 +783,18 @@ c_i(t + T) \approx c_i(t) + \int_t^{t+T} \left[ -\lambda_i (c_i - c_i^{\text{bas
 <li><p><strong>Phase 2 — Homeostasis recovery</strong> (recurrent, <span class="math inline">\(t \to t+T\)</span>): With the reaction term frozen, train only MLP<span class="math inline">\(_{\text{node}}\)</span> and embeddings <span class="math inline">\(a_i\)</span> using multi-step rollout. The recurrent loss forces the model to match trajectories over <span class="math inline">\(T\)</span> steps, where the homeostatic drift becomes visible.</p></li>
 </ol>
 <p>This separates the two learning problems by time scale: fast reactions are learned from instantaneous gradients, slow homeostasis from trajectory matching. The key insight is that recurrent training is not needed for <span class="math inline">\(k_j\)</span> recovery (it was tried and failed — iter 13, 34), but may be essential specifically for homeostasis once the reaction parameters are frozen.</p>
+</section>
+<section id="related-work" class="level3">
+<h3 class="anchored" data-anchor-id="related-work">Related work</h3>
+<p>The difficulty of learning slow dynamics from single-step training is well established in the literature:</p>
+<ul>
+<li><p><strong>Teacher forcing and long-term dependencies.</strong> <a href="https://direct.mit.edu/neco/article/1/2/270/5490/">Williams &amp; Zipser (1989)</a> introduced teacher forcing for RNNs: feeding ground-truth inputs at each step. <a href="https://ieeexplore.ieee.org/document/279181">Bengio et al.&nbsp;(1994)</a> showed that gradient-based learning of long-term dependencies is fundamentally difficult because short-term gradient contributions dominate, exactly the mechanism that prevents our GNN from learning homeostasis.</p></li>
+<li><p><strong>Scheduled sampling.</strong> <a href="https://arxiv.org/abs/1506.03099">Bengio et al.&nbsp;(2015)</a> proposed a curriculum strategy that gradually transitions from teacher forcing (single-step) to free-running (multi-step) prediction, reducing the train–inference discrepancy. Our two-phase proposal is conceptually related: Phase 1 is teacher-forced, Phase 2 uses multi-step rollout.</p></li>
+<li><p><strong>Multiple shooting for Neural ODEs.</strong> <a href="https://arxiv.org/abs/2106.03885">Massaroli et al.&nbsp;(2021)</a> introduced differentiable multiple shooting layers that parallelize trajectory integration. <a href="https://arxiv.org/abs/2109.06786">Turan &amp; Jäschke (2021)</a> showed that standard Neural ODE fitting on oscillatory data produces “flattened” trajectories — multiple shooting recovers the true dynamics by breaking long horizons into segments. This directly addresses the failure mode we observe.</p></li>
+<li><p><strong>Stiff Neural ODEs.</strong> <a href="https://arxiv.org/abs/2103.15341">Kim et al.&nbsp;(2021)</a> showed that learning neural ODEs for systems with widely separated time scales (stiff systems) requires proper output scaling and stabilized gradients — the fast dynamics otherwise dominate training, exactly as in our reaction-vs-homeostasis scale mismatch.</p></li>
+<li><p><strong>Multi-scale separation in dynamical systems.</strong> <a href="https://doi.org/10.1016/0022-0396(79)90152-9">Fenichel (1979)</a> established geometric singular perturbation theory: for systems with fast and slow time scales, the fast subsystem is solved first, then the dynamics are reduced to a slow manifold. Our two-phase training mirrors this decomposition — Phase 1 recovers the fast reaction dynamics, Phase 2 learns the slow homeostatic manifold.</p></li>
+<li><p><strong>Latent timescales in Neural ODEs.</strong> <a href="https://arxiv.org/abs/2403.02224">Gupta et al.&nbsp;(2024)</a> showed that training trajectory length directly controls the timescales a Neural ODE can recover: longer trajectories are needed to capture slower dynamics. This supports the need for multi-step rollout in Phase 2.</p></li>
+</ul>
 
 
 </section>

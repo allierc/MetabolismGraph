@@ -1133,8 +1133,8 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
 
         fig, ax = plt.subplots(figsize=(8, 8))
 
-        # plot MLP_node for each individual metabolite, collect slopes
-        slopes_by_type = {}
+        # plot MLP_node for each individual metabolite, collect linear fits
+        fits_by_type = {}  # {type: [(slope, intercept), ...]}
         for i in range(n_met):
             a_i = model.a[i]  # embedding for metabolite i
             t = metabolite_types[i].item()
@@ -1148,8 +1148,25 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
             ax.plot(c_np, h_np, linewidth=1, color=cmap(t), alpha=0.3)
 
             # linear fit y = a*x + b
-            coeffs = np.polyfit(c_np, h_np, 1)
-            slopes_by_type.setdefault(t, []).append(coeffs[0])
+            coeffs = np.polyfit(c_np, h_np, 1)  # [slope, intercept]
+            fits_by_type.setdefault(t, []).append(coeffs)
+
+        # plot individual linear fits with transparency
+        for t in sorted(fits_by_type.keys()):
+            for slope, intercept in fits_by_type[t]:
+                fit_line = slope * c_np + intercept
+                ax.plot(c_np, fit_line, linewidth=0.5, color=cmap(t),
+                        alpha=0.15, linestyle='-')
+
+        # plot mean linear fit per type (thick)
+        for t in sorted(fits_by_type.keys()):
+            slopes = [f[0] for f in fits_by_type[t]]
+            intercepts = [f[1] for f in fits_by_type[t]]
+            mean_slope = np.mean(slopes)
+            mean_intercept = np.mean(intercepts)
+            mean_fit = mean_slope * c_np + mean_intercept
+            ax.plot(c_np, mean_fit, linewidth=2.5, color=cmap(t),
+                    linestyle='-', label=f'fit type {t}: slope={mean_slope:.4f}')
 
         # GT homeostasis if available: -λ_t * (c - c_baseline_t)
         if gt_model is not None and hasattr(gt_model, 'p'):
@@ -1160,26 +1177,9 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
                     c_baseline_t = p[t, 1]
                     gt_homeostasis = -lambda_t * (c_np - c_baseline_t)
                     ax.plot(c_np, gt_homeostasis, linewidth=2, color=cmap(t),
-                            linestyle='--', label=f'GT type {t}')
+                            linestyle='--', label=f'GT type {t}: slope={-lambda_t:.4f}')
                     ax.axvline(x=c_baseline_t, color=cmap(t), linestyle=':',
                                alpha=0.3)
-
-        # annotate mean learned slope vs GT slope per type
-        slope_lines = []
-        for t in sorted(slopes_by_type.keys()):
-            mean_slope = np.mean(slopes_by_type[t])
-            gt_slope_str = ''
-            if gt_model is not None and hasattr(gt_model, 'p'):
-                p = to_numpy(gt_model.p.detach().cpu())
-                if t < p.shape[0]:
-                    gt_slope_str = f', GT: {-p[t, 0]:.4f}'
-            slope_lines.append(f'type {t}: slope={mean_slope:.4f}{gt_slope_str}')
-        if slope_lines:
-            ax.text(0.05, 0.96, '\n'.join(slope_lines),
-                    transform=ax.transAxes, fontsize=10, verticalalignment='top',
-                    fontfamily='monospace',
-                    bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
-                              alpha=0.8))
 
         ax.axhline(y=0, color='gray', linestyle='-', alpha=0.3)
         ax.set_xlabel('concentration $c$', fontsize=14)

@@ -6,7 +6,7 @@ date-format: "MMMM D, YYYY"
 
 ## Rate Constant Recovery — Oscillatory Regime (rank 50)
 
-The LLM-driven exploration engine is running on the **oscillatory regime** (activity rank $\sim$50): 100 metabolites, 256 autocatalytic reactions, 2880 time frames, mass-action kinetics with the stoichiometric matrix $\mathbf{S}$ frozen from ground truth. The goal is to recover the 256 rate constants $k_j \in [10^{-2}, 10^{-1}]$ by optimizing training hyperparameters through UCB tree search with 4 parallel slots.
+The LLM-driven exploration engine is running on the **oscillatory regime** (activity rank $\sim50$): 100 metabolites, 256 autocatalytic reactions, 2880 time frames, mass-action kinetics with the stoichiometric matrix $\mathbf{S}$ frozen from ground truth. The goal is to recover the 256 rate constants $k_j \in [10^{-2}, 10^{-1}]$ by optimizing training hyperparameters through UCB tree search with 4 parallel slots.
 
 **8 iterations completed** (Block 1). The exploration is ongoing.
 
@@ -102,7 +102,7 @@ ax1.set_xticks(iters)
 
 # outlier count on secondary axis
 ax2 = ax1.twinx()
-ax2.plot(iters, outliers, 'o-', color='#e67e22', linewidth=1.5, markersize=5, alpha=0.7, label='outliers')
+ax2.plot(iters, outliers, 'o', color='#e67e22', markersize=5, alpha=0.7, label='outliers')
 ax2.set_ylabel('outlier count', color='#e67e22')
 ax2.tick_params(axis='y', labelcolor='#e67e22')
 ax2.set_ylim(0, 270)

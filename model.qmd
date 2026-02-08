@@ -238,7 +238,7 @@ Given observed concentration time series $\mathbf{C}(t)$ and the bipartite graph
 The forward model is:
 
 $$
-\frac{dc_i}{dt} = \underbrace{\text{MLP}_{\text{node}}(c_i, a_i)}_{\text{learns } -\lambda_i(c_i - c_i^{\text{baseline}})} + \sum_{j=1}^{m} S_{ij} \cdot \underbrace{k_j \cdot \underset{k \in \text{sub}(j)}{\text{aggr}} \; \text{MLP}_{\text{sub}}(c_k, |S_{kj}|)}_{\text{learns } k_j \text{ and } c_k^{|S_{kj}|}}
+\frac{dc_i}{dt} = \underbrace{\text{MLP}_{\text{node}}(c_i, a_i)}_{\text{learns } -\lambda_i(c_i - c_i^{\text{baseline}})} + \sum_{j=1}^{m} S_{ij} \cdot \underbrace{k_j \cdot \prod_{k \in \text{sub}(j)} \text{MLP}_{\text{sub}}(c_k, |S_{kj}|)}_{\text{learns } k_j \text{ and } c_k^{|S_{kj}|}}
 $$
 
 The GNN replaces the known functions with learnable MLPs, and the rate constants with learnable parameters. It must recover all three simultaneously from concentration data alone:

@@ -202,9 +202,7 @@ window.Quarto = {
   <ul class="collapse">
   <li><a href="#gnn-parameterization" id="toc-gnn-parameterization" class="nav-link" data-scroll-target="#gnn-parameterization">GNN Parameterization</a></li>
   <li><a href="#learnable-parameters" id="toc-learnable-parameters" class="nav-link" data-scroll-target="#learnable-parameters">Learnable Parameters</a></li>
-  <li><a href="#configuration" id="toc-configuration" class="nav-link" data-scroll-target="#configuration">Configuration</a></li>
   </ul></li>
-  <li><a href="#key-features" id="toc-key-features" class="nav-link" data-scroll-target="#key-features">Key Features</a></li>
   <li><a href="#citation" id="toc-citation" class="nav-link" data-scroll-target="#citation">Citation</a></li>
   </ul>
 </nav>
@@ -335,41 +333,14 @@ window.Quarto = {
 <p>We address this by casting the inverse problem as a <strong>Graph Neural Network</strong> learning task. The metabolic network is naturally a bipartite graph (metabolites <span class="math inline">\(\leftrightarrow\)</span> reactions), and we replace the unknown functions with learnable MLPs that operate on this graph structure. The GNN is trained end-to-end by minimizing the prediction error on <span class="math inline">\(dc/dt\)</span>, recovering the rate constants and homeostatic functions simultaneously. An LLM-driven closed-loop exploration engine systematically searches the hyperparameter space — see <a href="./gnn-llm-memory.html">GNN-LLM-Memory</a> for the training scheme, regularization terms, and exploration loop.</p>
 <section id="gnn-parameterization" class="level3">
 <h3 class="anchored" data-anchor-id="gnn-parameterization">GNN Parameterization</h3>
-<div class="cell" data-fig-width="8" data-layout-align="default">
-<div class="cell-output-display">
-<div>
-<p></p><figure class="figure"><p></p>
-<div>
-<pre class="mermaid mermaid-js">flowchart LR
-    C["cₖ"] --&gt; SUB["MLP_sub&lt;br/&gt;(cₖ, |Sₖⱼ|)"]
-    SUB --&gt; AGG["aggr&lt;br/&gt;Σ / Π"]
-    AGG --&gt; K["× kⱼ"]
-    K --&gt; S["× Sᵢⱼ&lt;br/&gt;Σⱼ"]
-    NODE["MLP_node&lt;br/&gt;(cᵢ, aᵢ)"] --&gt; OUT(["dcᵢ/dt"])
-    S --&gt; OUT
-
-    style C fill:#e1f5fe,stroke:#0277bd
-    style SUB fill:#f3e5f5,stroke:#7b1fa2
-    style AGG fill:#fff3e0,stroke:#ef6c00
-    style K fill:#fff3e0,stroke:#ef6c00
-    style S fill:#e8f5e9,stroke:#2e7d32
-    style NODE fill:#f3e5f5,stroke:#7b1fa2
-    style OUT fill:#fce4ec,stroke:#c62828
-</pre>
-</div>
-<p></p></figure><p></p>
-</div>
-</div>
-</div>
-<p>Substrate concentrations flow through <strong>MLP_sub</strong> (purple), are aggregated per-reaction and scaled by <strong><span class="math inline">\(k_j\)</span></strong> (orange), then mixed via stoichiometry <strong><span class="math inline">\(S\)</span></strong> (green). <strong>MLP_node</strong> (purple) adds homeostatic regulation. The output is <span class="math inline">\(dc/dt\)</span> (red).</p>
 <p><span class="math display">\[
-\frac{dc_i}{dt} = \underbrace{\text{MLP}_{\text{node}}(c_i, a_i)}_{\text{learns } -\lambda_i(c_i - c_i^{\text{baseline}})} + \sum_{j=1}^{m} S_{ij} \cdot \underbrace{k_j \cdot \underset{k \in \text{sub}(j)}{\text{aggr}} \; \text{MLP}_{\text{sub}}(c_k, |S_{kj}|)}_{\text{learns } k_j \text{ and } c_k^{|S_{kj}|}}
+\frac{dc_i}{dt} = \underbrace{\text{MLP}_{\text{node}}(c_i, a_i)}_{\text{learns } -\lambda_i(c_i - c_i^{\text{baseline}})} + \sum_{j=1}^{m} S_{ij} \cdot \underbrace{k_j \cdot \prod_{k \in \text{sub}(j)} \text{MLP}_{\text{sub}}(c_k, |S_{kj}|)}_{\text{learns } k_j \text{ and } c_k^{|S_{kj}|}}
 \]</span></p>
 <p>where:</p>
 <ul>
 <li><span class="math inline">\(a_i \in \mathbb{R}^d\)</span> is a <strong>learnable embedding</strong> for metabolite <span class="math inline">\(i\)</span></li>
 <li><span class="math inline">\(k_j\)</span> are <strong>learnable rate constants</strong></li>
-<li><span class="math inline">\(\text{aggr}\)</span> is sum (additive) or product (multiplicative)</li>
+<li><span class="math inline">\(\prod\)</span> denotes multiplicative aggregation (mass-action kinetics)</li>
 </ul>
 </section>
 <section id="learnable-parameters" class="level3">
@@ -411,38 +382,16 @@ window.Quarto = {
 </tbody>
 </table>
 </section>
-<section id="configuration" class="level3">
-<h3 class="anchored" data-anchor-id="configuration">Configuration</h3>
-<div class="sourceCode" id="cb1"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">graph_model</span><span class="kw">:</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">aggr_type</span><span class="kw">:</span><span class="at"> add</span><span class="co">         # sum (additive) or mul (multiplicative)</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">embedding_dim</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span><span class="co">       # dimension of metabolite embeddings a_i</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hidden_dim</span><span class="kw">:</span><span class="at"> </span><span class="dv">32</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">training</span><span class="kw">:</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">learning_rate_start</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.001</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">freeze_stoichiometry</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span><span class="co">   # S given mode</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">training_single_type</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span><span class="co">  # learn per-metabolite embeddings</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</section>
-</section>
-<section id="key-features" class="level2">
-<h2 class="anchored" data-anchor-id="key-features">Key Features</h2>
-<ul>
-<li><strong>Bipartite graph representation</strong>: metabolites and reactions form a bipartite graph, with stoichiometric coefficients on edges</li>
-<li><strong>Learnable rate constants</strong>: per-reaction <span class="math inline">\(k_j\)</span> learned via gradient descent</li>
-<li><strong>Learnable homeostasis</strong>: MLP learns <span class="math inline">\(-\lambda_i(c_i - c_i^{\text{baseline}})\)</span> per metabolite</li>
-<li><strong>Flexible aggregation</strong>: additive (sum) or multiplicative (product) for different dynamics</li>
-<li><strong>Metabolite embeddings</strong>: learnable vectors <span class="math inline">\(a_i\)</span> capture per-metabolite identity</li>
-</ul>
 </section>
 <section id="citation" class="level2">
 <h2 class="anchored" data-anchor-id="citation">Citation</h2>
 <p>If you use MetabolismGraph in your research, please cite:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">@software{metabolismgraph2025,</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">  author = {Allier, Cédric},</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">  title = {MetabolismGraph: Learning Metabolism Dynamics with GNNs},</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">  url = {https://github.com/allierc/MetabolismGraph}</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">}</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">@software{metabolismgraph2025,</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co">  author = {Allier, Cédric},</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">  title = {MetabolismGraph: Learning Metabolism Dynamics with GNNs},</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">  url = {https://github.com/allierc/MetabolismGraph}</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">}</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 
 
 </section>

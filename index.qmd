@@ -88,36 +88,15 @@ We address this by casting the inverse problem as a **Graph Neural Network** lea
 
 ### GNN Parameterization
 
-```{mermaid}
-%%| fig-width: 8
-flowchart LR
-    C["cₖ"] --> SUB["MLP_sub<br/>(cₖ, |Sₖⱼ|)"]
-    SUB --> AGG["aggr<br/>Σ / Π"]
-    AGG --> K["× kⱼ"]
-    K --> S["× Sᵢⱼ<br/>Σⱼ"]
-    NODE["MLP_node<br/>(cᵢ, aᵢ)"] --> OUT(["dcᵢ/dt"])
-    S --> OUT
-
-    style C fill:#e1f5fe,stroke:#0277bd
-    style SUB fill:#f3e5f5,stroke:#7b1fa2
-    style AGG fill:#fff3e0,stroke:#ef6c00
-    style K fill:#fff3e0,stroke:#ef6c00
-    style S fill:#e8f5e9,stroke:#2e7d32
-    style NODE fill:#f3e5f5,stroke:#7b1fa2
-    style OUT fill:#fce4ec,stroke:#c62828
-```
-
-Substrate concentrations flow through **MLP_sub** (purple), are aggregated per-reaction and scaled by **$k_j$** (orange), then mixed via stoichiometry **$S$** (green). **MLP_node** (purple) adds homeostatic regulation. The output is $dc/dt$ (red).
-
 $$
-\frac{dc_i}{dt} = \underbrace{\text{MLP}_{\text{node}}(c_i, a_i)}_{\text{learns } -\lambda_i(c_i - c_i^{\text{baseline}})} + \sum_{j=1}^{m} S_{ij} \cdot \underbrace{k_j \cdot \underset{k \in \text{sub}(j)}{\text{aggr}} \; \text{MLP}_{\text{sub}}(c_k, |S_{kj}|)}_{\text{learns } k_j \text{ and } c_k^{|S_{kj}|}}
+\frac{dc_i}{dt} = \underbrace{\text{MLP}_{\text{node}}(c_i, a_i)}_{\text{learns } -\lambda_i(c_i - c_i^{\text{baseline}})} + \sum_{j=1}^{m} S_{ij} \cdot \underbrace{k_j \cdot \prod_{k \in \text{sub}(j)} \text{MLP}_{\text{sub}}(c_k, |S_{kj}|)}_{\text{learns } k_j \text{ and } c_k^{|S_{kj}|}}
 $$
 
 where:
 
 - $a_i \in \mathbb{R}^d$ is a **learnable embedding** for metabolite $i$
 - $k_j$ are **learnable rate constants**
-- $\text{aggr}$ is sum (additive) or product (multiplicative)
+- $\prod$ denotes multiplicative aggregation (mass-action kinetics)
 
 ### Learnable Parameters
 
@@ -127,28 +106,6 @@ where:
 | $k_j$ | Scalars | Per-reaction rate constants |
 | $\text{MLP}_{\text{node}}$ | Neural network | Learns $-\lambda_i(c_i - c_i^{\text{baseline}})$ |
 | $\text{MLP}_{\text{sub}}$ | Neural network | Learns $c_k^{|S_{kj}|}$ |
-
-### Configuration
-
-```yaml
-graph_model:
-  aggr_type: add         # sum (additive) or mul (multiplicative)
-  embedding_dim: 2       # dimension of metabolite embeddings a_i
-  hidden_dim: 32
-
-training:
-  learning_rate_start: 0.001
-  freeze_stoichiometry: true   # S given mode
-  training_single_type: false  # learn per-metabolite embeddings
-```
-
-## Key Features
-
-- **Bipartite graph representation**: metabolites and reactions form a bipartite graph, with stoichiometric coefficients on edges
-- **Learnable rate constants**: per-reaction $k_j$ learned via gradient descent
-- **Learnable homeostasis**: MLP learns $-\lambda_i(c_i - c_i^{\text{baseline}})$ per metabolite
-- **Flexible aggregation**: additive (sum) or multiplicative (product) for different dynamics
-- **Metabolite embeddings**: learnable vectors $a_i$ capture per-metabolite identity
 
 ## Citation
 

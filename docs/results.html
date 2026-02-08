@@ -240,7 +240,7 @@ window.Quarto = {
 
 <section id="rate-constant-recovery-oscillatory-regime-rank-50" class="level2">
 <h2 class="anchored" data-anchor-id="rate-constant-recovery-oscillatory-regime-rank-50">Rate Constant Recovery — Oscillatory Regime (rank 50)</h2>
-<p>The LLM-driven exploration engine is running on the <strong>oscillatory regime</strong> (activity rank $$50): 100 metabolites, 256 autocatalytic reactions, 2880 time frames, mass-action kinetics with the stoichiometric matrix <span class="math inline">\(\mathbf{S}\)</span> frozen from ground truth. The goal is to recover the 256 rate constants <span class="math inline">\(k_j \in [10^{-2}, 10^{-1}]\)</span> by optimizing training hyperparameters through UCB tree search with 4 parallel slots.</p>
+<p>The LLM-driven exploration engine is running on the <strong>oscillatory regime</strong> (activity rank <span class="math inline">\(\sim50\)</span>): 100 metabolites, 256 autocatalytic reactions, 2880 time frames, mass-action kinetics with the stoichiometric matrix <span class="math inline">\(\mathbf{S}\)</span> frozen from ground truth. The goal is to recover the 256 rate constants <span class="math inline">\(k_j \in [10^{-2}, 10^{-1}]\)</span> by optimizing training hyperparameters through UCB tree search with 4 parallel slots.</p>
 <p><strong>8 iterations completed</strong> (Block 1). The exploration is ongoing.</p>
 <section id="simulation-setup" class="level3">
 <h3 class="anchored" data-anchor-id="simulation-setup">Simulation Setup</h3>
@@ -421,7 +421,7 @@ Figure&nbsp;8: UCB tree after 8 iterations. Node 4 (<span class="math inline">\(
 <span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a><span class="co"># outlier count on secondary axis</span></span>
 <span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>ax2 <span class="op">=</span> ax1.twinx()</span>
-<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>ax2.plot(iters, outliers, <span class="st">'o-'</span>, color<span class="op">=</span><span class="st">'#e67e22'</span>, linewidth<span class="op">=</span><span class="fl">1.5</span>, markersize<span class="op">=</span><span class="dv">5</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">'outliers'</span>)</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>ax2.plot(iters, outliers, <span class="st">'o'</span>, color<span class="op">=</span><span class="st">'#e67e22'</span>, markersize<span class="op">=</span><span class="dv">5</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">'outliers'</span>)</span>
 <span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>ax2.set_ylabel(<span class="st">'outlier count'</span>, color<span class="op">=</span><span class="st">'#e67e22'</span>)</span>
 <span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>ax2.tick_params(axis<span class="op">=</span><span class="st">'y'</span>, labelcolor<span class="op">=</span><span class="st">'#e67e22'</span>)</span>
 <span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>ax2.set_ylim(<span class="dv">0</span>, <span class="dv">270</span>)</span>

@@ -9,6 +9,8 @@ title: "MetabolismGraph: Learning Metabolism Dynamics with Graph Neural Networks
 1. **Rate constants** $k_j$ — the intrinsic speed of each reaction
 2. **Functional forms** $f_{\text{sub}}(c, s)$, $f_{\text{node}}(c)$ — how substrates drive reactions and how metabolites self-regulate
 
+See the [current results](results.qmd) for rate constant recovery on an oscillatory regime with 100 metabolites and 256 reactions.
+
 ```{mermaid}
 %%| fig-width: 9
 flowchart LR

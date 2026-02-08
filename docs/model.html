@@ -39,6 +39,9 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="site_libs/bootstrap/bootstrap-7d6694c7b3d8f5ecf9ec986835a4b683.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -393,7 +396,7 @@ flowchart LR
 </table>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="graphs_data/simulation_pure/concentrations.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<p><a href="graphs_data/simulation_pure/concentrations.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Pure reaction dynamics: concentrations evolve under additive mass-action kinetics without homeostasis. Most metabolites equilibrate within ~100 time steps."><img src="graphs_data/simulation_pure/concentrations.png" class="img-fluid figure-img" style="width:100.0%" alt="Pure reaction dynamics: concentrations evolve under additive mass-action kinetics without homeostasis. Most metabolites equilibrate within ~100 time steps."></a></p>
 <figcaption>Pure reaction dynamics: concentrations evolve under additive mass-action kinetics without homeostasis. Most metabolites equilibrate within ~100 time steps.</figcaption>
 </figure>
 </div>
@@ -450,7 +453,7 @@ flowchart LR
 </table>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="graphs_data/simulation_homeostatic/concentrations.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<p><a href="graphs_data/simulation_homeostatic/concentrations.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Homeostatic regulation: concentrations are pulled toward a baseline (c^{\text{baseline}} = 5.0) by a linear restoring force. Dynamics converge to steady state."><img src="graphs_data/simulation_homeostatic/concentrations.png" class="img-fluid figure-img" style="width:100.0%" alt="Homeostatic regulation: concentrations are pulled toward a baseline (c^{\text{baseline}} = 5.0) by a linear restoring force. Dynamics converge to steady state."></a></p>
 <figcaption>Homeostatic regulation: concentrations are pulled toward a baseline (<span class="math inline">\(c^{\text{baseline}} = 5.0\)</span>) by a linear restoring force. Dynamics converge to steady state.</figcaption>
 </figure>
 </div>
@@ -504,7 +507,7 @@ flowchart LR
 </table>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="graphs_data/simulation_oscillatory_rank_20/concentrations.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<p><a href="graphs_data/simulation_oscillatory_rank_20/concentrations.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" title="Oscillatory dynamics (activity rank 20): autocatalytic 3-cycles with multiplicative aggregation produce sustained oscillations. The wide rate constant range [10^{-2.5}, 10^{-1}] means ~40% of reactions have k < 0.01 and contribute negligibly."><img src="graphs_data/simulation_oscillatory_rank_20/concentrations.png" class="img-fluid figure-img" style="width:100.0%" alt="Oscillatory dynamics (activity rank 20): autocatalytic 3-cycles with multiplicative aggregation produce sustained oscillations. The wide rate constant range [10^{-2.5}, 10^{-1}] means ~40% of reactions have k < 0.01 and contribute negligibly."></a></p>
 <figcaption>Oscillatory dynamics (activity rank 20): autocatalytic 3-cycles with multiplicative aggregation produce sustained oscillations. The wide rate constant range <span class="math inline">\([10^{-2.5}, 10^{-1}]\)</span> means ~40% of reactions have <span class="math inline">\(k &lt; 0.01\)</span> and contribute negligibly.</figcaption>
 </figure>
 </div>
@@ -590,7 +593,7 @@ flowchart LR
 </table>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="graphs_data/simulation_oscillatory_rank_50/concentrations.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<p><a href="graphs_data/simulation_oscillatory_rank_50/concentrations.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" title="Oscillatory dynamics with narrowed rate constants (activity rank 47). Eliminating slow inert reactions produces richer dynamics. This is the primary dataset for GNN training."><img src="graphs_data/simulation_oscillatory_rank_50/concentrations.png" class="img-fluid figure-img" style="width:100.0%" alt="Oscillatory dynamics with narrowed rate constants (activity rank 47). Eliminating slow inert reactions produces richer dynamics. This is the primary dataset for GNN training."></a></p>
 <figcaption>Oscillatory dynamics with narrowed rate constants (activity rank 47). Eliminating slow inert reactions produces richer dynamics. This is the primary dataset for GNN training.</figcaption>
 </figure>
 </div>
@@ -1161,6 +1164,38 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     </div>
   </div>
 </footer>
+<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
+(function() {
+  let previousOnload = window.onload;
+  window.onload = () => {
+    if (previousOnload) {
+      previousOnload();
+    }
+    lightboxQuarto.on('slide_before_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      const href = trigger.getAttribute('href');
+      if (href !== null) {
+        const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+        if (imgEl !== null) {
+          const srcAttr = imgEl.getAttribute("src");
+          if (srcAttr && srcAttr.startsWith("data:")) {
+            slideConfig.href = srcAttr;
+          }
+        }
+      } 
+    });
+  
+    lightboxQuarto.on('slide_after_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(slideNode);
+      }
+    });
+  
+  };
+  
+})();
+          </script>
 
 
 

@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="dcterms.date" content="2026-02-07">
+<meta name="dcterms.date" content="2026-02-08">
 
 <title>Results – MetabolismGraph</title>
 <style>
@@ -199,15 +199,17 @@ window.Quarto = {
   <li><a href="#rate-constant-recovery-oscillatory-regime-rank-50" id="toc-rate-constant-recovery-oscillatory-regime-rank-50" class="nav-link active" data-scroll-target="#rate-constant-recovery-oscillatory-regime-rank-50">Rate Constant Recovery — Oscillatory Regime (rank 50)</a>
   <ul class="collapse">
   <li><a href="#simulation-setup" id="toc-simulation-setup" class="nav-link" data-scroll-target="#simulation-setup">Simulation Setup</a></li>
-  <li><a href="#best-result-rate-constants" id="toc-best-result-rate-constants" class="nav-link" data-scroll-target="#best-result-rate-constants">Best Result — Rate Constants</a></li>
-  <li><a href="#learned-functions" id="toc-learned-functions" class="nav-link" data-scroll-target="#learned-functions">Learned Functions</a></li>
-  <li><a href="#dynamics-prediction" id="toc-dynamics-prediction" class="nav-link" data-scroll-target="#dynamics-prediction">Dynamics Prediction</a></li>
+  <li><a href="#metrics" id="toc-metrics" class="nav-link" data-scroll-target="#metrics">Metrics</a></li>
+  <li><a href="#r²-trajectory-across-32-iterations" id="toc-r²-trajectory-across-32-iterations" class="nav-link" data-scroll-target="#r²-trajectory-across-32-iterations">R² Trajectory Across 32 Iterations</a></li>
+  <li><a href="#block-1-initial-exploration-iter-112" id="toc-block-1-initial-exploration-iter-112" class="nav-link" data-scroll-target="#block-1-initial-exploration-iter-112">Block 1: Initial Exploration (Iter 1–12)</a></li>
+  <li><a href="#block-2-k_floor-breakthrough-iter-1324" id="toc-block-2-k_floor-breakthrough-iter-1324" class="nav-link" data-scroll-target="#block-2-k_floor-breakthrough-iter-1324">Block 2: k_floor Breakthrough (Iter 13–24)</a></li>
+  <li><a href="#rate-constants-recovery" id="toc-rate-constants-recovery" class="nav-link" data-scroll-target="#rate-constants-recovery">Rate Constants Recovery</a></li>
+  <li><a href="#kinograph-best-run-iteration-21" id="toc-kinograph-best-run-iteration-21" class="nav-link" data-scroll-target="#kinograph-best-run-iteration-21">Kinograph — Best Run (Iteration 21)</a></li>
+  <li><a href="#learned-mlps" id="toc-learned-mlps" class="nav-link" data-scroll-target="#learned-mlps">Learned MLPs</a></li>
+  <li><a href="#block-3-plateau-at-r²-0.69-iter-2532" id="toc-block-3-plateau-at-r²-0.69-iter-2532" class="nav-link" data-scroll-target="#block-3-plateau-at-r²-0.69-iter-2532">Block 3: Plateau at R² ≈ 0.69 (Iter 25–32)</a></li>
   <li><a href="#ucb-exploration-tree" id="toc-ucb-exploration-tree" class="nav-link" data-scroll-target="#ucb-exploration-tree">UCB Exploration Tree</a></li>
-  <li><a href="#iteration-history" id="toc-iteration-history" class="nav-link" data-scroll-target="#iteration-history">Iteration History</a></li>
-  <li><a href="#catastrophic-failure-strong-mlp_textsub-normalization" id="toc-catastrophic-failure-strong-mlp_textsub-normalization" class="nav-link" data-scroll-target="#catastrophic-failure-strong-mlp_textsub-normalization">Catastrophic Failure: Strong MLP<span class="math inline">\(_{\text{sub}}\)</span> Normalization</a></li>
-  <li><a href="#key-findings" id="toc-key-findings" class="nav-link" data-scroll-target="#key-findings">Key Findings</a></li>
   <li><a href="#established-principles" id="toc-established-principles" class="nav-link" data-scroll-target="#established-principles">Established Principles</a></li>
-  <li><a href="#current-status" id="toc-current-status" class="nav-link" data-scroll-target="#current-status">Current Status</a></li>
+  <li><a href="#refuted-hypotheses" id="toc-refuted-hypotheses" class="nav-link" data-scroll-target="#refuted-hypotheses">Refuted Hypotheses</a></li>
   <li><a href="#open-questions" id="toc-open-questions" class="nav-link" data-scroll-target="#open-questions">Open Questions</a></li>
   </ul></li>
   </ul>
@@ -229,7 +231,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">February 7, 2026</p>
+      <p class="date">February 8, 2026</p>
     </div>
   </div>
   
@@ -244,7 +246,7 @@ window.Quarto = {
 <section id="rate-constant-recovery-oscillatory-regime-rank-50" class="level2">
 <h2 class="anchored" data-anchor-id="rate-constant-recovery-oscillatory-regime-rank-50">Rate Constant Recovery — Oscillatory Regime (rank 50)</h2>
 <p>The LLM-driven exploration engine is running on the <strong>oscillatory regime</strong> (activity rank <span class="math inline">\(\sim50\)</span>): 100 metabolites, 256 autocatalytic reactions, 2880 time frames, mass-action kinetics with the stoichiometric matrix <span class="math inline">\(\mathbf{S}\)</span> frozen from ground truth. The goal is to recover the 256 rate constants <span class="math inline">\(k_j \in [10^{-2}, 10^{-1}]\)</span> by optimizing training hyperparameters through UCB tree search with 4 parallel slots.</p>
-<p><strong>8 iterations completed</strong> (Block 1). The exploration is ongoing.</p>
+<p><strong>32 iterations completed</strong> across 3 blocks (8 batches). The exploration is ongoing.</p>
 <section id="simulation-setup" class="level3">
 <h3 class="anchored" data-anchor-id="simulation-setup">Simulation Setup</h3>
 <div>
@@ -279,68 +281,308 @@ Figure&nbsp;2: Stoichiometric matrix <span class="math inline">\(\mathbf{S}\)</s
 </div>
 </div>
 </section>
-<section id="best-result-rate-constants" class="level3">
-<h3 class="anchored" data-anchor-id="best-result-rate-constants">Best Result — Rate Constants</h3>
-<div>
-
-</div>
-<div class="quarto-layout-panel" data-layout-ncol="2">
-<div class="quarto-layout-row">
-<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
-<div id="fig-k-best" class="quarto-float quarto-figure quarto-figure-center anchored">
+<section id="metrics" class="level3">
+<h3 class="anchored" data-anchor-id="metrics">Metrics</h3>
+<p>The primary metric is <strong>raw R²</strong> computed on all 256 reactions (after MLP<span class="math inline">\(_{\text{sub}}\)</span> scalar correction). The <strong>trimmed R²</strong> excludes outlier reactions (<span class="math inline">\(|\Delta \log_{10} k| &gt; 0.3\)</span>) and is reported in parentheses. Raw R² is what drives the UCB exploration — it penalizes outliers directly instead of hiding them.</p>
+</section>
+<section id="r²-trajectory-across-32-iterations" class="level3">
+<h3 class="anchored" data-anchor-id="r²-trajectory-across-32-iterations">R² Trajectory Across 32 Iterations</h3>
+<div id="cell-fig-iterations" class="cell" data-execution_count="1">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>iters <span class="op">=</span> <span class="bu">list</span>(<span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">33</span>))</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>r2 <span class="op">=</span> [</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Block 1 (Iter 1-12): Initial exploration</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.044</span>, <span class="fl">0.027</span>, <span class="fl">0.044</span>, <span class="fl">0.031</span>,  <span class="co"># Batch 1: initial sweep</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.013</span>, <span class="fl">0.067</span>, <span class="fl">0.041</span>, <span class="fl">0.051</span>,  <span class="co"># Batch 2: sub_norm breakthrough</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.054</span>, <span class="fl">0.061</span>, <span class="fl">0.017</span>, <span class="fl">0.061</span>,  <span class="co"># Batch 3: MLP_node activation</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Block 2 (Iter 13-24): k_floor breakthrough</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.056</span>, <span class="fl">0.508</span>, <span class="fl">0.011</span>, <span class="fl">0.057</span>,  <span class="co"># Batch 4: k_floor=1.0 breakthrough</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.638</span>, <span class="fl">0.642</span>, <span class="fl">0.470</span>, <span class="fl">0.373</span>,  <span class="co"># Batch 5: exploiting k_floor</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.690</span>, <span class="fl">0.419</span>, <span class="fl">0.658</span>, <span class="fl">0.559</span>,  <span class="co"># Batch 6: aug=4000 best</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Block 3 (Iter 25-32): Plateau</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.652</span>, <span class="fl">0.638</span>, <span class="fl">0.614</span>, <span class="fl">0.600</span>,  <span class="co"># Batch 7: diminishing returns</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.507</span>, <span class="fl">0.619</span>, <span class="fl">0.530</span>, <span class="fl">0.409</span>,  <span class="co"># Batch 8: alternative approaches</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>outliers <span class="op">=</span> [</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="dv">43</span>, <span class="dv">47</span>, <span class="dv">45</span>, <span class="dv">53</span>,</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    <span class="dv">61</span>, <span class="dv">36</span>, <span class="dv">45</span>, <span class="dv">32</span>,</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="dv">27</span>, <span class="dv">38</span>, <span class="dv">57</span>, <span class="dv">30</span>,</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="dv">28</span>, <span class="dv">33</span>, <span class="dv">36</span>, <span class="dv">33</span>,</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    <span class="dv">17</span>, <span class="dv">24</span>, <span class="dv">26</span>, <span class="dv">35</span>,</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    <span class="dv">16</span>, <span class="dv">29</span>, <span class="dv">19</span>, <span class="dv">24</span>,</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    <span class="dv">18</span>, <span class="dv">18</span>, <span class="dv">15</span>, <span class="dv">17</span>,</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    <span class="dv">19</span>, <span class="dv">14</span>, <span class="dv">21</span>, <span class="dv">21</span>,</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Color by block</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>colors <span class="op">=</span> []</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, r <span class="kw">in</span> <span class="bu">enumerate</span>(r2):</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> i <span class="op">&lt;</span> <span class="dv">12</span>:</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>        colors.append(<span class="st">'#3498db'</span>)  <span class="co"># blue: Block 1</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> i <span class="op">&lt;</span> <span class="dv">24</span>:</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>        colors.append(<span class="st">'#2ecc71'</span>)  <span class="co"># green: Block 2</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>        colors.append(<span class="st">'#e67e22'</span>)  <span class="co"># orange: Block 3</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>fig, ax1 <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">14</span>, <span class="dv">5</span>))</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>bars <span class="op">=</span> ax1.bar(iters, r2, color<span class="op">=</span>colors, edgecolor<span class="op">=</span><span class="st">'white'</span>, linewidth<span class="op">=</span><span class="fl">0.5</span>, alpha<span class="op">=</span><span class="fl">0.85</span>)</span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>ax1.axhline(y<span class="op">=</span><span class="fl">0.690</span>, color<span class="op">=</span><span class="st">'#2ecc71'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, alpha<span class="op">=</span><span class="fl">0.4</span>, label<span class="op">=</span><span class="st">'Best R² = 0.690'</span>)</span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a><span class="co"># Block separators and labels</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>ax1.axvline(x<span class="op">=</span><span class="fl">12.5</span>, color<span class="op">=</span><span class="st">'gray'</span>, linestyle<span class="op">=</span><span class="st">':'</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>ax1.axvline(x<span class="op">=</span><span class="fl">24.5</span>, color<span class="op">=</span><span class="st">'gray'</span>, linestyle<span class="op">=</span><span class="st">':'</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>ax1.text(<span class="fl">6.5</span>, <span class="fl">1.0</span>, <span class="st">'Block 1'</span>, ha<span class="op">=</span><span class="st">'center'</span>, fontsize<span class="op">=</span><span class="dv">9</span>, color<span class="op">=</span><span class="st">'#3498db'</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>)</span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>ax1.text(<span class="fl">18.5</span>, <span class="fl">1.0</span>, <span class="st">'Block 2'</span>, ha<span class="op">=</span><span class="st">'center'</span>, fontsize<span class="op">=</span><span class="dv">9</span>, color<span class="op">=</span><span class="st">'#2ecc71'</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>)</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>ax1.text(<span class="fl">28.5</span>, <span class="fl">1.0</span>, <span class="st">'Block 3'</span>, ha<span class="op">=</span><span class="st">'center'</span>, fontsize<span class="op">=</span><span class="dv">9</span>, color<span class="op">=</span><span class="st">'#e67e22'</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>)</span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a><span class="co"># Annotate key events</span></span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>ax1.annotate(<span class="st">'sub_norm=1.0'</span>, xy<span class="op">=</span>(<span class="dv">6</span>, <span class="fl">0.067</span>), xytext<span class="op">=</span>(<span class="dv">6</span>, <span class="fl">0.18</span>),</span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>            arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-&gt;'</span>, color<span class="op">=</span><span class="st">'#3498db'</span>), fontsize<span class="op">=</span><span class="dv">7</span>, ha<span class="op">=</span><span class="st">'center'</span>, color<span class="op">=</span><span class="st">'#3498db'</span>)</span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>ax1.annotate(<span class="st">'k_floor=1.0</span><span class="ch">\n</span><span class="st">BREAKTHROUGH'</span>, xy<span class="op">=</span>(<span class="dv">14</span>, <span class="fl">0.508</span>), xytext<span class="op">=</span>(<span class="dv">14</span>, <span class="fl">0.28</span>),</span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>            arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-&gt;'</span>, color<span class="op">=</span><span class="st">'#2ecc71'</span>), fontsize<span class="op">=</span><span class="dv">7</span>, ha<span class="op">=</span><span class="st">'center'</span>, color<span class="op">=</span><span class="st">'#2ecc71'</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>)</span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>ax1.annotate(<span class="st">'aug=4000</span><span class="ch">\n</span><span class="st">BEST'</span>, xy<span class="op">=</span>(<span class="dv">21</span>, <span class="fl">0.690</span>), xytext<span class="op">=</span>(<span class="dv">21</span>, <span class="fl">0.82</span>),</span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>            arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-&gt;'</span>, color<span class="op">=</span><span class="st">'#2ecc71'</span>), fontsize<span class="op">=</span><span class="dv">7</span>, ha<span class="op">=</span><span class="st">'center'</span>, color<span class="op">=</span><span class="st">'#2ecc71'</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>)</span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>ax1.set_xlabel(<span class="st">'Iteration'</span>)</span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>ax1.set_ylabel(<span class="st">'rate_constants R² (raw)'</span>)</span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>ax1.set_ylim(<span class="op">-</span><span class="fl">0.02</span>, <span class="fl">1.05</span>)</span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>ax1.set_xticks([<span class="dv">1</span>, <span class="dv">4</span>, <span class="dv">8</span>, <span class="dv">12</span>, <span class="dv">14</span>, <span class="dv">17</span>, <span class="dv">21</span>, <span class="dv">24</span>, <span class="dv">28</span>, <span class="dv">32</span>])</span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a><span class="co"># outlier count on secondary axis</span></span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>ax2 <span class="op">=</span> ax1.twinx()</span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a>ax2.plot(iters, outliers, <span class="st">'o'</span>, color<span class="op">=</span><span class="st">'#e74c3c'</span>, markersize<span class="op">=</span><span class="dv">3</span>, alpha<span class="op">=</span><span class="fl">0.5</span>, label<span class="op">=</span><span class="st">'outliers'</span>)</span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a>ax2.set_ylabel(<span class="st">'outlier count'</span>, color<span class="op">=</span><span class="st">'#e74c3c'</span>)</span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>ax2.tick_params(axis<span class="op">=</span><span class="st">'y'</span>, labelcolor<span class="op">=</span><span class="st">'#e74c3c'</span>)</span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a>ax2.set_ylim(<span class="dv">0</span>, <span class="dv">70</span>)</span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a>lines1, labels1 <span class="op">=</span> ax1.get_legend_handles_labels()</span>
+<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a>lines2, labels2 <span class="op">=</span> ax2.get_legend_handles_labels()</span>
+<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a>ax1.legend(lines1 <span class="op">+</span> lines2, labels1 <span class="op">+</span> labels2, loc<span class="op">=</span><span class="st">'upper left'</span>, fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a>ax1.set_title(<span class="st">'UCB Exploration: Rate Constant Recovery (32 iterations)'</span>)</span>
+<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-display">
+<div id="fig-iterations" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-k-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="figures/rank_50/rate_constants_best.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" title="Figure&nbsp;3: Iteration 4 (best, R^2 = 0.934, slope = 0.964): 206 of 256 reactions recovered correctly (black dots on diagonal). 50 outlier reactions (red) collapse to \log k \approx -3 to -10. The scalar correction \log_{10} \alpha = -0.33 shifts the uncorrected cloud (gray) onto the diagonal."><img src="figures/rank_50/rate_constants_best.png" class="img-fluid figure-img"></a>
+<div aria-describedby="fig-iterations-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="results_files/figure-html/fig-iterations-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" title="Figure&nbsp;3: Raw R² (bars) and outlier count (dots) across 32 iterations, colored by block. The k_floor breakthrough at iteration 14 lifted R² from 0.07 to 0.51, and longer training pushed it to 0.69 by iteration 21. Block 3 failed to break the plateau."><img src="results_files/figure-html/fig-iterations-output-1.png" class="img-fluid figure-img"></a>
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-k-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;3: <strong>Iteration 4</strong> (best, <span class="math inline">\(R^2 = 0.934\)</span>, slope <span class="math inline">\(= 0.964\)</span>): 206 of 256 reactions recovered correctly (black dots on diagonal). 50 outlier reactions (red) collapse to <span class="math inline">\(\log k \approx -3\)</span> to <span class="math inline">\(-10\)</span>. The scalar correction <span class="math inline">\(\log_{10} \alpha = -0.33\)</span> shifts the uncorrected cloud (gray) onto the diagonal.
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-iterations-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Raw R² (bars) and outlier count (dots) across 32 iterations, colored by block. The k_floor breakthrough at iteration 14 lifted R² from 0.07 to 0.51, and longer training pushed it to 0.69 by iteration 21. Block 3 failed to break the plateau.
 </figcaption>
 </figure>
 </div>
 </div>
-<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+</div>
+</section>
+<section id="block-1-initial-exploration-iter-112" class="level3">
+<h3 class="anchored" data-anchor-id="block-1-initial-exploration-iter-112">Block 1: Initial Exploration (Iter 1–12)</h3>
+<p>All 12 iterations achieved raw R² &lt; 0.07. The key discovery was that <code>coeff_MLP_sub_norm=1.0</code> is essential — it corrects the MLP<span class="math inline">\(_{\text{sub}}\)</span> function shapes (c² becomes quadratic instead of linear) and enables MLP<span class="math inline">\(_{\text{node}}\)</span> to learn homeostasis.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 18%">
+<col style="width: 34%">
+<col style="width: 23%">
+<col style="width: 23%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Batch</th>
+<th>Key mutation</th>
+<th>Best R²</th>
+<th>Finding</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1 (iter 1–4)</td>
+<td>lr sweep</td>
+<td>0.044</td>
+<td>All failed; MLP<span class="math inline">\(_{\text{node}}\)</span> dead, MLP<span class="math inline">\(_{\text{sub}}\)</span> c² linear</td>
+</tr>
+<tr class="even">
+<td>2 (iter 5–8)</td>
+<td><code>sub_norm=1.0</code></td>
+<td><strong>0.067</strong></td>
+<td>MLP<span class="math inline">\(_{\text{sub}}\)</span> normalization is the single most effective change</td>
+</tr>
+<tr class="odd">
+<td>3 (iter 9–12)</td>
+<td>combine best</td>
+<td>0.061</td>
+<td>MLP<span class="math inline">\(_{\text{node}}\)</span> activated; <code>lr_node=0.005</code> hurts</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="block-2-k_floor-breakthrough-iter-1324" class="level3">
+<h3 class="anchored" data-anchor-id="block-2-k_floor-breakthrough-iter-1324">Block 2: k_floor Breakthrough (Iter 13–24)</h3>
+<p>The <code>coeff_k_floor=1.0</code> penalty at iteration 14 produced a <strong>10× improvement</strong> in R² (0.06 → 0.51) by preventing outlier <span class="math inline">\(\log k\)</span> values from drifting below the true minimum. Longer training then pushed R² to 0.69.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 18%">
+<col style="width: 34%">
+<col style="width: 23%">
+<col style="width: 23%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Batch</th>
+<th>Key mutation</th>
+<th>Best R²</th>
+<th>Finding</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4 (iter 13–16)</td>
+<td><code>k_floor=1.0</code></td>
+<td><strong>0.508</strong></td>
+<td>Breakthrough — R² jumped 10×</td>
+</tr>
+<tr class="even">
+<td>5 (iter 17–20)</td>
+<td><code>aug=3000</code></td>
+<td><strong>0.642</strong></td>
+<td>Longer training + k_floor synergistic</td>
+</tr>
+<tr class="odd">
+<td>6 (iter 21–24)</td>
+<td><code>aug=4000</code></td>
+<td><strong>0.690</strong></td>
+<td>Best overall; <span class="math inline">\(\alpha = 0.85\)</span>, 16 outliers</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Best result — Iteration 21</strong>: <code>data_augmentation_loop=4000</code>, <code>coeff_k_floor=1.0</code>, <code>coeff_MLP_sub_norm=1.0</code></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Metric</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Raw R²</td>
+<td><strong>0.690</strong></td>
+</tr>
+<tr class="even">
+<td>Trimmed R²</td>
+<td>0.962</td>
+</tr>
+<tr class="odd">
+<td>Outliers</td>
+<td>16 / 256 (6.3%)</td>
+</tr>
+<tr class="even">
+<td>Slope</td>
+<td>0.976</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(\alpha\)</span></td>
+<td>0.85</td>
+</tr>
+<tr class="even">
+<td>test_pearson</td>
+<td>0.33</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="rate-constants-recovery" class="level3">
+<h3 class="anchored" data-anchor-id="rate-constants-recovery">Rate Constants Recovery</h3>
+<div>
+
+</div>
+<div class="quarto-layout-panel" data-layout-ncol="3">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 33.3%;justify-content: flex-start;">
 <div id="fig-k-baseline" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-k-baseline-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="figures/rank_50/rate_constants_baseline.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" title="Figure&nbsp;4: Iteration 1 (baseline, R^2 = 0.910, slope = 0.989): Starting configuration from previous exploration. Already strong, but with 59 outliers (23%). The baseline uses lr_sub=0.0005 — increasing it to 0.001 in iteration 4 improved both R^2 and outlier count."><img src="figures/rank_50/rate_constants_baseline.png" class="img-fluid figure-img"></a>
+<a href="figures/rank_50/rate_constants_baseline.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" title="Figure&nbsp;4: Iteration 1 (baseline). R² = 0.044, 43 outliers. Before k_floor and sub_norm — predicted \log k values scatter widely with no correlation to ground truth."><img src="figures/rank_50/rate_constants_baseline.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-k-baseline-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4: <strong>Iteration 1</strong> (baseline, <span class="math inline">\(R^2 = 0.910\)</span>, slope <span class="math inline">\(= 0.989\)</span>): Starting configuration from previous exploration. Already strong, but with 59 outliers (23%). The baseline uses <code>lr_sub=0.0005</code> — increasing it to 0.001 in iteration 4 improved both <span class="math inline">\(R^2\)</span> and outlier count.
+Figure&nbsp;4: Iteration 1 (baseline). R² = 0.044, 43 outliers. Before <code>k_floor</code> and <code>sub_norm</code> — predicted <span class="math inline">\(\log k\)</span> values scatter widely with no correlation to ground truth.
+</figcaption>
+</figure>
+</div>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 33.3%;justify-content: flex-start;">
+<div id="fig-k-breakthrough" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-k-breakthrough-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="figures/rank_50/rate_constants_breakthrough.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5" title="Figure&nbsp;5: Iteration 14 (breakthrough). R² = 0.508, 33 outliers. The k_floor=1.0 penalty prevents outlier \log k from drifting below the true minimum, producing a 10\times R² jump."><img src="figures/rank_50/rate_constants_breakthrough.png" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-k-breakthrough-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: Iteration 14 (breakthrough). R² = 0.508, 33 outliers. The <code>k_floor=1.0</code> penalty prevents outlier <span class="math inline">\(\log k\)</span> from drifting below the true minimum, producing a 10<span class="math inline">\(\times\)</span> R² jump.
+</figcaption>
+</figure>
+</div>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 33.3%;justify-content: flex-start;">
+<div id="fig-k-best" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-k-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="figures/rank_50/rate_constants_best.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6" title="Figure&nbsp;6: Iteration 21 (best). R² = 0.690 (trimmed: 0.962), 16 outliers. Combining k_floor, sub_norm, and aug=4000 yields tight clustering around the diagonal."><img src="figures/rank_50/rate_constants_best.png" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-k-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: Iteration 21 (best). R² = 0.690 (trimmed: 0.962), 16 outliers. Combining <code>k_floor</code>, <code>sub_norm</code>, and <code>aug=4000</code> yields tight clustering around the diagonal.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 </div>
-<p>The key mutation from iteration 1 to iteration 4 was <code>lr_sub: 0.0005 → 0.001</code>. Faster MLP<span class="math inline">\(_{\text{sub}}\)</span> learning improved the substrate function fit, which in turn improved rate constant recovery (<span class="math inline">\(R^2\)</span>: 0.910 → 0.934, outliers: 59 → 50).</p>
 </section>
-<section id="learned-functions" class="level3">
-<h3 class="anchored" data-anchor-id="learned-functions">Learned Functions</h3>
+<section id="kinograph-best-run-iteration-21" class="level3">
+<h3 class="anchored" data-anchor-id="kinograph-best-run-iteration-21">Kinograph — Best Run (Iteration 21)</h3>
+<div id="fig-kinograph-best" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-kinograph-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="figures/rank_50/kinograph_best.png" class="lightbox" data-gallery="quarto-lightbox-gallery-7" title="Figure&nbsp;7: Kinograph montage for iteration 21. Top-left: ground-truth dc/dt; top-right: GNN prediction; bottom-left: residual (same color scale as GT); bottom-right: predicted vs.&nbsp;true dc/dt scatter (Pearson = 0.33). The GNN captures the dominant oscillatory patterns but misses fine-grained temporal structure."><img src="figures/rank_50/kinograph_best.png" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-kinograph-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7: Kinograph montage for iteration 21. Top-left: ground-truth <span class="math inline">\(dc/dt\)</span>; top-right: GNN prediction; bottom-left: residual (same color scale as GT); bottom-right: predicted vs.&nbsp;true <span class="math inline">\(dc/dt\)</span> scatter (Pearson = 0.33). The GNN captures the dominant oscillatory patterns but misses fine-grained temporal structure.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="learned-mlps" class="level3">
+<h3 class="anchored" data-anchor-id="learned-mlps">Learned MLPs</h3>
 <div>
 
 </div>
 <div class="quarto-layout-panel" data-layout-ncol="2">
 <div class="quarto-layout-row">
-<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
-<div id="fig-mlp-best" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-mlp-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="figures/rank_50/mlp_best.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5" title="Figure&nbsp;5: Iteration 4 (best): Left — MLP_{\text{sub}} learns c^1 well (solid blue near dashed GT) but underestimates c^2 (solid orange below dashed GT). Scale factor \alpha = 0.42 at |s|=1 (should be 1.0). Right — MLP_{\text{node}} (solid) stays flat at zero despite GT (dashed) showing linear homeostatic functions."><img src="figures/rank_50/mlp_best.png" class="img-fluid figure-img"></a>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mlp-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;5: <strong>Iteration 4</strong> (best): <strong>Left</strong> — MLP<span class="math inline">\(_{\text{sub}}\)</span> learns <span class="math inline">\(c^1\)</span> well (solid blue near dashed GT) but underestimates <span class="math inline">\(c^2\)</span> (solid orange below dashed GT). Scale factor <span class="math inline">\(\alpha = 0.42\)</span> at <span class="math inline">\(|s|=1\)</span> (should be 1.0). <strong>Right</strong> — MLP<span class="math inline">\(_{\text{node}}\)</span> (solid) stays flat at zero despite GT (dashed) showing linear homeostatic functions.
-</figcaption>
-</figure>
-</div>
-</div>
 <div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
 <div id="fig-mlp-baseline" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-mlp-baseline-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="figures/rank_50/mlp_baseline.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6" title="Figure&nbsp;6: Iteration 1 (baseline): Same qualitative pattern — MLP_{\text{sub}} learns the shape but with compressed scale (\alpha = 0.39), MLP_{\text{node}} inactive. The MLP_{\text{node}} failure persists across all 8 iterations regardless of hyperparameters."><img src="figures/rank_50/mlp_baseline.png" class="img-fluid figure-img"></a>
+<a href="figures/rank_50/mlp_baseline.png" class="lightbox" data-gallery="quarto-lightbox-gallery-8" title="Figure&nbsp;8: Iteration 1 (baseline). MLP_{\text{sub}}: \alpha at |s|=1 is 0.42 — under-scaled. MLP_{\text{node}}: flat at zero."><img src="figures/rank_50/mlp_baseline.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mlp-baseline-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6: <strong>Iteration 1</strong> (baseline): Same qualitative pattern — MLP<span class="math inline">\(_{\text{sub}}\)</span> learns the shape but with compressed scale (<span class="math inline">\(\alpha = 0.39\)</span>), MLP<span class="math inline">\(_{\text{node}}\)</span> inactive. The MLP<span class="math inline">\(_{\text{node}}\)</span> failure persists across all 8 iterations regardless of hyperparameters.
+Figure&nbsp;8: Iteration 1 (baseline). MLP<span class="math inline">\(_{\text{sub}}\)</span>: <span class="math inline">\(\alpha\)</span> at <span class="math inline">\(|s|=1\)</span> is 0.42 — under-scaled. MLP<span class="math inline">\(_{\text{node}}\)</span>: flat at zero.
+</figcaption>
+</figure>
+</div>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div id="fig-mlp-best" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-mlp-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="figures/rank_50/mlp_best.png" class="lightbox" data-gallery="quarto-lightbox-gallery-9" title="Figure&nbsp;9: Iteration 21 (best R²). MLP_{\text{sub}}: \alpha at |s|=1 is 0.79 — closer to the true scale. MLP_{\text{node}}: still flat at zero across all 32 iterations — homeostasis not learned."><img src="figures/rank_50/mlp_best.png" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mlp-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;9: Iteration 21 (best R²). MLP<span class="math inline">\(_{\text{sub}}\)</span>: <span class="math inline">\(\alpha\)</span> at <span class="math inline">\(|s|=1\)</span> is 0.79 — closer to the true scale. MLP<span class="math inline">\(_{\text{node}}\)</span>: still flat at zero across all 32 iterations — homeostasis not learned.
 </figcaption>
 </figure>
 </div>
@@ -348,17 +590,83 @@ Figure&nbsp;6: <strong>Iteration 1</strong> (baseline): Same qualitative pattern
 </div>
 </div>
 </section>
-<section id="dynamics-prediction" class="level3">
-<h3 class="anchored" data-anchor-id="dynamics-prediction">Dynamics Prediction</h3>
-<div id="fig-kinograph" class="quarto-float quarto-figure quarto-figure-center anchored">
+<section id="block-3-plateau-at-r²-0.69-iter-2532" class="level3">
+<h3 class="anchored" data-anchor-id="block-3-plateau-at-r²-0.69-iter-2532">Block 3: Plateau at R² ≈ 0.69 (Iter 25–32)</h3>
+<p>Eight additional iterations failed to break the R² = 0.69 plateau. Every variation — longer training (<code>aug=5000</code>), higher <code>lr_node</code>, different seeds, smaller batches, stronger regularization — produced equal or worse R².</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 18%">
+<col style="width: 34%">
+<col style="width: 23%">
+<col style="width: 23%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Batch</th>
+<th>Key mutation</th>
+<th>Best R²</th>
+<th>Finding</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>7 (iter 25–28)</td>
+<td><code>aug=5000</code>, seed, batch_size</td>
+<td>0.652</td>
+<td><code>aug=5000</code> hurt R² but <span class="math inline">\(\alpha=0.95\)</span> (best ever)</td>
+</tr>
+<tr class="even">
+<td>8 (iter 29–32)</td>
+<td>L1=0, <code>sub_norm=2.0</code>, lr_k</td>
+<td>0.619</td>
+<td><code>sub_norm=2.0</code>: fewest outliers (14), best slope (0.99)</td>
+</tr>
+</tbody>
+</table>
+<div id="cell-fig-strategies" class="cell" data-execution_count="2">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>strategies <span class="op">=</span> {</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'No k_floor</span><span class="ch">\n</span><span class="st">(Block 1)'</span>: [<span class="fl">0.044</span>, <span class="fl">0.027</span>, <span class="fl">0.044</span>, <span class="fl">0.031</span>, <span class="fl">0.013</span>, <span class="fl">0.067</span>, <span class="fl">0.041</span>, <span class="fl">0.051</span>, <span class="fl">0.054</span>, <span class="fl">0.061</span>, <span class="fl">0.017</span>, <span class="fl">0.061</span>],</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">'k_floor=1.0</span><span class="ch">\n</span><span class="st">aug≤2000'</span>: [<span class="fl">0.508</span>],</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">'k_floor=1.0</span><span class="ch">\n</span><span class="st">aug=3000'</span>: [<span class="fl">0.638</span>, <span class="fl">0.419</span>, <span class="fl">0.658</span>, <span class="fl">0.559</span>, <span class="fl">0.470</span>, <span class="fl">0.373</span>],</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'k_floor=1.0</span><span class="ch">\n</span><span class="st">aug=4000'</span>: [<span class="fl">0.690</span>, <span class="fl">0.652</span>, <span class="fl">0.638</span>, <span class="fl">0.614</span>, <span class="fl">0.600</span>, <span class="fl">0.507</span>, <span class="fl">0.619</span>, <span class="fl">0.530</span>, <span class="fl">0.409</span>],</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'k_floor=1.0</span><span class="ch">\n</span><span class="st">aug=5000'</span>: [<span class="fl">0.652</span>],</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>))</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>positions <span class="op">=</span> []</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, (label, vals) <span class="kw">in</span> <span class="bu">enumerate</span>(strategies.items()):</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> np.random.normal(i, <span class="fl">0.08</span>, <span class="bu">len</span>(vals))</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    ax.scatter(x, vals, s<span class="op">=</span><span class="dv">40</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, zorder<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    ax.plot([i<span class="op">-</span><span class="fl">0.3</span>, i<span class="op">+</span><span class="fl">0.3</span>], [np.mean(vals), np.mean(vals)], <span class="st">'k-'</span>, linewidth<span class="op">=</span><span class="dv">2</span>, zorder<span class="op">=</span><span class="dv">4</span>)</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    positions.append(i)</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>ax.set_xticks(positions)</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>ax.set_xticklabels(<span class="bu">list</span>(strategies.keys()), fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'Raw R²'</span>)</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>ax.set_ylim(<span class="op">-</span><span class="fl">0.05</span>, <span class="fl">0.85</span>)</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>ax.axhline(y<span class="op">=</span><span class="fl">0.690</span>, color<span class="op">=</span><span class="st">'green'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'R² by Strategy Group'</span>)</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>ax.grid(axis<span class="op">=</span><span class="st">'y'</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-display">
+<div id="fig-strategies" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-kinograph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="figures/rank_50/kinograph_best.png" class="lightbox" data-gallery="quarto-lightbox-gallery-7" title="Figure&nbsp;7: Kinograph (iteration 4): Ground truth (top left) vs GNN rollout (bottom left). Despite R^2 = 0.934 on rate constants, the dynamics prediction remains poor (Pearson = 0.054). The GNN produces saturated flat bands instead of oscillations. The residual heatmap (top right) and scatter plot (bottom right) confirm the mismatch. This is the degeneracy gap: good k recovery but poor dynamics, suggesting that MLP_{\text{sub}} and MLP_{\text{node}} errors compound during rollout integration."><img src="figures/rank_50/kinograph_best.png" class="img-fluid figure-img"></a>
+<div aria-describedby="fig-strategies-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="results_files/figure-html/fig-strategies-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-10" title="Figure&nbsp;10: Impact of key strategies on R². Each dot is one iteration. The k_floor penalty is the single most important factor, with training duration as the second lever."><img src="results_files/figure-html/fig-strategies-output-1.png" class="img-fluid figure-img"></a>
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-kinograph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7: <strong>Kinograph (iteration 4)</strong>: Ground truth (top left) vs GNN rollout (bottom left). Despite <span class="math inline">\(R^2 = 0.934\)</span> on rate constants, the dynamics prediction remains poor (Pearson = 0.054). The GNN produces saturated flat bands instead of oscillations. The residual heatmap (top right) and scatter plot (bottom right) confirm the mismatch. This is the <strong>degeneracy gap</strong>: good <span class="math inline">\(k\)</span> recovery but poor dynamics, suggesting that MLP<span class="math inline">\(_{\text{sub}}\)</span> and MLP<span class="math inline">\(_{\text{node}}\)</span> errors compound during rollout integration.
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-strategies-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;10: Impact of key strategies on R². Each dot is one iteration. The k_floor penalty is the single most important factor, with training duration as the second lever.
 </figcaption>
 </figure>
+</div>
+</div>
 </div>
 </section>
 <section id="ucb-exploration-tree" class="level3">
@@ -366,267 +674,68 @@ Figure&nbsp;7: <strong>Kinograph (iteration 4)</strong>: Ground truth (top left)
 <div id="fig-ucb-tree" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-ucb-tree-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="figures/rank_50/ucb_tree.png" class="lightbox" data-gallery="quarto-lightbox-gallery-8" title="Figure&nbsp;8: UCB tree after 8 iterations. Node 4 (R^2 = 0.934, lr_sub: 0.0005 → 0.001) is the best-performing node and parent of 4 child mutations. All nodes are green (R^2 \geq 0.9) except Node 7 (red, R^2 = 0.04) where coeff_MLP_sub_norm=5.0 caused catastrophic failure."><img src="figures/rank_50/ucb_tree.png" class="img-fluid figure-img"></a>
+<a href="figures/rank_50/ucb_tree.png" class="lightbox" data-gallery="quarto-lightbox-gallery-11" title="Figure&nbsp;11: UCB tree after 24 iterations. Each node represents a hyperparameter configuration; color encodes R² (green = high, red = low). The tree shows how the exploration branched from the k_floor=1.0 breakthrough (node 14) and converged on the aug=4000 regime. Node 21 (best R² = 0.69) is highlighted."><img src="figures/rank_50/ucb_tree.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-ucb-tree-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;8: UCB tree after 8 iterations. Node 4 (<span class="math inline">\(R^2 = 0.934\)</span>, <code>lr_sub: 0.0005 → 0.001</code>) is the best-performing node and parent of 4 child mutations. All nodes are green (<span class="math inline">\(R^2 \geq 0.9\)</span>) except Node 7 (red, <span class="math inline">\(R^2 = 0.04\)</span>) where <code>coeff_MLP_sub_norm=5.0</code> caused catastrophic failure.
+Figure&nbsp;11: UCB tree after 24 iterations. Each node represents a hyperparameter configuration; color encodes R² (green = high, red = low). The tree shows how the exploration branched from the <code>k_floor=1.0</code> breakthrough (node 14) and converged on the <code>aug=4000</code> regime. Node 21 (best R² = 0.69) is highlighted.
 </figcaption>
 </figure>
 </div>
-</section>
-<section id="iteration-history" class="level3">
-<h3 class="anchored" data-anchor-id="iteration-history">Iteration History</h3>
-<div id="cell-fig-iterations" class="cell" data-execution_count="1">
-<details class="code-fold">
-<summary>Code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>iters <span class="op">=</span> <span class="bu">list</span>(<span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">9</span>))</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>r2 <span class="op">=</span> [<span class="fl">0.910</span>, <span class="fl">0.903</span>, <span class="fl">0.928</span>, <span class="fl">0.934</span>, <span class="fl">0.926</span>, <span class="fl">0.916</span>, <span class="fl">0.035</span>, <span class="fl">0.907</span>]</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>outliers <span class="op">=</span> [<span class="dv">59</span>, <span class="dv">47</span>, <span class="dv">53</span>, <span class="dv">50</span>, <span class="dv">46</span>, <span class="dv">46</span>, <span class="dv">246</span>, <span class="dv">51</span>]</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> [</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'baseline'</span>,</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">'lr_k=0.01'</span>,</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">'lr_node</span><span class="ch">\n</span><span class="st">=0.0005'</span>,</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">'lr_sub</span><span class="ch">\n</span><span class="st">=0.001</span><span class="ch">\n</span><span class="st">(BEST)'</span>,</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">'+sub_norm</span><span class="ch">\n</span><span class="st">=1.0'</span>,</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">'+k_floor</span><span class="ch">\n</span><span class="st">=1.0'</span>,</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">'+sub_norm</span><span class="ch">\n</span><span class="st">=5.0</span><span class="ch">\n</span><span class="st">(FAIL)'</span>,</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">'node_L1</span><span class="ch">\n</span><span class="st">=0.1'</span>,</span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>colors <span class="op">=</span> []</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> r <span class="kw">in</span> r2:</span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> r <span class="op">&gt;=</span> <span class="fl">0.9</span>:</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>        colors.append(<span class="st">'#2ecc71'</span>)</span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> r <span class="op">&gt;=</span> <span class="fl">0.5</span>:</span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>        colors.append(<span class="st">'#f39c12'</span>)</span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>        colors.append(<span class="st">'#e74c3c'</span>)</span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>fig, ax1 <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">5</span>))</span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>bars <span class="op">=</span> ax1.bar(iters, r2, color<span class="op">=</span>colors, edgecolor<span class="op">=</span><span class="st">'white'</span>, linewidth<span class="op">=</span><span class="fl">0.5</span>, alpha<span class="op">=</span><span class="fl">0.85</span>)</span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>ax1.axhline(y<span class="op">=</span><span class="fl">0.934</span>, color<span class="op">=</span><span class="st">'#2ecc71'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, alpha<span class="op">=</span><span class="fl">0.4</span>, label<span class="op">=</span><span class="st">'Best R² = 0.934'</span>)</span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>ax1.axvspan(<span class="fl">0.5</span>, <span class="fl">4.5</span>, alpha<span class="op">=</span><span class="fl">0.04</span>, color<span class="op">=</span><span class="st">'blue'</span>, label<span class="op">=</span><span class="st">'Batch 1 (initial sweep)'</span>)</span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>ax1.axvspan(<span class="fl">4.5</span>, <span class="fl">8.5</span>, alpha<span class="op">=</span><span class="fl">0.04</span>, color<span class="op">=</span><span class="st">'orange'</span>, label<span class="op">=</span><span class="st">'Batch 2 (regularization)'</span>)</span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, (it, v, lab) <span class="kw">in</span> <span class="bu">enumerate</span>(<span class="bu">zip</span>(iters, r2, labels)):</span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>    ax1.text(it, <span class="bu">max</span>(v <span class="op">+</span> <span class="fl">0.02</span>, <span class="fl">0.06</span>), <span class="ss">f'</span><span class="sc">{</span>v<span class="sc">:.3f}</span><span class="ss">'</span>, ha<span class="op">=</span><span class="st">'center'</span>, va<span class="op">=</span><span class="st">'bottom'</span>, fontsize<span class="op">=</span><span class="dv">8</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>)</span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>    ax1.text(it, <span class="op">-</span><span class="fl">0.08</span>, lab, ha<span class="op">=</span><span class="st">'center'</span>, va<span class="op">=</span><span class="st">'top'</span>, fontsize<span class="op">=</span><span class="dv">7</span>)</span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>ax1.set_xlabel(<span class="st">'Iteration'</span>)</span>
-<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>ax1.set_ylabel(<span class="st">'rate_constants R²'</span>)</span>
-<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>ax1.set_ylim(<span class="op">-</span><span class="fl">0.18</span>, <span class="fl">1.05</span>)</span>
-<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>ax1.set_xticks(iters)</span>
-<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a><span class="co"># outlier count on secondary axis</span></span>
-<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>ax2 <span class="op">=</span> ax1.twinx()</span>
-<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>ax2.plot(iters, outliers, <span class="st">'o'</span>, color<span class="op">=</span><span class="st">'#e67e22'</span>, markersize<span class="op">=</span><span class="dv">5</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">'outliers'</span>)</span>
-<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>ax2.set_ylabel(<span class="st">'outlier count'</span>, color<span class="op">=</span><span class="st">'#e67e22'</span>)</span>
-<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>ax2.tick_params(axis<span class="op">=</span><span class="st">'y'</span>, labelcolor<span class="op">=</span><span class="st">'#e67e22'</span>)</span>
-<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>ax2.set_ylim(<span class="dv">0</span>, <span class="dv">270</span>)</span>
-<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a><span class="co"># combined legend</span></span>
-<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>lines1, labels1 <span class="op">=</span> ax1.get_legend_handles_labels()</span>
-<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>lines2, labels2 <span class="op">=</span> ax2.get_legend_handles_labels()</span>
-<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>ax1.legend(lines1 <span class="op">+</span> lines2, labels1 <span class="op">+</span> labels2, loc<span class="op">=</span><span class="st">'upper right'</span>, fontsize<span class="op">=</span><span class="dv">8</span>)</span>
-<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>ax1.set_title(<span class="st">'UCB Exploration: Rate Constant Recovery (Block 1, 8 iterations)'</span>)</span>
-<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-<div class="cell-output cell-output-display">
-<div id="fig-iterations" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-iterations-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="results_files/figure-html/fig-iterations-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-9" title="Figure&nbsp;9: Rate constants R² and outlier count across 8 iterations. Left axis: R² (bars). Right axis: outlier count (orange line). Iteration 7 (coeff_MLP_sub_norm=5.0) is the only failure."><img src="results_files/figure-html/fig-iterations-output-1.png" class="img-fluid figure-img"></a>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-iterations-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;9: Rate constants R² and outlier count across 8 iterations. Left axis: R² (bars). Right axis: outlier count (orange line). Iteration 7 (coeff_MLP_sub_norm=5.0) is the only failure.
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</section>
-<section id="catastrophic-failure-strong-mlp_textsub-normalization" class="level3">
-<h3 class="anchored" data-anchor-id="catastrophic-failure-strong-mlp_textsub-normalization">Catastrophic Failure: Strong MLP<span class="math inline">\(_{\text{sub}}\)</span> Normalization</h3>
-<div>
-
-</div>
-<div class="quarto-layout-panel" data-layout-ncol="2">
-<div class="quarto-layout-row">
-<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
-<div id="fig-k-failed" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-k-failed-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="figures/rank_50/rate_constants_failed.png" class="lightbox" data-gallery="quarto-lightbox-gallery-10" title="Figure&nbsp;10: Iteration 7 (R^2 = 0.035, 246 outliers): coeff_MLP_sub_norm=5.0 destabilized training. Nearly all 256 reactions became outliers. Interestingly, \alpha = 0.80 moved closer to the target 1.0 — but at the cost of destroying rate constant recovery entirely."><img src="figures/rank_50/rate_constants_failed.png" class="img-fluid figure-img"></a>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-k-failed-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;10: <strong>Iteration 7</strong> (<span class="math inline">\(R^2 = 0.035\)</span>, 246 outliers): <code>coeff_MLP_sub_norm=5.0</code> destabilized training. Nearly all 256 reactions became outliers. Interestingly, <span class="math inline">\(\alpha = 0.80\)</span> moved closer to the target 1.0 — but at the cost of destroying rate constant recovery entirely.
-</figcaption>
-</figure>
-</div>
-</div>
-<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
-<div id="tbl-sub-norm" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-tbl figure">
-<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-sub-norm-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;1: MLP<span class="math inline">\(_{\text{sub}}\)</span> normalization penalty. The penalty pushes <span class="math inline">\(\alpha\)</span> toward 1.0 but is harmful above 1.0.
-</figcaption>
-<div aria-describedby="tbl-sub-norm-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th style="text-align: center;">coeff_MLP_sub_norm</th>
-<th style="text-align: center;"><span class="math inline">\(R^2\)</span></th>
-<th style="text-align: center;">outliers</th>
-<th style="text-align: center;"><span class="math inline">\(\alpha\)</span></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: center;">0.0</td>
-<td style="text-align: center;"><strong>0.934</strong></td>
-<td style="text-align: center;">50</td>
-<td style="text-align: center;">0.47</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;">1.0</td>
-<td style="text-align: center;">0.926</td>
-<td style="text-align: center;">46</td>
-<td style="text-align: center;">0.43</td>
-</tr>
-<tr class="odd">
-<td style="text-align: center;"><strong>5.0</strong></td>
-<td style="text-align: center;">0.035</td>
-<td style="text-align: center;">246</td>
-<td style="text-align: center;">0.80</td>
-</tr>
-</tbody>
-</table>
-</div>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</section>
-<section id="key-findings" class="level3">
-<h3 class="anchored" data-anchor-id="key-findings">Key Findings</h3>
-<section id="lr_sub-0.001-improves-rate-constant-recovery" class="level4">
-<h4 class="anchored" data-anchor-id="lr_sub-0.001-improves-rate-constant-recovery">1. <code>lr_sub = 0.001</code> improves rate constant recovery</h4>
-<p>Increasing the MLP<span class="math inline">\(_{\text{sub}}\)</span> learning rate from 0.0005 to 0.001 produced the best result (<span class="math inline">\(R^2 = 0.934\)</span>, slope <span class="math inline">\(= 0.964\)</span>). Faster MLP<span class="math inline">\(_{\text{sub}}\)</span> learning helps it better approximate <span class="math inline">\(c^s\)</span>, which reduces the compensation burden on <span class="math inline">\(k\)</span>.</p>
-</section>
-<section id="mlp_textnode-does-not-learn-homeostasis" class="level4">
-<h4 class="anchored" data-anchor-id="mlp_textnode-does-not-learn-homeostasis">2. MLP<span class="math inline">\(_{\text{node}}\)</span> does not learn homeostasis</h4>
-<p>Across all 8 iterations, MLP<span class="math inline">\(_{\text{node}}\)</span> stays flat at zero (<a href="#fig-mlp-best" class="quarto-xref">Figure&nbsp;5</a>, <a href="#fig-mlp-baseline" class="quarto-xref">Figure&nbsp;6</a>, right panels). This persists regardless of:</p>
-<ul>
-<li>Lower <code>lr_node</code> (0.0005): no effect</li>
-<li>Higher <code>lr_k</code> (0.01): no effect</li>
-<li>Reduced L1 penalty (<code>coeff_MLP_node_L1</code> = 0.1): no effect</li>
-</ul>
-<p>The homeostatic terms (<span class="math inline">\(\lambda \sim 0.001\)</span>–<span class="math inline">\(0.002\)</span>) are $<span class="math inline">\(100\)</span>$ smaller than the reaction rate terms (<span class="math inline">\(k \sim 0.01\)</span>–<span class="math inline">\(0.1\)</span>). The gradient signal flowing to MLP<span class="math inline">\(_{\text{node}}\)</span> may be insufficient to escape the zero initialization.</p>
-</section>
-<section id="regularization-hurts-more-than-it-helps" class="level4">
-<h4 class="anchored" data-anchor-id="regularization-hurts-more-than-it-helps">3. Regularization hurts more than it helps</h4>
-<p>All tested regularization terms worsened <span class="math inline">\(R^2\)</span> relative to the unregularized parent (iter 4):</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th style="text-align: left;">Regularization</th>
-<th style="text-align: center;"><span class="math inline">\(R^2\)</span></th>
-<th style="text-align: center;"><span class="math inline">\(\Delta R^2\)</span></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">None (iter 4)</td>
-<td style="text-align: center;"><strong>0.934</strong></td>
-<td style="text-align: center;">—</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;"><code>coeff_MLP_sub_norm=1.0</code></td>
-<td style="text-align: center;">0.926</td>
-<td style="text-align: center;">–0.008</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;"><code>coeff_k_floor=1.0</code></td>
-<td style="text-align: center;">0.916</td>
-<td style="text-align: center;">–0.018</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;"><code>coeff_MLP_node_L1=0.1</code></td>
-<td style="text-align: center;">0.907</td>
-<td style="text-align: center;">–0.027</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;"><code>coeff_MLP_sub_norm=5.0</code></td>
-<td style="text-align: center;">0.035</td>
-<td style="text-align: center;">–0.899</td>
-</tr>
-</tbody>
-</table>
-<p>The current best strategy is no extra regularization — only the default <code>coeff_MLP_sub_diff=5</code> and <code>coeff_MLP_node_L1=1.0</code>.</p>
-</section>
-<section id="persistent-outlier-reactions-20" class="level4">
-<h4 class="anchored" data-anchor-id="persistent-outlier-reactions-20">4. Persistent outlier reactions (~20%)</h4>
-<p>Approximately 50 of 256 reactions (20%) consistently learn incorrect <span class="math inline">\(\log_{10}(k)\)</span> values, collapsing to <span class="math inline">\(-3\)</span> to <span class="math inline">\(-10\)</span> (far from the true range <span class="math inline">\([-2, -1]\)</span>). These outliers are stable across configurations and may correspond to reactions whose substrate concentrations provide insufficient gradient signal.</p>
-</section>
-<section id="scale-ambiguity-alpha-approx-0.4" class="level4">
-<h4 class="anchored" data-anchor-id="scale-ambiguity-alpha-approx-0.4">5. Scale ambiguity (<span class="math inline">\(\alpha \approx 0.4\)</span>)</h4>
-<p>MLP<span class="math inline">\(_{\text{sub}}\)</span> learns <span class="math inline">\(\alpha \cdot c^s\)</span> with <span class="math inline">\(\alpha \approx 0.4\)</span> instead of <span class="math inline">\(c^s\)</span> (<span class="math inline">\(\alpha = 1.0\)</span>). The post-hoc scalar correction compensates for this (gray → black dots in <a href="#fig-k-best" class="quarto-xref">Figure&nbsp;3</a>), but the <span class="math inline">\(|s|=2\)</span> curve remains underestimated. Stronger normalization penalties destabilize training (<a href="#tbl-sub-norm" class="quarto-xref">Table&nbsp;1</a>).</p>
-</section>
 </section>
 <section id="established-principles" class="level3">
 <h3 class="anchored" data-anchor-id="established-principles">Established Principles</h3>
-<p>The LLM’s persistent memory has accumulated these validated principles after 8 iterations:</p>
+<p>The LLM’s persistent memory has accumulated these validated principles after 32 iterations:</p>
 <ol type="1">
-<li><strong><code>lr_sub=0.001</code> helps</strong> (confidence: medium) — higher <code>lr_sub</code> improves <span class="math inline">\(R^2\)</span> and slope</li>
-<li><strong><code>coeff_MLP_sub_norm &gt; 1.0</code> is harmful</strong> (confidence: high) — catastrophic at 5.0, marginal at 1.0</li>
-<li><strong>MLP<span class="math inline">\(_{\text{node}}\)</span> does not learn from reduced L1 alone</strong> (confidence: medium) — gradient signal issue</li>
-<li><strong><code>coeff_k_floor</code> doesn’t reduce outliers</strong> (confidence: medium) — same count, worse <span class="math inline">\(R^2\)</span></li>
+<li><strong><code>coeff_MLP_sub_norm=1.0</code> is essential</strong> — enables correct MLP shapes: c² becomes quadratic, MLP<span class="math inline">\(_{\text{node}}\)</span> activates</li>
+<li><strong><code>coeff_k_floor=1.0</code> is critical</strong> — R² jumped from 0.06 to 0.51 (10× improvement). <code>k_floor=2.0</code> too strong.</li>
+<li><strong>Longer training helps (up to <code>aug=4000</code>)</strong> — aug=2000→3000→4000 consistently improves R². aug=5000 hurts R².</li>
+<li><strong><code>lr_k=0.005</code> is optimal</strong> — lower (0.003) too slow, higher (0.01) destabilizes</li>
+<li><strong><code>k_floor_threshold=-2.0</code> matches <span class="math inline">\(\log k_{\min}\)</span></strong> — tighter threshold (-2.5) worsens R²</li>
+<li><strong><code>coeff_MLP_node_L1=0.0</code> + long training don’t combine</strong> — harmful interaction</li>
+<li><strong>MLP<span class="math inline">\(_{\text{node}}\)</span> remains flat across all 32 iterations</strong> — homeostasis <span class="math inline">\(-\lambda(c - c^{\text{base}})\)</span> is never learned, regardless of configuration</li>
 </ol>
 </section>
-<section id="current-status" class="level3">
-<h3 class="anchored" data-anchor-id="current-status">Current Status</h3>
-<p>The exploration continues into <strong>Block 2</strong> with planned strategies:</p>
+<section id="refuted-hypotheses" class="level3">
+<h3 class="anchored" data-anchor-id="refuted-hypotheses">Refuted Hypotheses</h3>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 23%">
-<col style="width: 38%">
-<col style="width: 38%">
+<col style="width: 55%">
+<col style="width: 45%">
 </colgroup>
 <thead>
 <tr class="header">
-<th>Slot</th>
-<th>Strategy</th>
-<th>Mutation</th>
+<th>Hypothesis</th>
+<th>Evidence</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>0</td>
-<td>exploit</td>
-<td><code>lr_sub</code> → 0.002 (push further)</td>
+<td>Recurrent training breaks degeneracy</td>
+<td>No R² improvement, 3.5× slower (iter 13)</td>
 </tr>
 <tr class="even">
-<td>1</td>
-<td>exploit</td>
-<td><code>lr_node</code> → 0.002 (wake up MLP<span class="math inline">\(_{\text{node}}\)</span>)</td>
+<td>Smaller MLP improves k recovery</td>
+<td>Worst R² = 0.011 (iter 15)</td>
 </tr>
 <tr class="odd">
-<td>2</td>
-<td>explore</td>
-<td><code>recurrent_training=true</code>, <code>time_step=4</code></td>
+<td>Higher <code>lr_node</code> activates MLP<span class="math inline">\(_{\text{node}}\)</span></td>
+<td><code>lr_node=0.005</code> hurts (iter 11); 0.002 no effect (iter 26)</td>
 </tr>
 <tr class="even">
-<td>3</td>
-<td>boundary-probe</td>
-<td><code>data_augmentation_loop</code> → 2000 (longer training)</td>
+<td>Different seed breaks degeneracy</td>
+<td>Same MLP<span class="math inline">\(_{\text{node}}\)</span> flatness (iter 27)</td>
+</tr>
+<tr class="odd">
+<td>Stronger monotonicity (<code>sub_diff=10</code>) helps</td>
+<td>R² dropped to 0.41 (iter 32)</td>
+</tr>
+<tr class="even">
+<td>Smaller batch size helps convergence</td>
+<td>R² dropped (iter 28)</td>
+</tr>
+<tr class="odd">
+<td><code>aug=5000</code> continues to improve</td>
+<td>R² dropped from 0.69 to 0.65 (iter 25)</td>
 </tr>
 </tbody>
 </table>
@@ -634,10 +743,9 @@ Table&nbsp;1: MLP<span class="math inline">\(_{\text{sub}}\)</span> normalizatio
 <section id="open-questions" class="level3">
 <h3 class="anchored" data-anchor-id="open-questions">Open Questions</h3>
 <ol type="1">
-<li><strong>MLP<span class="math inline">\(_{\text{node}}\)</span> activation</strong>: Can <code>lr_node</code> = 0.005–0.01 finally activate homeostasis learning?</li>
-<li><strong>Outlier structure</strong>: What structural property do the ~50 outlier reactions share? Are they in specific network motifs?</li>
-<li><strong>Recurrent training</strong>: Can multi-step rollout break the degeneracy between correct and incorrect <span class="math inline">\(k\)</span> values?</li>
-<li><strong>MLP architecture</strong>: Would smaller networks (<code>hidden_dim=32</code>, <code>n_layers=2</code>) act as implicit regularization?</li>
+<li><strong>Why does R² plateau at 0.69?</strong> Is this a fundamental limit of single-step training with the current loss function?</li>
+<li><strong>Can recurrent training break the plateau with the optimal config?</strong> Previous test (iter 13) was before k_floor.</li>
+<li><strong>Is the remaining 31% error from identifiability issues?</strong> Multiple <span class="math inline">\(k\)</span> combinations may produce similar <span class="math inline">\(dc/dt\)</span>.</li>
 </ol>
 
 

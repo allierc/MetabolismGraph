@@ -127,11 +127,18 @@ The reported `rate_constants_R2` is computed on these corrected values against t
 | Learning rate sub | `learning_rate_sub` | MLP$_{\text{sub}}$ update speed | 1E-4 to 1E-2 |
 | Batch size | `batch_size` | Time frames per gradient step | 4 to 32 |
 | Training iterations | `data_augmentation_loop` | Multiplier for iterations per epoch | 100 to 5000 |
+| Epochs | `n_epochs` | Number of training epochs | 1 to 5 |
+| Time step | `time_step` | Steps per gradient update (1 = single-step, >1 = recurrent rollout) | 1 to 8 |
+| Recurrent training | `recurrent_training` | Enable multi-step rollout training | true / false |
 | MLP$_{\text{sub}}$ monotonicity | `coeff_MLP_sub_diff` | Penalize non-increasing MLP$_{\text{sub}}$ | 0 to 500 |
 | MLP$_{\text{node}}$ L1 | `coeff_MLP_node_L1` | Penalize large homeostasis output | 0 to 10 |
 | MLP$_{\text{sub}}$ normalization | `coeff_MLP_sub_norm` | Pin MLP$_{\text{sub}}(c{=}1, |s|{=}1)$ to 1 | 0 to 10 |
 | Rate constant floor | `coeff_k_floor` | Penalize $\log k$ below threshold | 0 to 10 |
 | Floor threshold | `k_floor_threshold` | Threshold for k floor penalty | $-3$ (default) |
+| MLP$_{\text{sub}}$ hidden dim | `hidden_dim_sub` | Hidden layer width for substrate MLP | 16 to 128 |
+| MLP$_{\text{sub}}$ layers | `n_layers_sub` | Number of layers for substrate MLP | 2 to 5 |
+| MLP$_{\text{node}}$ hidden dim | `hidden_dim_node` | Hidden layer width for homeostasis MLP | 16 to 128 |
+| MLP$_{\text{node}}$ layers | `n_layers_node` | Number of layers for homeostasis MLP | 2 to 5 |
 
 ---
 
@@ -139,22 +146,27 @@ The reported `rate_constants_R2` is computed on these corrected values against t
 
 | Metric | Description | Good value |
 |--------|-------------|------------|
-| `rate_constants_R2` | R² between learned and true rate constants $k$ (after scalar correction) | > 0.9 |
-| `test_R2` | R² on held-out test frames | > 0.9 |
+| `rate_constants_R2` | R² between learned and true rate constants $k$ (after scalar correction, excluding outliers) | > 0.9 |
+| `n_outliers` | Number of reactions with $|\Delta \log_{10} k| > 0.3$ (factor of 2 error in $k$-space) | < 25 |
+| `slope` | Slope of linear fit between learned and true $\log_{10} k$. Slope $< 1$ means the learned range is compressed. | $\approx 1.0$ |
+| `test_R2` | R² on held-out test frames (rollout prediction) | > 0.9 |
 | `test_pearson` | Pearson correlation on test frames | > 0.95 |
 | `final_loss` | Final prediction loss (MSE on $dc/dt$) | Lower is better |
 | `alpha` | MLP$_{\text{sub}}$ scale factor $\alpha = \|\text{MLP}_{\text{sub}}(c{=}1, |s|{=}1)\|$. Ideal value is 1.0 — indicates MLP$_{\text{sub}}$ has learned the correct scale. Deviations from 1 indicate residual scale ambiguity that the scalar correction must compensate for. | $\approx 1.0$ |
 
 ### Diagnostic Interpretation
 
-The **degeneracy gap** = `test_pearson` $-$ `rate_constants_R2` diagnoses whether the model found the true rate constants or a degenerate solution:
+The relationship between `rate_constants_R2` and `test_pearson` diagnoses whether the model found the true rate constants or a degenerate solution:
 
-| test_pearson | $R^2$ | Gap | Diagnosis |
-|:------------:|:-----:|:---:|-----------|
-| > 0.95 | > 0.9 | < 0.1 | **Healthy** — good dynamics from correct $k$ |
-| > 0.95 | 0.3--0.9 | 0.1--0.7 | **Degenerate** — good dynamics from wrong $k$ |
-| > 0.95 | < 0.3 | > 0.7 | **Severely degenerate** — MLPs compensating |
-| < 0.5 | < 0.5 | ~0 | **Failed** — both dynamics and $k$ poor |
+| test_pearson | $R^2$ | Diagnosis |
+|:------------:|:-----:|-----------|
+| > 0.95 | > 0.9 | **Healthy** — good dynamics from correct $k$ |
+| > 0.95 | 0.3--0.9 | **Degenerate** — good dynamics from wrong $k$ (MLPs compensate) |
+| > 0.95 | < 0.3 | **Severely degenerate** — MLPs absorb all dynamics |
+| < 0.5 | > 0.9 | **Good $k$, poor rollout** — rate constants correct but MLP errors compound during integration |
+| < 0.5 | < 0.5 | **Failed** — both dynamics and $k$ poor |
+
+The current oscillatory regime experiments show the **good $k$, poor rollout** pattern: $R^2 \approx 0.93$ but Pearson $\approx 0.05$. The MLP$_{\text{sub}}$ scale compression ($\alpha \approx 0.4$) and MLP$_{\text{node}}$ failure (flat at zero) produce errors that accumulate during multi-step rollout, even though the rate constants themselves are well-recovered.
 
 ---
 

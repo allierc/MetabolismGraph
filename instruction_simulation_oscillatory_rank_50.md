@@ -143,6 +143,7 @@ The following metrics are written to `analysis.log` at the end of training:
 | `final_loss` | Final prediction loss (MSE on dc/dt) | Lower is better |
 | `rate_constants_R2` | Trimmed R² between learned and true rate constants k (excluding outlier reactions where \|Δlog_k\| > 0.3, after MLP_sub scalar correction) | > 0.9 |
 | `n_outliers` | Number of outlier reactions excluded from R² (reactions with \|corrected_log_k − gt_log_k\| > 0.3, i.e. factor of 2 error) | < 10% of n_reactions |
+| `slope` | Slope of linear fit (learned vs true log_k). slope < 1 means learned k range is compressed vs true range. | ~1.0 |
 | `test_R2` | R² on held-out test frames | > 0.9 |
 | `test_pearson` | Pearson correlation on test frames | > 0.95 |
 | `alpha` | MLP_sub scale factor α = ‖substrate_func(c=1, \|s\|=1)‖. Measures how far MLP_sub deviates from unit normalization. α > 1 means MLP_sub is amplifying, α < 1 means compressing. The scalar correction adjusts k by α^{n_substrates} | ~1.0 |
@@ -212,15 +213,15 @@ Append to Full Log (`{config}_analysis.md`) and Working Memory (`{config}_memory
 Node: id=N, parent=P
 Mode/Strategy: [exploit/explore/boundary]
 Config: seed=S, lr_k=X, lr_node=Y, lr_sub=Z, batch_size=B, n_epochs=E, data_augmentation_loop=A, coeff_MLP_node_L1=L, coeff_MLP_sub_norm=N, coeff_k_floor=K
-Metrics: rate_constants_R2=C, n_outliers=N, test_R2=A, test_pearson=B, final_loss=E, alpha=A
-Visual: MLP_sub=[good/partial/bad: brief description], MLP_node=[good/partial/bad: brief description], k_scatter=[good/partial/bad: brief description]
+Metrics: rate_constants_R2=C, n_outliers=N, slope=S, test_R2=A, test_pearson=B, final_loss=E, alpha=A
+Visual: MLP_sub=[good/partial/bad: brief description], MLP_node=[good/partial/bad: brief description]
 Mutation: [param]: [old] -> [new]
 Parent rule: [one line]
 Observation: [one line]
 Next: parent=P
 ```
 
-**CRITICAL**: The `Visual:` line must describe what you see in the last MLP_sub, MLP_node, and rate constants scatter plots. Example: `Visual: MLP_sub=good: c^1 and c^2 match GT, MLP_node=bad: values ~5 flat plateaus, k_scatter=partial: correlated but offset R²=0.6`
+**CRITICAL**: The `Visual:` line must describe what you see in the last MLP_sub and MLP_node plots. Example: `Visual: MLP_sub=good: c^1 and c^2 match GT, MLP_node=bad: values ~5 flat plateaus`
 
 **CRITICAL**: The `Mutation:` line is parsed by the UCB tree builder. Always include the exact parameter change.
 

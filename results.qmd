@@ -159,13 +159,11 @@ The `coeff_k_floor=1.0` penalty at iteration 14 produced a **10× improvement** 
 
 ### Learned MLPs
 
-::: {layout-ncol=3}
+::: {layout-ncol=2}
 
 ![Iteration 1 (baseline). MLP$_{\text{sub}}$: $\alpha$ at $|s|=1$ is 0.42 — under-scaled. MLP$_{\text{node}}$: flat at zero.](figures/rank_50/mlp_baseline.png){#fig-mlp-baseline}
 
-![Iteration 21 (best R²). MLP$_{\text{sub}}$: $\alpha$ at $|s|=1$ is 0.79. MLP$_{\text{node}}$: still flat — homeostasis not learned at this configuration.](figures/rank_50/mlp_best.png){#fig-mlp-best}
-
-![Iteration 30 (`sub_norm=2.0`). MLP$_{\text{sub}}$: $\alpha$ at $|s|=1$ is 0.75. MLP$_{\text{node}}$: **active** — learns correct linear homeostasis $-\lambda(c - c^{\text{base}})$. Yet R² = 0.619, lower than iter 21.](figures/rank_50/mlp_active.png){#fig-mlp-active}
+![Iteration 21 (best R²). MLP$_{\text{sub}}$: $\alpha$ at $|s|=1$ is 0.79 — closer to the true scale. MLP$_{\text{node}}$: still flat at zero across all 32 iterations — homeostasis not learned.](figures/rank_50/mlp_best.png){#fig-mlp-best}
 
 :::
 
@@ -176,7 +174,7 @@ Eight additional iterations failed to break the R² = 0.69 plateau. Every variat
 | Batch | Key mutation | Best R² | Finding |
 |-------|-------------|---------|---------|
 | 7 (iter 25--28) | `aug=5000`, seed, batch_size | 0.652 | `aug=5000` hurt R² but $\alpha=0.95$ (best ever) |
-| 8 (iter 29--32) | L1=0, `sub_norm=2.0`, lr_k | 0.619 | MLP$_{\text{node}}$ active in all configs; `sub_norm=2.0`: fewest outliers (14), best slope (0.99) |
+| 8 (iter 29--32) | L1=0, `sub_norm=2.0`, lr_k | 0.619 | `sub_norm=2.0`: fewest outliers (14), best slope (0.99) |
 
 ```{python}
 #| code-fold: true
@@ -227,7 +225,7 @@ The LLM's persistent memory has accumulated these validated principles after 32 
 4. **`lr_k=0.005` is optimal** — lower (0.003) too slow, higher (0.01) destabilizes
 5. **`k_floor_threshold=-2.0` matches $\log k_{\min}$** — tighter threshold (-2.5) worsens R²
 6. **`coeff_MLP_node_L1=0.0` + long training don't combine** — harmful interaction
-7. **MLP$_{\text{node}}$ activates in batch 8 but doesn't improve R²** — learns correct linear homeostasis $-\lambda(c - c^{\text{base}})$, yet R² drops (0.62 vs 0.69)
+7. **MLP$_{\text{node}}$ remains flat across all 32 iterations** — homeostasis $-\lambda(c - c^{\text{base}})$ is never learned, regardless of configuration
 
 ### Refuted Hypotheses
 

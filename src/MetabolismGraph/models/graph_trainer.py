@@ -1556,6 +1556,7 @@ def _compare_functions(model, gt_model, x, device, cluster_distance_threshold=0.
     # For each metabolite, sweep concentration, fit y = a*x + b
     # Compare learned slope to GT slope (-λ_type)
     if hasattr(model, 'node_func') and gt_model is not None and hasattr(gt_model, 'p'):
+      with torch.no_grad():
         p_node = gt_model.p.detach().cpu()
         n_met = model.a.shape[0]
         metabolite_types = x[:, 6].long()

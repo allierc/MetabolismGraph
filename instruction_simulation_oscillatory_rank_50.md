@@ -150,6 +150,9 @@ The following metrics are written to `analysis.log` at the end of training:
 | `alpha` | MLP_sub scale factor α = ‖substrate_func(c=1, \|s\|=1)‖. Measures how far MLP_sub deviates from unit normalization. α > 1 means MLP_sub is amplifying, α < 1 means compressing. The scalar correction adjusts k by α^{n_substrates} | ~1.0 |
 | `MLP_node_slope_t` | Mean learned slope of MLP_node for type t metabolites (from linear fit y=ax+b over concentration sweep). Compare to `MLP_node_gt_slope_t` (= −λ_t). If learned ≈ GT, homeostasis is learned. If ≈ 0, homeostasis inactive. | ≈ GT slope |
 | `MLP_node_gt_slope_t` | Ground-truth slope −λ_t for type t metabolites. This is the target for `MLP_node_slope_t`. | Reference |
+| `embedding_cluster_acc` | Cluster accuracy of learned embeddings a_i vs GT metabolite types (DBSCAN + Hungarian optimal mapping). Measures whether embeddings separate the two metabolite types into distinct clusters. | 1.0 |
+| `embedding_n_clusters` | Number of clusters found by DBSCAN in the embedding space. Should match the number of metabolite types (2). | 2 |
+| `embedding_silhouette` | Silhouette score of the embedding clustering. Higher means tighter, more separated clusters. | > 0.5 |
 
 ### Interpretation
 
@@ -217,7 +220,7 @@ Append to Full Log (`{config}_analysis.md`) and Working Memory (`{config}_memory
 Node: id=N, parent=P
 Mode/Strategy: [exploit/explore/boundary]
 Config: seed=S, lr_k=X, lr_node=Y, lr_sub=Z, batch_size=B, n_epochs=E, data_augmentation_loop=A, coeff_MLP_node_L1=L, coeff_MLP_sub_norm=N, coeff_k_floor=K
-Metrics: rate_constants_R2=C, trimmed_R2=T, n_outliers=N, slope=S, test_R2=A, test_pearson=B, final_loss=E, alpha=A, MLP_node_slope_0=X, MLP_node_gt_slope_0=Y, MLP_node_slope_1=X, MLP_node_gt_slope_1=Y
+Metrics: rate_constants_R2=C, trimmed_R2=T, n_outliers=N, slope=S, test_R2=A, test_pearson=B, final_loss=E, alpha=A, MLP_node_slope_0=X, MLP_node_gt_slope_0=Y, MLP_node_slope_1=X, MLP_node_gt_slope_1=Y, embedding_cluster_acc=A, embedding_n_clusters=N
 Visual: MLP_sub=[good/partial/bad: brief description], MLP_node=[active/inactive: compare MLP_node_slope_t to MLP_node_gt_slope_t]
 Mutation: [param]: [old] -> [new]
 Parent rule: [one line]

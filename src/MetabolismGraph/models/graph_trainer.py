@@ -681,6 +681,13 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
             learned = func_metrics[f'MLP_node_slope_{t}']
             gt = func_metrics[f'MLP_node_gt_slope_{t}']
             print(f"  MLP_node type {t}: slope={learned:.6f} (GT: {gt:.6f})")
+    if 'embedding_cluster_acc' in func_metrics:
+        acc = func_metrics['embedding_cluster_acc']
+        nc = func_metrics['embedding_n_clusters']
+        sil_str = ''
+        if 'embedding_silhouette' in func_metrics:
+            sil_str = f', silhouette={func_metrics["embedding_silhouette"]:.4f}'
+        print(f"  embedding clusters: {nc} found, accuracy={acc:.4f}{sil_str}")
     logger.info(f"final prediction loss: {final_loss:.6f}")
     logger.info(f"{r2_name} R2: {final_r2:.4f}")
     logger.info(f"MLP_sub R2: {func_metrics['MLP_sub_r2']:.4f}")
@@ -699,6 +706,11 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
             for t in range(func_metrics.get('n_types', 0)):
                 log_file.write(f"MLP_node_slope_{t}: {func_metrics[f'MLP_node_slope_{t}']:.6f}\n")
                 log_file.write(f"MLP_node_gt_slope_{t}: {func_metrics[f'MLP_node_gt_slope_{t}']:.6f}\n")
+        if 'embedding_cluster_acc' in func_metrics:
+            log_file.write(f"embedding_cluster_acc: {func_metrics['embedding_cluster_acc']:.4f}\n")
+            log_file.write(f"embedding_n_clusters: {func_metrics['embedding_n_clusters']}\n")
+            if 'embedding_silhouette' in func_metrics:
+                log_file.write(f"embedding_silhouette: {func_metrics['embedding_silhouette']:.4f}\n")
 
 
 def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=None, log_file=None):
@@ -1125,11 +1137,12 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
     # --- MLP_node: per-metabolite homeostasis function ---
     # MLP_node(c_i, a_i) learns -λ_i(c_i - c_baseline)
     # Plot for ALL metabolites using their individual embeddings a_i
+    type_colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red']
+
     with torch.no_grad():
         metabolite_types = x[:, 6].long()
         n_types = metabolite_types.max().item() + 1
         n_met = model.a.shape[0]
-        cmap = plt.cm.get_cmap('tab10')
 
         fig, ax = plt.subplots(figsize=(8, 8))
 
@@ -1145,7 +1158,8 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
             homeostasis = model.node_func(node_in).squeeze(-1)
 
             h_np = to_numpy(homeostasis)
-            ax.plot(c_np, h_np, linewidth=1, color=cmap(t), alpha=0.3)
+            ax.plot(c_np, h_np, linewidth=1, color=type_colors[t % len(type_colors)],
+                    alpha=0.3)
 
             # linear fit y = a*x + b
             coeffs = np.polyfit(c_np, h_np, 1)  # [slope, intercept]
@@ -1155,7 +1169,8 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
         for t in sorted(fits_by_type.keys()):
             for slope, intercept in fits_by_type[t]:
                 fit_line = slope * c_np + intercept
-                ax.plot(c_np, fit_line, linewidth=0.5, color=cmap(t),
+                ax.plot(c_np, fit_line, linewidth=0.5,
+                        color=type_colors[t % len(type_colors)],
                         alpha=0.15, linestyle='-')
 
         # plot mean linear fit per type (thick)
@@ -1165,7 +1180,8 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
             mean_slope = np.mean(slopes)
             mean_intercept = np.mean(intercepts)
             mean_fit = mean_slope * c_np + mean_intercept
-            ax.plot(c_np, mean_fit, linewidth=2.5, color=cmap(t),
+            ax.plot(c_np, mean_fit, linewidth=2.5,
+                    color=type_colors[t % len(type_colors)],
                     linestyle='-', label=f'fit type {t}: slope={mean_slope:.4f}')
 
         # GT homeostasis if available: -λ_t * (c - c_baseline_t)
@@ -1176,10 +1192,13 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
                     lambda_t = p[t, 0]
                     c_baseline_t = p[t, 1]
                     gt_homeostasis = -lambda_t * (c_np - c_baseline_t)
-                    ax.plot(c_np, gt_homeostasis, linewidth=2, color=cmap(t),
-                            linestyle='--', label=f'GT type {t}: slope={-lambda_t:.4f}')
-                    ax.axvline(x=c_baseline_t, color=cmap(t), linestyle=':',
-                               alpha=0.3)
+                    ax.plot(c_np, gt_homeostasis, linewidth=2,
+                            color=type_colors[t % len(type_colors)],
+                            linestyle='--',
+                            label=f'GT type {t}: slope={-lambda_t:.4f}')
+                    ax.axvline(x=c_baseline_t,
+                               color=type_colors[t % len(type_colors)],
+                               linestyle=':', alpha=0.3)
 
         ax.axhline(y=0, color='gray', linestyle='-', alpha=0.3)
         ax.set_xlabel('concentration $c$', fontsize=14)
@@ -1209,7 +1228,6 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
     with torch.no_grad():
         metabolite_types = x[:, 6].long()
         n_types = metabolite_types.max().item() + 1
-        cmap = plt.cm.get_cmap('tab10')
 
         fig, ax = plt.subplots(figsize=(8, 8))
 
@@ -1219,11 +1237,13 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
             if len(pos) == 0:
                 continue
             pos_np = to_numpy(pos)
-            ax.scatter(a_np[pos_np, 0], a_np[pos_np, 1], s=50, color=cmap(t),
-                       alpha=0.7, edgecolors=None)
+            ax.scatter(a_np[pos_np, 0], a_np[pos_np, 1], s=50,
+                       color=type_colors[t % len(type_colors)],
+                       alpha=0.7, edgecolors=None, label=f'type {t}')
 
         ax.set_xlabel('embedding 0', fontsize=14)
         ax.set_ylabel('embedding 1', fontsize=14)
+        ax.legend(fontsize=10)
         ax.tick_params(labelsize=12)
 
     plt.tight_layout()
@@ -1559,5 +1579,54 @@ def _compare_functions(model, gt_model, x, device):
                 learned_slopes = slopes_by_type.get(t, [0.0])
                 result[f'MLP_node_slope_{t}'] = float(np.mean(learned_slopes))
                 result[f'MLP_node_gt_slope_{t}'] = float(gt_slope)
+
+    # --- Embedding cluster accuracy ---
+    # DBSCAN clustering of learned embeddings a_i, compared to GT type labels
+    if hasattr(model, 'a') and x is not None:
+        try:
+            from sklearn.cluster import DBSCAN
+            from sklearn.metrics import accuracy_score, silhouette_score
+            from scipy.optimize import linear_sum_assignment
+
+            a_np = model.a.detach().cpu().numpy()
+            true_labels = x[:, 6].long().cpu().numpy().flatten()
+            n_types_emb = int(true_labels.max()) + 1
+
+            # auto-select eps: median pairwise distance / 2
+            from scipy.spatial.distance import pdist
+            dists = pdist(a_np)
+            eps = float(np.median(dists) / 2) if len(dists) > 0 else 0.5
+
+            dbscan = DBSCAN(eps=eps, min_samples=5)
+            cluster_labels = dbscan.fit_predict(a_np)
+
+            n_clusters_found = len(set(cluster_labels)) - (1 if -1 in cluster_labels else 0)
+
+            # assign noise to separate cluster
+            cluster_labels_clean = cluster_labels.copy()
+            cluster_labels_clean[cluster_labels_clean == -1] = n_clusters_found
+
+            # optimal label mapping via Hungarian algorithm
+            n_true = len(np.unique(true_labels))
+            n_found = len(np.unique(cluster_labels_clean))
+            confusion = np.zeros((n_true, n_found))
+            for i in range(len(true_labels)):
+                ti = int(true_labels[i])
+                ci = int(cluster_labels_clean[i])
+                if 0 <= ti < n_true and 0 <= ci < n_found:
+                    confusion[ti, ci] += 1
+            row_ind, col_ind = linear_sum_assignment(-confusion)
+            mapping = {col_ind[i]: row_ind[i] for i in range(len(col_ind))}
+            mapped_labels = np.array([mapping.get(l, -1) for l in cluster_labels_clean])
+
+            accuracy = accuracy_score(true_labels, mapped_labels)
+            result['embedding_cluster_acc'] = float(accuracy)
+            result['embedding_n_clusters'] = n_clusters_found
+
+            if n_clusters_found > 1:
+                sil = silhouette_score(a_np, cluster_labels_clean)
+                result['embedding_silhouette'] = float(sil)
+        except ImportError:
+            pass  # sklearn not available
 
     return result

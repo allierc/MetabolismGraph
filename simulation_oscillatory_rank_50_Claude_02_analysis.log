@@ -1,0 +1,7 @@
+training_time_min: 66.5
+final_loss: 17060.236465
+rate_constants_R2: 0.9158
+n_outliers: 44
+slope: 0.9451
+MLP_sub_R2: -482.3200
+MLP_sub_corr: 0.6637

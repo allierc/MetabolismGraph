@@ -74,6 +74,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="site_libs/bootstrap/bootstrap-7d6694c7b3d8f5ecf9ec986835a4b683.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -253,7 +256,7 @@ window.Quarto = {
 <div id="fig-concentrations" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-concentrations-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/rank_50/concentrations.png" class="img-fluid figure-img">
+<a href="figures/rank_50/concentrations.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Figure&nbsp;1: Concentration dynamics of 100 metabolites over 2880 time frames. Activity rank = 47 — most reactions actively contribute to the dynamics."><img src="figures/rank_50/concentrations.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-concentrations-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;1: Concentration dynamics of 100 metabolites over 2880 time frames. Activity rank = 47 — most reactions actively contribute to the dynamics.
@@ -265,7 +268,7 @@ Figure&nbsp;1: Concentration dynamics of 100 metabolites over 2880 time frames. 
 <div id="fig-stoichiometry" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-stoichiometry-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/rank_50/stoichiometry.png" class="img-fluid figure-img">
+<a href="figures/rank_50/stoichiometry.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Figure&nbsp;2: Stoichiometric matrix \mathbf{S} (100 metabolites \times 256 reactions). Red = products (+1), blue = substrates (–1). 100% autocatalytic 3-cycles."><img src="figures/rank_50/stoichiometry.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-stoichiometry-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;2: Stoichiometric matrix <span class="math inline">\(\mathbf{S}\)</span> (100 metabolites <span class="math inline">\(\times\)</span> 256 reactions). Red = products (+1), blue = substrates (–1). 100% autocatalytic 3-cycles.
@@ -287,7 +290,7 @@ Figure&nbsp;2: Stoichiometric matrix <span class="math inline">\(\mathbf{S}\)</s
 <div id="fig-k-best" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-k-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/rank_50/rate_constants_best.png" class="img-fluid figure-img">
+<a href="figures/rank_50/rate_constants_best.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" title="Figure&nbsp;3: Iteration 4 (best, R^2 = 0.934, slope = 0.964): 206 of 256 reactions recovered correctly (black dots on diagonal). 50 outlier reactions (red) collapse to \log k \approx -3 to -10. The scalar correction \log_{10} \alpha = -0.33 shifts the uncorrected cloud (gray) onto the diagonal."><img src="figures/rank_50/rate_constants_best.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-k-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;3: <strong>Iteration 4</strong> (best, <span class="math inline">\(R^2 = 0.934\)</span>, slope <span class="math inline">\(= 0.964\)</span>): 206 of 256 reactions recovered correctly (black dots on diagonal). 50 outlier reactions (red) collapse to <span class="math inline">\(\log k \approx -3\)</span> to <span class="math inline">\(-10\)</span>. The scalar correction <span class="math inline">\(\log_{10} \alpha = -0.33\)</span> shifts the uncorrected cloud (gray) onto the diagonal.
@@ -299,7 +302,7 @@ Figure&nbsp;3: <strong>Iteration 4</strong> (best, <span class="math inline">\(R
 <div id="fig-k-baseline" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-k-baseline-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/rank_50/rate_constants_baseline.png" class="img-fluid figure-img">
+<a href="figures/rank_50/rate_constants_baseline.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" title="Figure&nbsp;4: Iteration 1 (baseline, R^2 = 0.910, slope = 0.989): Starting configuration from previous exploration. Already strong, but with 59 outliers (23%). The baseline uses lr_sub=0.0005 — increasing it to 0.001 in iteration 4 improved both R^2 and outlier count."><img src="figures/rank_50/rate_constants_baseline.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-k-baseline-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;4: <strong>Iteration 1</strong> (baseline, <span class="math inline">\(R^2 = 0.910\)</span>, slope <span class="math inline">\(= 0.989\)</span>): Starting configuration from previous exploration. Already strong, but with 59 outliers (23%). The baseline uses <code>lr_sub=0.0005</code> — increasing it to 0.001 in iteration 4 improved both <span class="math inline">\(R^2\)</span> and outlier count.
@@ -322,7 +325,7 @@ Figure&nbsp;4: <strong>Iteration 1</strong> (baseline, <span class="math inline"
 <div id="fig-mlp-best" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-mlp-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/rank_50/mlp_best.png" class="img-fluid figure-img">
+<a href="figures/rank_50/mlp_best.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5" title="Figure&nbsp;5: Iteration 4 (best): Left — MLP_{\text{sub}} learns c^1 well (solid blue near dashed GT) but underestimates c^2 (solid orange below dashed GT). Scale factor \alpha = 0.42 at |s|=1 (should be 1.0). Right — MLP_{\text{node}} (solid) stays flat at zero despite GT (dashed) showing linear homeostatic functions."><img src="figures/rank_50/mlp_best.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mlp-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;5: <strong>Iteration 4</strong> (best): <strong>Left</strong> — MLP<span class="math inline">\(_{\text{sub}}\)</span> learns <span class="math inline">\(c^1\)</span> well (solid blue near dashed GT) but underestimates <span class="math inline">\(c^2\)</span> (solid orange below dashed GT). Scale factor <span class="math inline">\(\alpha = 0.42\)</span> at <span class="math inline">\(|s|=1\)</span> (should be 1.0). <strong>Right</strong> — MLP<span class="math inline">\(_{\text{node}}\)</span> (solid) stays flat at zero despite GT (dashed) showing linear homeostatic functions.
@@ -334,7 +337,7 @@ Figure&nbsp;5: <strong>Iteration 4</strong> (best): <strong>Left</strong> — ML
 <div id="fig-mlp-baseline" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-mlp-baseline-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/rank_50/mlp_baseline.png" class="img-fluid figure-img">
+<a href="figures/rank_50/mlp_baseline.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6" title="Figure&nbsp;6: Iteration 1 (baseline): Same qualitative pattern — MLP_{\text{sub}} learns the shape but with compressed scale (\alpha = 0.39), MLP_{\text{node}} inactive. The MLP_{\text{node}} failure persists across all 8 iterations regardless of hyperparameters."><img src="figures/rank_50/mlp_baseline.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mlp-baseline-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;6: <strong>Iteration 1</strong> (baseline): Same qualitative pattern — MLP<span class="math inline">\(_{\text{sub}}\)</span> learns the shape but with compressed scale (<span class="math inline">\(\alpha = 0.39\)</span>), MLP<span class="math inline">\(_{\text{node}}\)</span> inactive. The MLP<span class="math inline">\(_{\text{node}}\)</span> failure persists across all 8 iterations regardless of hyperparameters.
@@ -350,7 +353,7 @@ Figure&nbsp;6: <strong>Iteration 1</strong> (baseline): Same qualitative pattern
 <div id="fig-kinograph" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-kinograph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/rank_50/kinograph_best.png" class="img-fluid figure-img">
+<a href="figures/rank_50/kinograph_best.png" class="lightbox" data-gallery="quarto-lightbox-gallery-7" title="Figure&nbsp;7: Kinograph (iteration 4): Ground truth (top left) vs GNN rollout (bottom left). Despite R^2 = 0.934 on rate constants, the dynamics prediction remains poor (Pearson = 0.054). The GNN produces saturated flat bands instead of oscillations. The residual heatmap (top right) and scatter plot (bottom right) confirm the mismatch. This is the degeneracy gap: good k recovery but poor dynamics, suggesting that MLP_{\text{sub}} and MLP_{\text{node}} errors compound during rollout integration."><img src="figures/rank_50/kinograph_best.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-kinograph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;7: <strong>Kinograph (iteration 4)</strong>: Ground truth (top left) vs GNN rollout (bottom left). Despite <span class="math inline">\(R^2 = 0.934\)</span> on rate constants, the dynamics prediction remains poor (Pearson = 0.054). The GNN produces saturated flat bands instead of oscillations. The residual heatmap (top right) and scatter plot (bottom right) confirm the mismatch. This is the <strong>degeneracy gap</strong>: good <span class="math inline">\(k\)</span> recovery but poor dynamics, suggesting that MLP<span class="math inline">\(_{\text{sub}}\)</span> and MLP<span class="math inline">\(_{\text{node}}\)</span> errors compound during rollout integration.
@@ -363,7 +366,7 @@ Figure&nbsp;7: <strong>Kinograph (iteration 4)</strong>: Ground truth (top left)
 <div id="fig-ucb-tree" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-ucb-tree-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/rank_50/ucb_tree.png" class="img-fluid figure-img">
+<a href="figures/rank_50/ucb_tree.png" class="lightbox" data-gallery="quarto-lightbox-gallery-8" title="Figure&nbsp;8: UCB tree after 8 iterations. Node 4 (R^2 = 0.934, lr_sub: 0.0005 → 0.001) is the best-performing node and parent of 4 child mutations. All nodes are green (R^2 \geq 0.9) except Node 7 (red, R^2 = 0.04) where coeff_MLP_sub_norm=5.0 caused catastrophic failure."><img src="figures/rank_50/ucb_tree.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-ucb-tree-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;8: UCB tree after 8 iterations. Node 4 (<span class="math inline">\(R^2 = 0.934\)</span>, <code>lr_sub: 0.0005 → 0.001</code>) is the best-performing node and parent of 4 child mutations. All nodes are green (<span class="math inline">\(R^2 \geq 0.9\)</span>) except Node 7 (red, <span class="math inline">\(R^2 = 0.04\)</span>) where <code>coeff_MLP_sub_norm=5.0</code> caused catastrophic failure.
@@ -439,7 +442,7 @@ Figure&nbsp;8: UCB tree after 8 iterations. Node 4 (<span class="math inline">\(
 <div id="fig-iterations" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-iterations-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="results_files/figure-html/fig-iterations-output-1.png" class="img-fluid figure-img">
+<a href="results_files/figure-html/fig-iterations-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-9" title="Figure&nbsp;9: Rate constants R² and outlier count across 8 iterations. Left axis: R² (bars). Right axis: outlier count (orange line). Iteration 7 (coeff_MLP_sub_norm=5.0) is the only failure."><img src="results_files/figure-html/fig-iterations-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-iterations-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;9: Rate constants R² and outlier count across 8 iterations. Left axis: R² (bars). Right axis: outlier count (orange line). Iteration 7 (coeff_MLP_sub_norm=5.0) is the only failure.
@@ -460,7 +463,7 @@ Figure&nbsp;9: Rate constants R² and outlier count across 8 iterations. Left ax
 <div id="fig-k-failed" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-k-failed-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/rank_50/rate_constants_failed.png" class="img-fluid figure-img">
+<a href="figures/rank_50/rate_constants_failed.png" class="lightbox" data-gallery="quarto-lightbox-gallery-10" title="Figure&nbsp;10: Iteration 7 (R^2 = 0.035, 246 outliers): coeff_MLP_sub_norm=5.0 destabilized training. Nearly all 256 reactions became outliers. Interestingly, \alpha = 0.80 moved closer to the target 1.0 — but at the cost of destroying rate constant recovery entirely."><img src="figures/rank_50/rate_constants_failed.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-k-failed-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;10: <strong>Iteration 7</strong> (<span class="math inline">\(R^2 = 0.035\)</span>, 246 outliers): <code>coeff_MLP_sub_norm=5.0</code> destabilized training. Nearly all 256 reactions became outliers. Interestingly, <span class="math inline">\(\alpha = 0.80\)</span> moved closer to the target 1.0 — but at the cost of destroying rate constant recovery entirely.
@@ -1124,6 +1127,38 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     </div>
   </div>
 </footer>
+<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
+(function() {
+  let previousOnload = window.onload;
+  window.onload = () => {
+    if (previousOnload) {
+      previousOnload();
+    }
+    lightboxQuarto.on('slide_before_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      const href = trigger.getAttribute('href');
+      if (href !== null) {
+        const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+        if (imgEl !== null) {
+          const srcAttr = imgEl.getAttribute("src");
+          if (srcAttr && srcAttr.startsWith("data:")) {
+            slideConfig.href = srcAttr;
+          }
+        }
+      } 
+    });
+  
+    lightboxQuarto.on('slide_after_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(slideNode);
+      }
+    });
+  
+  };
+  
+})();
+          </script>
 
 
 

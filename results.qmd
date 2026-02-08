@@ -8,7 +8,7 @@ date-format: "MMMM D, YYYY"
 
 The LLM-driven exploration engine is running on the **oscillatory regime** (activity rank $\sim50$): 100 metabolites, 256 autocatalytic reactions, 2880 time frames, mass-action kinetics with the stoichiometric matrix $\mathbf{S}$ frozen from ground truth. The goal is to recover the 256 rate constants $k_j \in [10^{-2}, 10^{-1}]$ by optimizing training hyperparameters through UCB tree search with 4 parallel slots.
 
-**8 iterations completed** (Block 1). The exploration is ongoing.
+**32 iterations completed** across 3 blocks (8 batches). The exploration is ongoing.
 
 ### Simulation Setup
 
@@ -20,180 +20,197 @@ The LLM-driven exploration engine is running on the **oscillatory regime** (acti
 
 :::
 
-### Best Result — Rate Constants
+### Metrics
 
-::: {layout-ncol=2}
+The primary metric is **raw R²** computed on all 256 reactions (after MLP$_{\text{sub}}$ scalar correction). The **trimmed R²** excludes outlier reactions ($|\Delta \log_{10} k| > 0.3$) and is reported in parentheses. Raw R² is what drives the UCB exploration — it penalizes outliers directly instead of hiding them.
 
-![**Iteration 4** (best, $R^2 = 0.934$, slope $= 0.964$): 206 of 256 reactions recovered correctly (black dots on diagonal). 50 outlier reactions (red) collapse to $\log k \approx -3$ to $-10$. The scalar correction $\log_{10} \alpha = -0.33$ shifts the uncorrected cloud (gray) onto the diagonal.](figures/rank_50/rate_constants_best.png){#fig-k-best}
-
-![**Iteration 1** (baseline, $R^2 = 0.910$, slope $= 0.989$): Starting configuration from previous exploration. Already strong, but with 59 outliers (23%). The baseline uses `lr_sub=0.0005` — increasing it to 0.001 in iteration 4 improved both $R^2$ and outlier count.](figures/rank_50/rate_constants_baseline.png){#fig-k-baseline}
-
-:::
-
-The key mutation from iteration 1 to iteration 4 was `lr_sub: 0.0005 → 0.001`. Faster MLP$_{\text{sub}}$ learning improved the substrate function fit, which in turn improved rate constant recovery ($R^2$: 0.910 → 0.934, outliers: 59 → 50).
-
-### Learned Functions
-
-::: {layout-ncol=2}
-
-![**Iteration 4** (best): **Left** — MLP$_{\text{sub}}$ learns $c^1$ well (solid blue near dashed GT) but underestimates $c^2$ (solid orange below dashed GT). Scale factor $\alpha = 0.42$ at $|s|=1$ (should be 1.0). **Right** — MLP$_{\text{node}}$ (solid) stays flat at zero despite GT (dashed) showing linear homeostatic functions.](figures/rank_50/mlp_best.png){#fig-mlp-best}
-
-![**Iteration 1** (baseline): Same qualitative pattern — MLP$_{\text{sub}}$ learns the shape but with compressed scale ($\alpha = 0.39$), MLP$_{\text{node}}$ inactive. The MLP$_{\text{node}}$ failure persists across all 8 iterations regardless of hyperparameters.](figures/rank_50/mlp_baseline.png){#fig-mlp-baseline}
-
-:::
-
-### Dynamics Prediction
-
-![**Kinograph (iteration 4)**: Ground truth (top left) vs GNN rollout (bottom left). Despite $R^2 = 0.934$ on rate constants, the dynamics prediction remains poor (Pearson = 0.054). The GNN produces saturated flat bands instead of oscillations. The residual heatmap (top right) and scatter plot (bottom right) confirm the mismatch. This is the **degeneracy gap**: good $k$ recovery but poor dynamics, suggesting that MLP$_{\text{sub}}$ and MLP$_{\text{node}}$ errors compound during rollout integration.](figures/rank_50/kinograph_best.png){#fig-kinograph}
-
-### UCB Exploration Tree
-
-![UCB tree after 8 iterations. Node 4 ($R^2 = 0.934$, `lr_sub: 0.0005 → 0.001`) is the best-performing node and parent of 4 child mutations. All nodes are green ($R^2 \geq 0.9$) except Node 7 (red, $R^2 = 0.04$) where `coeff_MLP_sub_norm=5.0` caused catastrophic failure.](figures/rank_50/ucb_tree.png){#fig-ucb-tree}
-
-### Iteration History
+### R² Trajectory Across 32 Iterations
 
 ```{python}
 #| code-fold: true
 #| label: fig-iterations
-#| fig-cap: "Rate constants R² and outlier count across 8 iterations. Left axis: R² (bars). Right axis: outlier count (orange line). Iteration 7 (coeff_MLP_sub_norm=5.0) is the only failure."
+#| fig-cap: "Raw R² (bars) and outlier count (dots) across 32 iterations, colored by block. The k_floor breakthrough at iteration 14 lifted R² from 0.07 to 0.51, and longer training pushed it to 0.69 by iteration 21. Block 3 failed to break the plateau."
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-iters = list(range(1, 9))
-r2 = [0.910, 0.903, 0.928, 0.934, 0.926, 0.916, 0.035, 0.907]
-outliers = [59, 47, 53, 50, 46, 46, 246, 51]
-
-labels = [
-    'baseline',
-    'lr_k=0.01',
-    'lr_node\n=0.0005',
-    'lr_sub\n=0.001\n(BEST)',
-    '+sub_norm\n=1.0',
-    '+k_floor\n=1.0',
-    '+sub_norm\n=5.0\n(FAIL)',
-    'node_L1\n=0.1',
+iters = list(range(1, 33))
+r2 = [
+    # Block 1 (Iter 1-12): Initial exploration
+    0.044, 0.027, 0.044, 0.031,  # Batch 1: initial sweep
+    0.013, 0.067, 0.041, 0.051,  # Batch 2: sub_norm breakthrough
+    0.054, 0.061, 0.017, 0.061,  # Batch 3: MLP_node activation
+    # Block 2 (Iter 13-24): k_floor breakthrough
+    0.056, 0.508, 0.011, 0.057,  # Batch 4: k_floor=1.0 breakthrough
+    0.638, 0.642, 0.470, 0.373,  # Batch 5: exploiting k_floor
+    0.690, 0.419, 0.658, 0.559,  # Batch 6: aug=4000 best
+    # Block 3 (Iter 25-32): Plateau
+    0.652, 0.638, 0.614, 0.600,  # Batch 7: diminishing returns
+    0.507, 0.619, 0.530, 0.409,  # Batch 8: alternative approaches
+]
+outliers = [
+    43, 47, 45, 53,
+    61, 36, 45, 32,
+    27, 38, 57, 30,
+    28, 33, 36, 33,
+    17, 24, 26, 35,
+    16, 29, 19, 24,
+    18, 18, 15, 17,
+    19, 14, 21, 21,
 ]
 
+# Color by block
 colors = []
-for r in r2:
-    if r >= 0.9:
-        colors.append('#2ecc71')
-    elif r >= 0.5:
-        colors.append('#f39c12')
+for i, r in enumerate(r2):
+    if i < 12:
+        colors.append('#3498db')  # blue: Block 1
+    elif i < 24:
+        colors.append('#2ecc71')  # green: Block 2
     else:
-        colors.append('#e74c3c')
+        colors.append('#e67e22')  # orange: Block 3
 
-fig, ax1 = plt.subplots(figsize=(12, 5))
+fig, ax1 = plt.subplots(figsize=(14, 5))
 
 bars = ax1.bar(iters, r2, color=colors, edgecolor='white', linewidth=0.5, alpha=0.85)
-ax1.axhline(y=0.934, color='#2ecc71', linestyle='--', alpha=0.4, label='Best R² = 0.934')
-ax1.axvspan(0.5, 4.5, alpha=0.04, color='blue', label='Batch 1 (initial sweep)')
-ax1.axvspan(4.5, 8.5, alpha=0.04, color='orange', label='Batch 2 (regularization)')
+ax1.axhline(y=0.690, color='#2ecc71', linestyle='--', alpha=0.4, label='Best R² = 0.690')
 
-for i, (it, v, lab) in enumerate(zip(iters, r2, labels)):
-    ax1.text(it, max(v + 0.02, 0.06), f'{v:.3f}', ha='center', va='bottom', fontsize=8, fontweight='bold')
-    ax1.text(it, -0.08, lab, ha='center', va='top', fontsize=7)
+# Block separators and labels
+ax1.axvline(x=12.5, color='gray', linestyle=':', alpha=0.4)
+ax1.axvline(x=24.5, color='gray', linestyle=':', alpha=0.4)
+ax1.text(6.5, 1.0, 'Block 1', ha='center', fontsize=9, color='#3498db', fontweight='bold')
+ax1.text(18.5, 1.0, 'Block 2', ha='center', fontsize=9, color='#2ecc71', fontweight='bold')
+ax1.text(28.5, 1.0, 'Block 3', ha='center', fontsize=9, color='#e67e22', fontweight='bold')
+
+# Annotate key events
+ax1.annotate('sub_norm=1.0', xy=(6, 0.067), xytext=(6, 0.18),
+            arrowprops=dict(arrowstyle='->', color='#3498db'), fontsize=7, ha='center', color='#3498db')
+ax1.annotate('k_floor=1.0\nBREAKTHROUGH', xy=(14, 0.508), xytext=(14, 0.28),
+            arrowprops=dict(arrowstyle='->', color='#2ecc71'), fontsize=7, ha='center', color='#2ecc71', fontweight='bold')
+ax1.annotate('aug=4000\nBEST', xy=(21, 0.690), xytext=(21, 0.82),
+            arrowprops=dict(arrowstyle='->', color='#2ecc71'), fontsize=7, ha='center', color='#2ecc71', fontweight='bold')
 
 ax1.set_xlabel('Iteration')
-ax1.set_ylabel('rate_constants R²')
-ax1.set_ylim(-0.18, 1.05)
-ax1.set_xticks(iters)
+ax1.set_ylabel('rate_constants R² (raw)')
+ax1.set_ylim(-0.02, 1.05)
+ax1.set_xticks([1, 4, 8, 12, 14, 17, 21, 24, 28, 32])
 
 # outlier count on secondary axis
 ax2 = ax1.twinx()
-ax2.plot(iters, outliers, 'o', color='#e67e22', markersize=5, alpha=0.7, label='outliers')
-ax2.set_ylabel('outlier count', color='#e67e22')
-ax2.tick_params(axis='y', labelcolor='#e67e22')
-ax2.set_ylim(0, 270)
+ax2.plot(iters, outliers, 'o', color='#e74c3c', markersize=3, alpha=0.5, label='outliers')
+ax2.set_ylabel('outlier count', color='#e74c3c')
+ax2.tick_params(axis='y', labelcolor='#e74c3c')
+ax2.set_ylim(0, 70)
 
-# combined legend
 lines1, labels1 = ax1.get_legend_handles_labels()
 lines2, labels2 = ax2.get_legend_handles_labels()
-ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper right', fontsize=8)
+ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left', fontsize=8)
 
-ax1.set_title('UCB Exploration: Rate Constant Recovery (Block 1, 8 iterations)')
+ax1.set_title('UCB Exploration: Rate Constant Recovery (32 iterations)')
 plt.tight_layout()
 plt.show()
 ```
 
-### Catastrophic Failure: Strong MLP$_{\text{sub}}$ Normalization
+### Block 1: Initial Exploration (Iter 1--12)
 
-::: {layout-ncol=2}
+All 12 iterations achieved raw R² < 0.07. The key discovery was that `coeff_MLP_sub_norm=1.0` is essential — it corrects the MLP$_{\text{sub}}$ function shapes (c² becomes quadratic instead of linear) and enables MLP$_{\text{node}}$ to learn homeostasis.
 
-![**Iteration 7** ($R^2 = 0.035$, 246 outliers): `coeff_MLP_sub_norm=5.0` destabilized training. Nearly all 256 reactions became outliers. Interestingly, $\alpha = 0.80$ moved closer to the target 1.0 — but at the cost of destroying rate constant recovery entirely.](figures/rank_50/rate_constants_failed.png){#fig-k-failed}
+| Batch | Key mutation | Best R² | Finding |
+|-------|-------------|---------|---------|
+| 1 (iter 1--4) | lr sweep | 0.044 | All failed; MLP$_{\text{node}}$ dead, MLP$_{\text{sub}}$ c² linear |
+| 2 (iter 5--8) | `sub_norm=1.0` | **0.067** | MLP$_{\text{sub}}$ normalization is the single most effective change |
+| 3 (iter 9--12) | combine best | 0.061 | MLP$_{\text{node}}$ activated; `lr_node=0.005` hurts |
 
-| coeff_MLP_sub_norm | $R^2$ | outliers | $\alpha$ |
-|:------------------:|:-----:|:--------:|:--------:|
-| 0.0 | **0.934** | 50 | 0.47 |
-| 1.0 | 0.926 | 46 | 0.43 |
-| **5.0** | 0.035 | 246 | 0.80 |
+### Block 2: k_floor Breakthrough (Iter 13--24)
 
-: MLP$_{\text{sub}}$ normalization penalty. The penalty pushes $\alpha$ toward 1.0 but is harmful above 1.0. {#tbl-sub-norm}
+The `coeff_k_floor=1.0` penalty at iteration 14 produced a **10× improvement** in R² (0.06 → 0.51) by preventing outlier $\log k$ values from drifting below the true minimum. Longer training then pushed R² to 0.69.
 
-:::
+| Batch | Key mutation | Best R² | Finding |
+|-------|-------------|---------|---------|
+| 4 (iter 13--16) | `k_floor=1.0` | **0.508** | Breakthrough — R² jumped 10× |
+| 5 (iter 17--20) | `aug=3000` | **0.642** | Longer training + k_floor synergistic |
+| 6 (iter 21--24) | `aug=4000` | **0.690** | Best overall; $\alpha = 0.85$, 16 outliers |
 
-### Key Findings
+**Best result — Iteration 21**: `data_augmentation_loop=4000`, `coeff_k_floor=1.0`, `coeff_MLP_sub_norm=1.0`
 
-#### 1. `lr_sub = 0.001` improves rate constant recovery
+| Metric | Value |
+|--------|-------|
+| Raw R² | **0.690** |
+| Trimmed R² | 0.962 |
+| Outliers | 16 / 256 (6.3%) |
+| Slope | 0.976 |
+| $\alpha$ | 0.85 |
+| test_pearson | 0.33 |
 
-Increasing the MLP$_{\text{sub}}$ learning rate from 0.0005 to 0.001 produced the best result ($R^2 = 0.934$, slope $= 0.964$). Faster MLP$_{\text{sub}}$ learning helps it better approximate $c^s$, which reduces the compensation burden on $k$.
+### Block 3: Plateau at R² ≈ 0.69 (Iter 25--32)
 
-#### 2. MLP$_{\text{node}}$ does not learn homeostasis
+Eight additional iterations failed to break the R² = 0.69 plateau. Every variation — longer training (`aug=5000`), higher `lr_node`, different seeds, smaller batches, stronger regularization — produced equal or worse R².
 
-Across all 8 iterations, MLP$_{\text{node}}$ stays flat at zero (@fig-mlp-best, @fig-mlp-baseline, right panels). This persists regardless of:
+| Batch | Key mutation | Best R² | Finding |
+|-------|-------------|---------|---------|
+| 7 (iter 25--28) | `aug=5000`, seed, batch_size | 0.652 | `aug=5000` hurt R² but $\alpha=0.95$ (best ever) |
+| 8 (iter 29--32) | L1=0, `sub_norm=2.0`, lr_k | 0.619 | `sub_norm=2.0`: fewest outliers (14), best slope (0.99) |
 
-- Lower `lr_node` (0.0005): no effect
-- Higher `lr_k` (0.01): no effect
-- Reduced L1 penalty (`coeff_MLP_node_L1` = 0.1): no effect
+```{python}
+#| code-fold: true
+#| label: fig-strategies
+#| fig-cap: "Impact of key strategies on R². Each dot is one iteration. The k_floor penalty is the single most important factor, with training duration as the second lever."
 
-The homeostatic terms ($\lambda \sim 0.001$--$0.002$) are $\sim$100$\times$ smaller than the reaction rate terms ($k \sim 0.01$--$0.1$). The gradient signal flowing to MLP$_{\text{node}}$ may be insufficient to escape the zero initialization.
+import matplotlib.pyplot as plt
+import numpy as np
 
-#### 3. Regularization hurts more than it helps
+strategies = {
+    'No k_floor\n(Block 1)': [0.044, 0.027, 0.044, 0.031, 0.013, 0.067, 0.041, 0.051, 0.054, 0.061, 0.017, 0.061],
+    'k_floor=1.0\naug≤2000': [0.508],
+    'k_floor=1.0\naug=3000': [0.638, 0.419, 0.658, 0.559, 0.470, 0.373],
+    'k_floor=1.0\naug=4000': [0.690, 0.652, 0.638, 0.614, 0.600, 0.507, 0.619, 0.530, 0.409],
+    'k_floor=1.0\naug=5000': [0.652],
+}
 
-All tested regularization terms worsened $R^2$ relative to the unregularized parent (iter 4):
+fig, ax = plt.subplots(figsize=(10, 5))
+positions = []
+for i, (label, vals) in enumerate(strategies.items()):
+    x = np.random.normal(i, 0.08, len(vals))
+    ax.scatter(x, vals, s=40, alpha=0.7, zorder=3)
+    ax.plot([i-0.3, i+0.3], [np.mean(vals), np.mean(vals)], 'k-', linewidth=2, zorder=4)
+    positions.append(i)
 
-| Regularization | $R^2$ | $\Delta R^2$ |
-|:--------------|:-----:|:-----------:|
-| None (iter 4) | **0.934** | — |
-| `coeff_MLP_sub_norm=1.0` | 0.926 | --0.008 |
-| `coeff_k_floor=1.0` | 0.916 | --0.018 |
-| `coeff_MLP_node_L1=0.1` | 0.907 | --0.027 |
-| `coeff_MLP_sub_norm=5.0` | 0.035 | --0.899 |
-
-The current best strategy is no extra regularization — only the default `coeff_MLP_sub_diff=5` and `coeff_MLP_node_L1=1.0`.
-
-#### 4. Persistent outlier reactions (~20%)
-
-Approximately 50 of 256 reactions (20%) consistently learn incorrect $\log_{10}(k)$ values, collapsing to $-3$ to $-10$ (far from the true range $[-2, -1]$). These outliers are stable across configurations and may correspond to reactions whose substrate concentrations provide insufficient gradient signal.
-
-#### 5. Scale ambiguity ($\alpha \approx 0.4$)
-
-MLP$_{\text{sub}}$ learns $\alpha \cdot c^s$ with $\alpha \approx 0.4$ instead of $c^s$ ($\alpha = 1.0$). The post-hoc scalar correction compensates for this (gray → black dots in @fig-k-best), but the $|s|=2$ curve remains underestimated. Stronger normalization penalties destabilize training (@tbl-sub-norm).
+ax.set_xticks(positions)
+ax.set_xticklabels(list(strategies.keys()), fontsize=9)
+ax.set_ylabel('Raw R²')
+ax.set_ylim(-0.05, 0.85)
+ax.axhline(y=0.690, color='green', linestyle='--', alpha=0.3)
+ax.set_title('R² by Strategy Group')
+ax.grid(axis='y', alpha=0.3)
+plt.tight_layout()
+plt.show()
+```
 
 ### Established Principles
 
-The LLM's persistent memory has accumulated these validated principles after 8 iterations:
+The LLM's persistent memory has accumulated these validated principles after 32 iterations:
 
-1. **`lr_sub=0.001` helps** (confidence: medium) — higher `lr_sub` improves $R^2$ and slope
-2. **`coeff_MLP_sub_norm > 1.0` is harmful** (confidence: high) — catastrophic at 5.0, marginal at 1.0
-3. **MLP$_{\text{node}}$ does not learn from reduced L1 alone** (confidence: medium) — gradient signal issue
-4. **`coeff_k_floor` doesn't reduce outliers** (confidence: medium) — same count, worse $R^2$
+1. **`coeff_MLP_sub_norm=1.0` is essential** — enables correct MLP shapes: c² becomes quadratic, MLP$_{\text{node}}$ activates
+2. **`coeff_k_floor=1.0` is critical** — R² jumped from 0.06 to 0.51 (10× improvement). `k_floor=2.0` too strong.
+3. **Longer training helps (up to `aug=4000`)** — aug=2000→3000→4000 consistently improves R². aug=5000 hurts R².
+4. **`lr_k=0.005` is optimal** — lower (0.003) too slow, higher (0.01) destabilizes
+5. **`k_floor_threshold=-2.0` matches $\log k_{\min}$** — tighter threshold (-2.5) worsens R²
+6. **`coeff_MLP_node_L1=0.0` + long training don't combine** — harmful interaction
+7. **MLP$_{\text{node}}$ activation doesn't correlate with R² improvement** — active in batch 8 but R² worse
 
-### Current Status
+### Refuted Hypotheses
 
-The exploration continues into **Block 2** with planned strategies:
-
-| Slot | Strategy | Mutation |
-|------|----------|----------|
-| 0 | exploit | `lr_sub` → 0.002 (push further) |
-| 1 | exploit | `lr_node` → 0.002 (wake up MLP$_{\text{node}}$) |
-| 2 | explore | `recurrent_training=true`, `time_step=4` |
-| 3 | boundary-probe | `data_augmentation_loop` → 2000 (longer training) |
+| Hypothesis | Evidence |
+|-----------|---------|
+| Recurrent training breaks degeneracy | No R² improvement, 3.5× slower (iter 13) |
+| Smaller MLP improves k recovery | Worst R² = 0.011 (iter 15) |
+| Higher `lr_node` activates MLP$_{\text{node}}$ | `lr_node=0.005` hurts (iter 11); 0.002 no effect (iter 26) |
+| Different seed breaks degeneracy | Same MLP$_{\text{node}}$ flatness (iter 27) |
+| Stronger monotonicity (`sub_diff=10`) helps | R² dropped to 0.41 (iter 32) |
+| Smaller batch size helps convergence | R² dropped (iter 28) |
+| `aug=5000` continues to improve | R² dropped from 0.69 to 0.65 (iter 25) |
 
 ### Open Questions
 
-1. **MLP$_{\text{node}}$ activation**: Can `lr_node` = 0.005--0.01 finally activate homeostasis learning?
-2. **Outlier structure**: What structural property do the ~50 outlier reactions share? Are they in specific network motifs?
-3. **Recurrent training**: Can multi-step rollout break the degeneracy between correct and incorrect $k$ values?
-4. **MLP architecture**: Would smaller networks (`hidden_dim=32`, `n_layers=2`) act as implicit regularization?
+1. **Why does R² plateau at 0.69?** Is this a fundamental limit of single-step training with the current loss function?
+2. **Can recurrent training break the plateau with the optimal config?** Previous test (iter 13) was before k_floor.
+3. **Is the remaining 31% error from identifiability issues?** Multiple $k$ combinations may produce similar $dc/dt$.

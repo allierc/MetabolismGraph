@@ -141,6 +141,32 @@ The `coeff_k_floor=1.0` penalty at iteration 14 produced a **10× improvement** 
 | $\alpha$ | 0.85 |
 | test_pearson | 0.33 |
 
+### Rate Constants Recovery
+
+::: {layout-ncol=3}
+
+![Iteration 1 (baseline). R² = 0.044, 43 outliers. Before `k_floor` and `sub_norm` — predicted $\log k$ values scatter widely with no correlation to ground truth.](figures/rank_50/rate_constants_baseline.png){#fig-k-baseline}
+
+![Iteration 14 (breakthrough). R² = 0.508, 33 outliers. The `k_floor=1.0` penalty prevents outlier $\log k$ from drifting below the true minimum, producing a 10$\times$ R² jump.](figures/rank_50/rate_constants_breakthrough.png){#fig-k-breakthrough}
+
+![Iteration 21 (best). R² = 0.690 (trimmed: 0.962), 16 outliers. Combining `k_floor`, `sub_norm`, and `aug=4000` yields tight clustering around the diagonal.](figures/rank_50/rate_constants_best.png){#fig-k-best}
+
+:::
+
+### Kinograph — Best Run (Iteration 21)
+
+![Kinograph montage for iteration 21. Top-left: ground-truth $dc/dt$; top-right: GNN prediction; bottom-left: residual (same color scale as GT); bottom-right: predicted vs. true $dc/dt$ scatter (Pearson = 0.33). The GNN captures the dominant oscillatory patterns but misses fine-grained temporal structure.](figures/rank_50/kinograph_best.png){#fig-kinograph-best}
+
+### Learned MLPs
+
+::: {layout-ncol=2}
+
+![MLP functions at iteration 1 (baseline). MLP$_{\text{sub}}$: $\alpha$ at $|s|=1$ is 0.42 — the substrate function is under-scaled. MLP$_{\text{node}}$: flat at zero, contributing nothing to the dynamics.](figures/rank_50/mlp_baseline.png){#fig-mlp-baseline}
+
+![MLP functions at iteration 21 (best). MLP$_{\text{sub}}$: $\alpha$ at $|s|=1$ is 0.79 — closer to the true scale. MLP$_{\text{node}}$ remains flat, confirming it does not contribute to R² improvement (Principle 7).](figures/rank_50/mlp_best.png){#fig-mlp-best}
+
+:::
+
 ### Block 3: Plateau at R² ≈ 0.69 (Iter 25--32)
 
 Eight additional iterations failed to break the R² = 0.69 plateau. Every variation — longer training (`aug=5000`), higher `lr_node`, different seeds, smaller batches, stronger regularization — produced equal or worse R².
@@ -184,6 +210,10 @@ ax.grid(axis='y', alpha=0.3)
 plt.tight_layout()
 plt.show()
 ```
+
+### UCB Exploration Tree
+
+![UCB tree after 24 iterations. Each node represents a hyperparameter configuration; color encodes R² (green = high, red = low). The tree shows how the exploration branched from the `k_floor=1.0` breakthrough (node 14) and converged on the `aug=4000` regime. Node 21 (best R² = 0.69) is highlighted.](figures/rank_50/ucb_tree.png){#fig-ucb-tree}
 
 ### Established Principles
 

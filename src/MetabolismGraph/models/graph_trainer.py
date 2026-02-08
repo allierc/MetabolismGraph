@@ -1047,13 +1047,11 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
                     identity_errors = np.abs(corrected_log_k - gt_log_k_np)
                     outlier_mask = identity_errors > outlier_threshold
                     rate_constants_n_outliers = int(np.sum(outlier_mask))
-                    if rate_constants_n_outliers > n_rxn * 0.5:
-                        keep_mask = np.ones(n_rxn, dtype=bool)
-                        rate_constants_n_outliers = 0
-                    else:
-                        keep_mask = ~outlier_mask
+                    # if >50% are outliers, model failed — don't trim R²
+                    trimmed = rate_constants_n_outliers <= n_rxn * 0.5
+                    keep_mask = ~outlier_mask if trimmed else np.ones(n_rxn, dtype=bool)
 
-                    # trimmed R² from linear fit (excluding outliers)
+                    # trimmed R² from linear fit (excluding outliers if trimmed)
                     gt_kept = gt_log_k_np[keep_mask]
                     pred_kept = corrected_log_k[keep_mask]
                     lin_fit_k, _ = curve_fit(linear_model, gt_kept, pred_kept)
@@ -1395,12 +1393,9 @@ def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N,
     identity_errors = np.abs(plot_log_k - gt_log_k)
     outlier_mask = identity_errors > outlier_threshold
     n_outliers = int(np.sum(outlier_mask))
-    # if >50% are outliers, model failed — don't trim
-    if n_outliers > n_rxn * 0.5:
-        keep_mask = np.ones(n_rxn, dtype=bool)
-        n_outliers = 0
-    else:
-        keep_mask = ~outlier_mask
+    # if >50% are outliers, model failed — still show red but don't trim R²
+    trimmed = n_outliers <= n_rxn * 0.5
+    keep_mask = ~outlier_mask if trimmed else np.ones(n_rxn, dtype=bool)
 
     fig, ax = plt.subplots(figsize=(8, 8))
 
@@ -1409,7 +1404,7 @@ def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N,
         ax.scatter(gt_log_k, learned_log_k, s=15, c='gray', alpha=0.3,
                    edgecolors='none', label='uncorrected')
         # corrected inlier points
-        ax.scatter(gt_log_k[keep_mask], corrected_log_k[keep_mask],
+        ax.scatter(gt_log_k[~outlier_mask], corrected_log_k[~outlier_mask],
                    s=20, c='k', alpha=0.6, edgecolors='none', label='corrected')
         # corrected outlier points in red
         if n_outliers > 0:
@@ -1417,7 +1412,7 @@ def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N,
                        s=20, c='red', alpha=0.6, edgecolors='none',
                        label=f'outlier ({n_outliers})')
     else:
-        ax.scatter(gt_log_k[keep_mask], learned_log_k[keep_mask],
+        ax.scatter(gt_log_k[~outlier_mask], learned_log_k[~outlier_mask],
                    s=20, c='k', alpha=0.6, edgecolors='none')
         if n_outliers > 0:
             ax.scatter(gt_log_k[outlier_mask], learned_log_k[outlier_mask],
@@ -1429,7 +1424,7 @@ def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N,
 
     r_squared = 0.0
     try:
-        # trimmed R² and slope from linear fit (excluding outliers)
+        # trimmed R² and slope from linear fit (excluding outliers if trimmed)
         gt_kept = gt_log_k[keep_mask]
         pred_kept = plot_log_k[keep_mask]
         lin_fit, _ = curve_fit(linear_model, gt_kept, pred_kept)

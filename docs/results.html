@@ -200,11 +200,11 @@ window.Quarto = {
   <ul class="collapse">
   <li><a href="#simulation-setup" id="toc-simulation-setup" class="nav-link" data-scroll-target="#simulation-setup">Simulation Setup</a></li>
   <li><a href="#metrics" id="toc-metrics" class="nav-link" data-scroll-target="#metrics">Metrics</a></li>
-  <li><a href="#r²-trajectory-across-32-iterations" id="toc-r²-trajectory-across-32-iterations" class="nav-link" data-scroll-target="#r²-trajectory-across-32-iterations">R² Trajectory Across 32 Iterations</a></li>
+  <li><a href="#r²-trajectory-across-44-iterations" id="toc-r²-trajectory-across-44-iterations" class="nav-link" data-scroll-target="#r²-trajectory-across-44-iterations">R² Trajectory Across 44 Iterations</a></li>
   <li><a href="#block-1-initial-exploration-iter-112" id="toc-block-1-initial-exploration-iter-112" class="nav-link" data-scroll-target="#block-1-initial-exploration-iter-112">Block 1: Initial Exploration (Iter 1–12)</a></li>
   <li><a href="#block-2-k_floor-breakthrough-iter-1324" id="toc-block-2-k_floor-breakthrough-iter-1324" class="nav-link" data-scroll-target="#block-2-k_floor-breakthrough-iter-1324">Block 2: k_floor Breakthrough (Iter 13–24)</a></li>
   <li><a href="#rate-constants-recovery" id="toc-rate-constants-recovery" class="nav-link" data-scroll-target="#rate-constants-recovery">Rate Constants Recovery</a></li>
-  <li><a href="#kinograph-best-run-iteration-21" id="toc-kinograph-best-run-iteration-21" class="nav-link" data-scroll-target="#kinograph-best-run-iteration-21">Kinograph — Best Run (Iteration 21)</a></li>
+  <li><a href="#kinograph-best-run-iteration-35" id="toc-kinograph-best-run-iteration-35" class="nav-link" data-scroll-target="#kinograph-best-run-iteration-35">Kinograph — Best Run (Iteration 35)</a></li>
   <li><a href="#learned-mlps" id="toc-learned-mlps" class="nav-link" data-scroll-target="#learned-mlps">Learned MLPs</a></li>
   <li><a href="#block-3-plateau-and-breakthrough-iter-2536" id="toc-block-3-plateau-and-breakthrough-iter-2536" class="nav-link" data-scroll-target="#block-3-plateau-and-breakthrough-iter-2536">Block 3: Plateau and Breakthrough (Iter 25–36)</a></li>
   <li><a href="#block-4-seed-sensitivity-and-convergence-iter-3744" id="toc-block-4-seed-sensitivity-and-convergence-iter-3744" class="nav-link" data-scroll-target="#block-4-seed-sensitivity-and-convergence-iter-3744">Block 4: Seed Sensitivity and Convergence (Iter 37–44)</a></li>
@@ -255,7 +255,7 @@ window.Quarto = {
 <section id="rate-constant-recovery-oscillatory-regime-rank-50" class="level2">
 <h2 class="anchored" data-anchor-id="rate-constant-recovery-oscillatory-regime-rank-50">Rate Constant Recovery — Oscillatory Regime (rank 50)</h2>
 <p>The LLM-driven exploration engine is running on the <strong>oscillatory regime</strong> (activity rank <span class="math inline">\(\sim50\)</span>): 100 metabolites, 256 autocatalytic reactions, 2880 time frames, mass-action kinetics with the stoichiometric matrix <span class="math inline">\(\mathbf{S}\)</span> frozen from ground truth. The goal is to recover the 256 rate constants <span class="math inline">\(k_j \in [10^{-2}, 10^{-1}]\)</span> by optimizing training hyperparameters through UCB tree search with 4 parallel slots.</p>
-<p><strong>32 iterations completed</strong> across 3 blocks (8 batches). The exploration is ongoing.</p>
+<p><strong>44 iterations completed</strong> across 4 blocks (11 batches). The exploration is ongoing.</p>
 <section id="simulation-setup" class="level3">
 <h3 class="anchored" data-anchor-id="simulation-setup">Simulation Setup</h3>
 <div>
@@ -294,15 +294,15 @@ Figure&nbsp;2: Stoichiometric matrix <span class="math inline">\(\mathbf{S}\)</s
 <h3 class="anchored" data-anchor-id="metrics">Metrics</h3>
 <p>The primary metric is <strong>raw R²</strong> computed on all 256 reactions (after MLP<span class="math inline">\(_{\text{sub}}\)</span> scalar correction). The <strong>trimmed R²</strong> excludes outlier reactions (<span class="math inline">\(|\Delta \log_{10} k| &gt; 0.3\)</span>) and is reported in parentheses. Raw R² is what drives the UCB exploration — it penalizes outliers directly instead of hiding them.</p>
 </section>
-<section id="r²-trajectory-across-32-iterations" class="level3">
-<h3 class="anchored" data-anchor-id="r²-trajectory-across-32-iterations">R² Trajectory Across 32 Iterations</h3>
+<section id="r²-trajectory-across-44-iterations" class="level3">
+<h3 class="anchored" data-anchor-id="r²-trajectory-across-44-iterations">R² Trajectory Across 44 Iterations</h3>
 <div id="cell-fig-iterations" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>iters <span class="op">=</span> <span class="bu">list</span>(<span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">33</span>))</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>iters <span class="op">=</span> <span class="bu">list</span>(<span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">45</span>))</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>r2 <span class="op">=</span> [</span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Block 1 (Iter 1-12): Initial exploration</span></span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.044</span>, <span class="fl">0.027</span>, <span class="fl">0.044</span>, <span class="fl">0.031</span>,  <span class="co"># Batch 1: initial sweep</span></span>
@@ -312,79 +312,95 @@ Figure&nbsp;2: Stoichiometric matrix <span class="math inline">\(\mathbf{S}\)</s
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.056</span>, <span class="fl">0.508</span>, <span class="fl">0.011</span>, <span class="fl">0.057</span>,  <span class="co"># Batch 4: k_floor=1.0 breakthrough</span></span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.638</span>, <span class="fl">0.642</span>, <span class="fl">0.470</span>, <span class="fl">0.373</span>,  <span class="co"># Batch 5: exploiting k_floor</span></span>
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.690</span>, <span class="fl">0.419</span>, <span class="fl">0.658</span>, <span class="fl">0.559</span>,  <span class="co"># Batch 6: aug=4000 best</span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Block 3 (Iter 25-32): Plateau</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Block 3 (Iter 25-36): Plateau then lr_sub breakthrough</span></span>
 <span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.652</span>, <span class="fl">0.638</span>, <span class="fl">0.614</span>, <span class="fl">0.600</span>,  <span class="co"># Batch 7: diminishing returns</span></span>
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.507</span>, <span class="fl">0.619</span>, <span class="fl">0.530</span>, <span class="fl">0.409</span>,  <span class="co"># Batch 8: alternative approaches</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>outliers <span class="op">=</span> [</span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="dv">43</span>, <span class="dv">47</span>, <span class="dv">45</span>, <span class="dv">53</span>,</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    <span class="dv">61</span>, <span class="dv">36</span>, <span class="dv">45</span>, <span class="dv">32</span>,</span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="dv">27</span>, <span class="dv">38</span>, <span class="dv">57</span>, <span class="dv">30</span>,</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="dv">28</span>, <span class="dv">33</span>, <span class="dv">36</span>, <span class="dv">33</span>,</span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    <span class="dv">17</span>, <span class="dv">24</span>, <span class="dv">26</span>, <span class="dv">35</span>,</span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    <span class="dv">16</span>, <span class="dv">29</span>, <span class="dv">19</span>, <span class="dv">24</span>,</span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    <span class="dv">18</span>, <span class="dv">18</span>, <span class="dv">15</span>, <span class="dv">17</span>,</span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    <span class="dv">19</span>, <span class="dv">14</span>, <span class="dv">21</span>, <span class="dv">21</span>,</span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Color by block</span></span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>colors <span class="op">=</span> []</span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, r <span class="kw">in</span> <span class="bu">enumerate</span>(r2):</span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> i <span class="op">&lt;</span> <span class="dv">12</span>:</span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>        colors.append(<span class="st">'#3498db'</span>)  <span class="co"># blue: Block 1</span></span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> i <span class="op">&lt;</span> <span class="dv">24</span>:</span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>        colors.append(<span class="st">'#2ecc71'</span>)  <span class="co"># green: Block 2</span></span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>        colors.append(<span class="st">'#e67e22'</span>)  <span class="co"># orange: Block 3</span></span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>fig, ax1 <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">14</span>, <span class="dv">5</span>))</span>
-<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>bars <span class="op">=</span> ax1.bar(iters, r2, color<span class="op">=</span>colors, edgecolor<span class="op">=</span><span class="st">'white'</span>, linewidth<span class="op">=</span><span class="fl">0.5</span>, alpha<span class="op">=</span><span class="fl">0.85</span>)</span>
-<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>ax1.axhline(y<span class="op">=</span><span class="fl">0.690</span>, color<span class="op">=</span><span class="st">'#2ecc71'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, alpha<span class="op">=</span><span class="fl">0.4</span>, label<span class="op">=</span><span class="st">'Best R² = 0.690'</span>)</span>
-<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a><span class="co"># Block separators and labels</span></span>
-<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>ax1.axvline(x<span class="op">=</span><span class="fl">12.5</span>, color<span class="op">=</span><span class="st">'gray'</span>, linestyle<span class="op">=</span><span class="st">':'</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
-<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>ax1.axvline(x<span class="op">=</span><span class="fl">24.5</span>, color<span class="op">=</span><span class="st">'gray'</span>, linestyle<span class="op">=</span><span class="st">':'</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
-<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>ax1.text(<span class="fl">6.5</span>, <span class="fl">1.0</span>, <span class="st">'Block 1'</span>, ha<span class="op">=</span><span class="st">'center'</span>, fontsize<span class="op">=</span><span class="dv">9</span>, color<span class="op">=</span><span class="st">'#3498db'</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>)</span>
-<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>ax1.text(<span class="fl">18.5</span>, <span class="fl">1.0</span>, <span class="st">'Block 2'</span>, ha<span class="op">=</span><span class="st">'center'</span>, fontsize<span class="op">=</span><span class="dv">9</span>, color<span class="op">=</span><span class="st">'#2ecc71'</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>)</span>
-<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>ax1.text(<span class="fl">28.5</span>, <span class="fl">1.0</span>, <span class="st">'Block 3'</span>, ha<span class="op">=</span><span class="st">'center'</span>, fontsize<span class="op">=</span><span class="dv">9</span>, color<span class="op">=</span><span class="st">'#e67e22'</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>)</span>
-<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a><span class="co"># Annotate key events</span></span>
-<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>ax1.annotate(<span class="st">'sub_norm=1.0'</span>, xy<span class="op">=</span>(<span class="dv">6</span>, <span class="fl">0.067</span>), xytext<span class="op">=</span>(<span class="dv">6</span>, <span class="fl">0.18</span>),</span>
-<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>            arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-&gt;'</span>, color<span class="op">=</span><span class="st">'#3498db'</span>), fontsize<span class="op">=</span><span class="dv">7</span>, ha<span class="op">=</span><span class="st">'center'</span>, color<span class="op">=</span><span class="st">'#3498db'</span>)</span>
-<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>ax1.annotate(<span class="st">'k_floor=1.0</span><span class="ch">\n</span><span class="st">BREAKTHROUGH'</span>, xy<span class="op">=</span>(<span class="dv">14</span>, <span class="fl">0.508</span>), xytext<span class="op">=</span>(<span class="dv">14</span>, <span class="fl">0.28</span>),</span>
-<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>            arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-&gt;'</span>, color<span class="op">=</span><span class="st">'#2ecc71'</span>), fontsize<span class="op">=</span><span class="dv">7</span>, ha<span class="op">=</span><span class="st">'center'</span>, color<span class="op">=</span><span class="st">'#2ecc71'</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>)</span>
-<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>ax1.annotate(<span class="st">'aug=4000</span><span class="ch">\n</span><span class="st">BEST'</span>, xy<span class="op">=</span>(<span class="dv">21</span>, <span class="fl">0.690</span>), xytext<span class="op">=</span>(<span class="dv">21</span>, <span class="fl">0.82</span>),</span>
-<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>            arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-&gt;'</span>, color<span class="op">=</span><span class="st">'#2ecc71'</span>), fontsize<span class="op">=</span><span class="dv">7</span>, ha<span class="op">=</span><span class="st">'center'</span>, color<span class="op">=</span><span class="st">'#2ecc71'</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>)</span>
-<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>ax1.set_xlabel(<span class="st">'Iteration'</span>)</span>
-<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>ax1.set_ylabel(<span class="st">'rate_constants R² (raw)'</span>)</span>
-<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>ax1.set_ylim(<span class="op">-</span><span class="fl">0.02</span>, <span class="fl">1.05</span>)</span>
-<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>ax1.set_xticks([<span class="dv">1</span>, <span class="dv">4</span>, <span class="dv">8</span>, <span class="dv">12</span>, <span class="dv">14</span>, <span class="dv">17</span>, <span class="dv">21</span>, <span class="dv">24</span>, <span class="dv">28</span>, <span class="dv">32</span>])</span>
-<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a><span class="co"># outlier count on secondary axis</span></span>
-<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>ax2 <span class="op">=</span> ax1.twinx()</span>
-<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a>ax2.plot(iters, outliers, <span class="st">'o'</span>, color<span class="op">=</span><span class="st">'#e74c3c'</span>, markersize<span class="op">=</span><span class="dv">3</span>, alpha<span class="op">=</span><span class="fl">0.5</span>, label<span class="op">=</span><span class="st">'outliers'</span>)</span>
-<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a>ax2.set_ylabel(<span class="st">'outlier count'</span>, color<span class="op">=</span><span class="st">'#e74c3c'</span>)</span>
-<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>ax2.tick_params(axis<span class="op">=</span><span class="st">'y'</span>, labelcolor<span class="op">=</span><span class="st">'#e74c3c'</span>)</span>
-<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a>ax2.set_ylim(<span class="dv">0</span>, <span class="dv">70</span>)</span>
-<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a>lines1, labels1 <span class="op">=</span> ax1.get_legend_handles_labels()</span>
-<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a>lines2, labels2 <span class="op">=</span> ax2.get_legend_handles_labels()</span>
-<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a>ax1.legend(lines1 <span class="op">+</span> lines2, labels1 <span class="op">+</span> labels2, loc<span class="op">=</span><span class="st">'upper left'</span>, fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.521</span>, <span class="fl">0.478</span>, <span class="fl">0.726</span>, <span class="fl">0.544</span>,  <span class="co"># Batch 9: lr_sub=0.001 BREAKTHROUGH</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Block 4 (Iter 37-44): Seed sensitivity</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.588</span>, <span class="fl">0.518</span>, <span class="fl">0.654</span>, <span class="fl">0.662</span>,  <span class="co"># Batch 10: combinations with lr_sub</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.487</span>, <span class="fl">0.690</span>, <span class="fl">0.608</span>, <span class="fl">0.593</span>,  <span class="co"># Batch 11: seed sensitivity revealed</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>outliers <span class="op">=</span> [</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    <span class="dv">43</span>, <span class="dv">47</span>, <span class="dv">45</span>, <span class="dv">53</span>,</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    <span class="dv">61</span>, <span class="dv">36</span>, <span class="dv">45</span>, <span class="dv">32</span>,</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    <span class="dv">27</span>, <span class="dv">38</span>, <span class="dv">57</span>, <span class="dv">30</span>,</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    <span class="dv">28</span>, <span class="dv">33</span>, <span class="dv">36</span>, <span class="dv">33</span>,</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    <span class="dv">17</span>, <span class="dv">24</span>, <span class="dv">26</span>, <span class="dv">35</span>,</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    <span class="dv">16</span>, <span class="dv">29</span>, <span class="dv">19</span>, <span class="dv">24</span>,</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    <span class="dv">18</span>, <span class="dv">18</span>, <span class="dv">15</span>, <span class="dv">17</span>,</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    <span class="dv">19</span>, <span class="dv">14</span>, <span class="dv">21</span>, <span class="dv">21</span>,</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>    <span class="dv">21</span>, <span class="dv">21</span>, <span class="dv">15</span>, <span class="dv">22</span>,  <span class="co"># Batch 9</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    <span class="dv">16</span>, <span class="dv">19</span>, <span class="dv">20</span>, <span class="dv">21</span>,  <span class="co"># Batch 10</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>    <span class="dv">21</span>, <span class="dv">16</span>, <span class="dv">18</span>, <span class="dv">19</span>,  <span class="co"># Batch 11</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a><span class="co"># Color by block</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>colors <span class="op">=</span> []</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, r <span class="kw">in</span> <span class="bu">enumerate</span>(r2):</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> i <span class="op">&lt;</span> <span class="dv">12</span>:</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>        colors.append(<span class="st">'#3498db'</span>)  <span class="co"># blue: Block 1</span></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> i <span class="op">&lt;</span> <span class="dv">24</span>:</span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>        colors.append(<span class="st">'#2ecc71'</span>)  <span class="co"># green: Block 2</span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> i <span class="op">&lt;</span> <span class="dv">36</span>:</span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>        colors.append(<span class="st">'#e67e22'</span>)  <span class="co"># orange: Block 3</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>        colors.append(<span class="st">'#9b59b6'</span>)  <span class="co"># purple: Block 4</span></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>fig, ax1 <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">14</span>, <span class="dv">5</span>))</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>bars <span class="op">=</span> ax1.bar(iters, r2, color<span class="op">=</span>colors, edgecolor<span class="op">=</span><span class="st">'white'</span>, linewidth<span class="op">=</span><span class="fl">0.5</span>, alpha<span class="op">=</span><span class="fl">0.85</span>)</span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>ax1.axhline(y<span class="op">=</span><span class="fl">0.726</span>, color<span class="op">=</span><span class="st">'#e67e22'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, alpha<span class="op">=</span><span class="fl">0.4</span>, label<span class="op">=</span><span class="st">'Peak R² = 0.726'</span>)</span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>ax1.axhline(y<span class="op">=</span><span class="fl">0.690</span>, color<span class="op">=</span><span class="st">'#2ecc71'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, alpha<span class="op">=</span><span class="fl">0.3</span>, label<span class="op">=</span><span class="st">'Stable R² ≈ 0.69'</span>)</span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a><span class="co"># Block separators and labels</span></span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>ax1.axvline(x<span class="op">=</span><span class="fl">12.5</span>, color<span class="op">=</span><span class="st">'gray'</span>, linestyle<span class="op">=</span><span class="st">':'</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>ax1.axvline(x<span class="op">=</span><span class="fl">24.5</span>, color<span class="op">=</span><span class="st">'gray'</span>, linestyle<span class="op">=</span><span class="st">':'</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>ax1.axvline(x<span class="op">=</span><span class="fl">36.5</span>, color<span class="op">=</span><span class="st">'gray'</span>, linestyle<span class="op">=</span><span class="st">':'</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>ax1.text(<span class="fl">6.5</span>, <span class="fl">1.0</span>, <span class="st">'Block 1'</span>, ha<span class="op">=</span><span class="st">'center'</span>, fontsize<span class="op">=</span><span class="dv">9</span>, color<span class="op">=</span><span class="st">'#3498db'</span>)</span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>ax1.text(<span class="fl">18.5</span>, <span class="fl">1.0</span>, <span class="st">'Block 2'</span>, ha<span class="op">=</span><span class="st">'center'</span>, fontsize<span class="op">=</span><span class="dv">9</span>, color<span class="op">=</span><span class="st">'#2ecc71'</span>)</span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>ax1.text(<span class="fl">30.5</span>, <span class="fl">1.0</span>, <span class="st">'Block 3'</span>, ha<span class="op">=</span><span class="st">'center'</span>, fontsize<span class="op">=</span><span class="dv">9</span>, color<span class="op">=</span><span class="st">'#e67e22'</span>)</span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>ax1.text(<span class="fl">40.5</span>, <span class="fl">1.0</span>, <span class="st">'Block 4'</span>, ha<span class="op">=</span><span class="st">'center'</span>, fontsize<span class="op">=</span><span class="dv">9</span>, color<span class="op">=</span><span class="st">'#9b59b6'</span>)</span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a><span class="co"># Annotate key events</span></span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a>ax1.annotate(<span class="st">'sub_norm=1.0'</span>, xy<span class="op">=</span>(<span class="dv">6</span>, <span class="fl">0.067</span>), xytext<span class="op">=</span>(<span class="dv">6</span>, <span class="fl">0.18</span>),</span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>            arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-&gt;'</span>, color<span class="op">=</span><span class="st">'black'</span>), fontsize<span class="op">=</span><span class="dv">7</span>, ha<span class="op">=</span><span class="st">'center'</span>, color<span class="op">=</span><span class="st">'black'</span>)</span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a>ax1.annotate(<span class="st">'k_floor=1.0</span><span class="ch">\n</span><span class="st">breakthrough'</span>, xy<span class="op">=</span>(<span class="dv">14</span>, <span class="fl">0.508</span>), xytext<span class="op">=</span>(<span class="dv">14</span>, <span class="fl">0.28</span>),</span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a>            arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-&gt;'</span>, color<span class="op">=</span><span class="st">'black'</span>), fontsize<span class="op">=</span><span class="dv">7</span>, ha<span class="op">=</span><span class="st">'center'</span>, color<span class="op">=</span><span class="st">'black'</span>)</span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>ax1.annotate(<span class="st">'aug=4000'</span>, xy<span class="op">=</span>(<span class="dv">21</span>, <span class="fl">0.690</span>), xytext<span class="op">=</span>(<span class="dv">21</span>, <span class="fl">0.82</span>),</span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a>            arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-&gt;'</span>, color<span class="op">=</span><span class="st">'black'</span>), fontsize<span class="op">=</span><span class="dv">7</span>, ha<span class="op">=</span><span class="st">'center'</span>, color<span class="op">=</span><span class="st">'black'</span>)</span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a>ax1.annotate(<span class="st">'lr_sub=0.001</span><span class="ch">\n</span><span class="st">peak'</span>, xy<span class="op">=</span>(<span class="dv">35</span>, <span class="fl">0.726</span>), xytext<span class="op">=</span>(<span class="dv">35</span>, <span class="fl">0.88</span>),</span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a>            arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-&gt;'</span>, color<span class="op">=</span><span class="st">'black'</span>), fontsize<span class="op">=</span><span class="dv">7</span>, ha<span class="op">=</span><span class="st">'center'</span>, color<span class="op">=</span><span class="st">'black'</span>)</span>
+<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a>ax1.annotate(<span class="st">'seed=123</span><span class="ch">\n</span><span class="st">↓0.24'</span>, xy<span class="op">=</span>(<span class="dv">41</span>, <span class="fl">0.487</span>), xytext<span class="op">=</span>(<span class="dv">41</span>, <span class="fl">0.30</span>),</span>
+<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a>            arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-&gt;'</span>, color<span class="op">=</span><span class="st">'black'</span>), fontsize<span class="op">=</span><span class="dv">7</span>, ha<span class="op">=</span><span class="st">'center'</span>, color<span class="op">=</span><span class="st">'black'</span>)</span>
 <span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a>ax1.set_title(<span class="st">'UCB Exploration: Rate Constant Recovery (32 iterations)'</span>)</span>
-<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a>ax1.set_xlabel(<span class="st">'Iteration'</span>)</span>
+<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a>ax1.set_ylabel(<span class="st">'rate_constants R² (raw)'</span>)</span>
+<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a>ax1.set_ylim(<span class="op">-</span><span class="fl">0.02</span>, <span class="fl">1.05</span>)</span>
+<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a>ax1.set_xticks([<span class="dv">1</span>, <span class="dv">6</span>, <span class="dv">12</span>, <span class="dv">14</span>, <span class="dv">21</span>, <span class="dv">24</span>, <span class="dv">32</span>, <span class="dv">35</span>, <span class="dv">36</span>, <span class="dv">40</span>, <span class="dv">44</span>])</span>
+<span id="cb1-79"><a href="#cb1-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a><span class="co"># outlier count on secondary axis</span></span>
+<span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a>ax2 <span class="op">=</span> ax1.twinx()</span>
+<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a>ax2.plot(iters, outliers, <span class="st">'o'</span>, color<span class="op">=</span><span class="st">'#e74c3c'</span>, markersize<span class="op">=</span><span class="dv">3</span>, alpha<span class="op">=</span><span class="fl">0.5</span>, label<span class="op">=</span><span class="st">'outliers'</span>)</span>
+<span id="cb1-83"><a href="#cb1-83" aria-hidden="true" tabindex="-1"></a>ax2.set_ylabel(<span class="st">'outlier count'</span>, color<span class="op">=</span><span class="st">'#e74c3c'</span>)</span>
+<span id="cb1-84"><a href="#cb1-84" aria-hidden="true" tabindex="-1"></a>ax2.tick_params(axis<span class="op">=</span><span class="st">'y'</span>, labelcolor<span class="op">=</span><span class="st">'#e74c3c'</span>)</span>
+<span id="cb1-85"><a href="#cb1-85" aria-hidden="true" tabindex="-1"></a>ax2.set_ylim(<span class="dv">0</span>, <span class="dv">70</span>)</span>
+<span id="cb1-86"><a href="#cb1-86" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-87"><a href="#cb1-87" aria-hidden="true" tabindex="-1"></a>lines1, labels1 <span class="op">=</span> ax1.get_legend_handles_labels()</span>
+<span id="cb1-88"><a href="#cb1-88" aria-hidden="true" tabindex="-1"></a>lines2, labels2 <span class="op">=</span> ax2.get_legend_handles_labels()</span>
+<span id="cb1-89"><a href="#cb1-89" aria-hidden="true" tabindex="-1"></a>ax1.legend(lines1 <span class="op">+</span> lines2, labels1 <span class="op">+</span> labels2, loc<span class="op">=</span><span class="st">'upper left'</span>, fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb1-90"><a href="#cb1-90" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-91"><a href="#cb1-91" aria-hidden="true" tabindex="-1"></a>ax1.set_title(<span class="st">'UCB Exploration: Rate Constant Recovery (44 iterations)'</span>)</span>
+<span id="cb1-92"><a href="#cb1-92" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb1-93"><a href="#cb1-93" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-display">
 <div id="fig-iterations" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-iterations-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="results_files/figure-html/fig-iterations-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" title="Figure&nbsp;3: Raw R² (bars) and outlier count (dots) across 32 iterations, colored by block. The k_floor breakthrough at iteration 14 lifted R² from 0.07 to 0.51, and longer training pushed it to 0.69 by iteration 21. Block 3 failed to break the plateau."><img src="results_files/figure-html/fig-iterations-output-1.png" class="img-fluid figure-img"></a>
+<a href="results_files/figure-html/fig-iterations-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" title="Figure&nbsp;3: Raw R² (bars) and outlier count (dots) across 44 iterations, colored by block. The k_floor breakthrough at iteration 14 lifted R² from 0.07 to 0.51, longer training pushed it to 0.69 by iteration 21, and lr_sub=0.001 broke the plateau to R²=0.726 at iteration 35. Block 4 revealed seed sensitivity (±0.2 R²)."><img src="results_files/figure-html/fig-iterations-output-1.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-iterations-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;3: Raw R² (bars) and outlier count (dots) across 32 iterations, colored by block. The k_floor breakthrough at iteration 14 lifted R² from 0.07 to 0.51, and longer training pushed it to 0.69 by iteration 21. Block 3 failed to break the plateau.
+Figure&nbsp;3: Raw R² (bars) and outlier count (dots) across 44 iterations, colored by block. The k_floor breakthrough at iteration 14 lifted R² from 0.07 to 0.51, longer training pushed it to 0.69 by iteration 21, and lr_sub=0.001 broke the plateau to R²=0.726 at iteration 35. Block 4 revealed seed sensitivity (±0.2 R²).
 </figcaption>
 </figure>
 </div>
@@ -466,11 +482,11 @@ Figure&nbsp;3: Raw R² (bars) and outlier count (dots) across 32 iterations, col
 <td>6 (iter 21–24)</td>
 <td><code>aug=4000</code></td>
 <td><strong>0.690</strong></td>
-<td>Best overall; <span class="math inline">\(\alpha = 0.85\)</span>, 16 outliers</td>
+<td>First to reach 0.69; <span class="math inline">\(\alpha = 0.85\)</span>, 16 outliers</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Best result — Iteration 21</strong>: <code>data_augmentation_loop=4000</code>, <code>coeff_k_floor=1.0</code>, <code>coeff_MLP_sub_norm=1.0</code></p>
+<p><strong>Best result — Iteration 35</strong>: <code>lr_sub=0.001</code>, <code>data_augmentation_loop=4000</code>, <code>coeff_k_floor=1.0</code>, <code>coeff_MLP_sub_norm=1.0</code></p>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -481,30 +497,31 @@ Figure&nbsp;3: Raw R² (bars) and outlier count (dots) across 32 iterations, col
 <tbody>
 <tr class="odd">
 <td>Raw R²</td>
-<td><strong>0.690</strong></td>
+<td><strong>0.726</strong></td>
 </tr>
 <tr class="even">
 <td>Trimmed R²</td>
-<td>0.962</td>
+<td>0.975</td>
 </tr>
 <tr class="odd">
 <td>Outliers</td>
-<td>16 / 256 (6.3%)</td>
+<td>15 / 256 (5.9%)</td>
 </tr>
 <tr class="even">
 <td>Slope</td>
-<td>0.976</td>
+<td>0.99</td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\(\alpha\)</span></td>
-<td>0.85</td>
+<td>0.83</td>
 </tr>
 <tr class="even">
 <td>test_pearson</td>
-<td>0.33</td>
+<td>0.35</td>
 </tr>
 </tbody>
 </table>
+<p><em>Note: This peak R² is partly seed-dependent (±0.2 variance — see Block 4). The stable baseline is R² ≈ 0.69 (e.g.&nbsp;iteration 42: <code>aug=4500</code>, <span class="math inline">\(\alpha = 0.94\)</span>).</em></p>
 </section>
 <section id="rate-constants-recovery" class="level3">
 <h3 class="anchored" data-anchor-id="rate-constants-recovery">Rate Constants Recovery</h3>
@@ -541,10 +558,10 @@ Figure&nbsp;5: Iteration 14 (breakthrough). R² = 0.508, 33 outliers. The <code>
 <div id="fig-k-best" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-k-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="figures/rank_50/rate_constants_best.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6" title="Figure&nbsp;6: Iteration 21 (best). R² = 0.690 (trimmed: 0.962), 16 outliers. Combining k_floor, sub_norm, and aug=4000 yields tight clustering around the diagonal."><img src="figures/rank_50/rate_constants_best.png" class="img-fluid figure-img"></a>
+<a href="figures/rank_50/rate_constants_best.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6" title="Figure&nbsp;6: Iteration 35 (best). R² = 0.726 (trimmed: 0.975), 15 outliers. Combining k_floor, sub_norm, aug=4000, and lr_sub=0.001 yields the tightest clustering around the diagonal."><img src="figures/rank_50/rate_constants_best.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-k-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6: Iteration 21 (best). R² = 0.690 (trimmed: 0.962), 16 outliers. Combining <code>k_floor</code>, <code>sub_norm</code>, and <code>aug=4000</code> yields tight clustering around the diagonal.
+Figure&nbsp;6: Iteration 35 (best). R² = 0.726 (trimmed: 0.975), 15 outliers. Combining <code>k_floor</code>, <code>sub_norm</code>, <code>aug=4000</code>, and <code>lr_sub=0.001</code> yields the tightest clustering around the diagonal.
 </figcaption>
 </figure>
 </div>
@@ -552,15 +569,15 @@ Figure&nbsp;6: Iteration 21 (best). R² = 0.690 (trimmed: 0.962), 16 outliers. C
 </div>
 </div>
 </section>
-<section id="kinograph-best-run-iteration-21" class="level3">
-<h3 class="anchored" data-anchor-id="kinograph-best-run-iteration-21">Kinograph — Best Run (Iteration 21)</h3>
+<section id="kinograph-best-run-iteration-35" class="level3">
+<h3 class="anchored" data-anchor-id="kinograph-best-run-iteration-35">Kinograph — Best Run (Iteration 35)</h3>
 <div id="fig-kinograph-best" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-kinograph-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="figures/rank_50/kinograph_best.png" class="lightbox" data-gallery="quarto-lightbox-gallery-7" title="Figure&nbsp;7: Kinograph montage for iteration 21. Top-left: ground-truth dc/dt; top-right: GNN prediction; bottom-left: residual (same color scale as GT); bottom-right: predicted vs.&nbsp;true dc/dt scatter (Pearson = 0.33). The GNN captures the dominant oscillatory patterns but misses fine-grained temporal structure."><img src="figures/rank_50/kinograph_best.png" class="img-fluid figure-img"></a>
+<a href="figures/rank_50/kinograph_best.png" class="lightbox" data-gallery="quarto-lightbox-gallery-7" title="Figure&nbsp;7: Kinograph montage for iteration 35. Top-left: ground-truth dc/dt; top-right: GNN prediction; bottom-left: residual (same color scale as GT); bottom-right: predicted vs.&nbsp;true dc/dt scatter (Pearson = 0.35). The GNN captures the dominant oscillatory patterns but misses fine-grained temporal structure."><img src="figures/rank_50/kinograph_best.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-kinograph-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7: Kinograph montage for iteration 21. Top-left: ground-truth <span class="math inline">\(dc/dt\)</span>; top-right: GNN prediction; bottom-left: residual (same color scale as GT); bottom-right: predicted vs.&nbsp;true <span class="math inline">\(dc/dt\)</span> scatter (Pearson = 0.33). The GNN captures the dominant oscillatory patterns but misses fine-grained temporal structure.
+Figure&nbsp;7: Kinograph montage for iteration 35. Top-left: ground-truth <span class="math inline">\(dc/dt\)</span>; top-right: GNN prediction; bottom-left: residual (same color scale as GT); bottom-right: predicted vs.&nbsp;true <span class="math inline">\(dc/dt\)</span> scatter (Pearson = 0.35). The GNN captures the dominant oscillatory patterns but misses fine-grained temporal structure.
 </figcaption>
 </figure>
 </div>
@@ -588,10 +605,10 @@ Figure&nbsp;8: Iteration 1 (baseline). MLP<span class="math inline">\(_{\text{su
 <div id="fig-mlp-best" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-mlp-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="figures/rank_50/mlp_best.png" class="lightbox" data-gallery="quarto-lightbox-gallery-9" title="Figure&nbsp;9: Iteration 21 (best R²). MLP_{\text{sub}}: \alpha at |s|=1 is 0.79 — closer to the true scale. MLP_{\text{node}}: still flat at zero across all 32 iterations — homeostasis not learned."><img src="figures/rank_50/mlp_best.png" class="img-fluid figure-img"></a>
+<a href="figures/rank_50/mlp_best.png" class="lightbox" data-gallery="quarto-lightbox-gallery-9" title="Figure&nbsp;9: Iteration 35 (best R²). MLP_{\text{sub}}: \alpha at |s|=1 is 0.83 — closer to the true scale. MLP_{\text{node}}: still flat at zero across all 44 iterations — homeostasis not learned."><img src="figures/rank_50/mlp_best.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mlp-best-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;9: Iteration 21 (best R²). MLP<span class="math inline">\(_{\text{sub}}\)</span>: <span class="math inline">\(\alpha\)</span> at <span class="math inline">\(|s|=1\)</span> is 0.79 — closer to the true scale. MLP<span class="math inline">\(_{\text{node}}\)</span>: still flat at zero across all 32 iterations — homeostasis not learned.
+Figure&nbsp;9: Iteration 35 (best R²). MLP<span class="math inline">\(_{\text{sub}}\)</span>: <span class="math inline">\(\alpha\)</span> at <span class="math inline">\(|s|=1\)</span> is 0.83 — closer to the true scale. MLP<span class="math inline">\(_{\text{node}}\)</span>: still flat at zero across all 44 iterations — homeostasis not learned.
 </figcaption>
 </figure>
 </div>
@@ -725,10 +742,10 @@ Figure&nbsp;10: Impact of key strategies on R². Each dot is one iteration. The 
 <div id="fig-ucb-tree" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-ucb-tree-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="figures/rank_50/ucb_tree.png" class="lightbox" data-gallery="quarto-lightbox-gallery-11" title="Figure&nbsp;11: UCB tree after 24 iterations. Each node represents a hyperparameter configuration; color encodes R² (green = high, red = low). The tree shows how the exploration branched from the k_floor=1.0 breakthrough (node 14) and converged on the aug=4000 regime. Node 21 (best R² = 0.69) is highlighted."><img src="figures/rank_50/ucb_tree.png" class="img-fluid figure-img"></a>
+<a href="figures/rank_50/ucb_tree.png" class="lightbox" data-gallery="quarto-lightbox-gallery-11" title="Figure&nbsp;11: UCB tree after 24 iterations (snapshot). Each node represents a hyperparameter configuration; color encodes R² (green = high, red = low). The tree shows how the exploration branched from the k_floor=1.0 breakthrough (node 14) and converged on the aug=4000 regime. The tree has since grown to 44 nodes; the overall best is node 35 (R² = 0.726)."><img src="figures/rank_50/ucb_tree.png" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-ucb-tree-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;11: UCB tree after 24 iterations. Each node represents a hyperparameter configuration; color encodes R² (green = high, red = low). The tree shows how the exploration branched from the <code>k_floor=1.0</code> breakthrough (node 14) and converged on the <code>aug=4000</code> regime. Node 21 (best R² = 0.69) is highlighted.
+Figure&nbsp;11: UCB tree after 24 iterations (snapshot). Each node represents a hyperparameter configuration; color encodes R² (green = high, red = low). The tree shows how the exploration branched from the <code>k_floor=1.0</code> breakthrough (node 14) and converged on the <code>aug=4000</code> regime. The tree has since grown to 44 nodes; the overall best is node 35 (R² = 0.726).
 </figcaption>
 </figure>
 </div>

@@ -8,7 +8,7 @@ date-format: "MMMM D, YYYY"
 
 The LLM-driven exploration engine is running on the **oscillatory regime** (activity rank $\sim50$): 100 metabolites, 256 autocatalytic reactions, 2880 time frames, mass-action kinetics with the stoichiometric matrix $\mathbf{S}$ frozen from ground truth. The goal is to recover the 256 rate constants $k_j \in [10^{-2}, 10^{-1}]$ by optimizing training hyperparameters through UCB tree search with 4 parallel slots.
 
-**32 iterations completed** across 3 blocks (8 batches). The exploration is ongoing.
+**44 iterations completed** across 4 blocks (11 batches). The exploration is ongoing.
 
 ### Simulation Setup
 
@@ -24,17 +24,17 @@ The LLM-driven exploration engine is running on the **oscillatory regime** (acti
 
 The primary metric is **raw R²** computed on all 256 reactions (after MLP$_{\text{sub}}$ scalar correction). The **trimmed R²** excludes outlier reactions ($|\Delta \log_{10} k| > 0.3$) and is reported in parentheses. Raw R² is what drives the UCB exploration — it penalizes outliers directly instead of hiding them.
 
-### R² Trajectory Across 32 Iterations
+### R² Trajectory Across 44 Iterations
 
 ```{python}
 #| code-fold: true
 #| label: fig-iterations
-#| fig-cap: "Raw R² (bars) and outlier count (dots) across 32 iterations, colored by block. The k_floor breakthrough at iteration 14 lifted R² from 0.07 to 0.51, and longer training pushed it to 0.69 by iteration 21. Block 3 failed to break the plateau."
+#| fig-cap: "Raw R² (bars) and outlier count (dots) across 44 iterations, colored by block. The k_floor breakthrough at iteration 14 lifted R² from 0.07 to 0.51, longer training pushed it to 0.69 by iteration 21, and lr_sub=0.001 broke the plateau to R²=0.726 at iteration 35. Block 4 revealed seed sensitivity (±0.2 R²)."
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-iters = list(range(1, 33))
+iters = list(range(1, 45))
 r2 = [
     # Block 1 (Iter 1-12): Initial exploration
     0.044, 0.027, 0.044, 0.031,  # Batch 1: initial sweep
@@ -44,9 +44,13 @@ r2 = [
     0.056, 0.508, 0.011, 0.057,  # Batch 4: k_floor=1.0 breakthrough
     0.638, 0.642, 0.470, 0.373,  # Batch 5: exploiting k_floor
     0.690, 0.419, 0.658, 0.559,  # Batch 6: aug=4000 best
-    # Block 3 (Iter 25-32): Plateau
+    # Block 3 (Iter 25-36): Plateau then lr_sub breakthrough
     0.652, 0.638, 0.614, 0.600,  # Batch 7: diminishing returns
     0.507, 0.619, 0.530, 0.409,  # Batch 8: alternative approaches
+    0.521, 0.478, 0.726, 0.544,  # Batch 9: lr_sub=0.001 BREAKTHROUGH
+    # Block 4 (Iter 37-44): Seed sensitivity
+    0.588, 0.518, 0.654, 0.662,  # Batch 10: combinations with lr_sub
+    0.487, 0.690, 0.608, 0.593,  # Batch 11: seed sensitivity revealed
 ]
 outliers = [
     43, 47, 45, 53,
@@ -57,6 +61,9 @@ outliers = [
     16, 29, 19, 24,
     18, 18, 15, 17,
     19, 14, 21, 21,
+    21, 21, 15, 22,  # Batch 9
+    16, 19, 20, 21,  # Batch 10
+    21, 16, 18, 19,  # Batch 11
 ]
 
 # Color by block
@@ -66,33 +73,42 @@ for i, r in enumerate(r2):
         colors.append('#3498db')  # blue: Block 1
     elif i < 24:
         colors.append('#2ecc71')  # green: Block 2
-    else:
+    elif i < 36:
         colors.append('#e67e22')  # orange: Block 3
+    else:
+        colors.append('#9b59b6')  # purple: Block 4
 
 fig, ax1 = plt.subplots(figsize=(14, 5))
 
 bars = ax1.bar(iters, r2, color=colors, edgecolor='white', linewidth=0.5, alpha=0.85)
-ax1.axhline(y=0.690, color='#2ecc71', linestyle='--', alpha=0.4, label='Best R² = 0.690')
+ax1.axhline(y=0.726, color='#e67e22', linestyle='--', alpha=0.4, label='Peak R² = 0.726')
+ax1.axhline(y=0.690, color='#2ecc71', linestyle='--', alpha=0.3, label='Stable R² ≈ 0.69')
 
 # Block separators and labels
 ax1.axvline(x=12.5, color='gray', linestyle=':', alpha=0.4)
 ax1.axvline(x=24.5, color='gray', linestyle=':', alpha=0.4)
-ax1.text(6.5, 1.0, 'Block 1', ha='center', fontsize=9, color='#3498db', fontweight='bold')
-ax1.text(18.5, 1.0, 'Block 2', ha='center', fontsize=9, color='#2ecc71', fontweight='bold')
-ax1.text(28.5, 1.0, 'Block 3', ha='center', fontsize=9, color='#e67e22', fontweight='bold')
+ax1.axvline(x=36.5, color='gray', linestyle=':', alpha=0.4)
+ax1.text(6.5, 1.0, 'Block 1', ha='center', fontsize=9, color='#3498db')
+ax1.text(18.5, 1.0, 'Block 2', ha='center', fontsize=9, color='#2ecc71')
+ax1.text(30.5, 1.0, 'Block 3', ha='center', fontsize=9, color='#e67e22')
+ax1.text(40.5, 1.0, 'Block 4', ha='center', fontsize=9, color='#9b59b6')
 
 # Annotate key events
 ax1.annotate('sub_norm=1.0', xy=(6, 0.067), xytext=(6, 0.18),
-            arrowprops=dict(arrowstyle='->', color='#3498db'), fontsize=7, ha='center', color='#3498db')
-ax1.annotate('k_floor=1.0\nBREAKTHROUGH', xy=(14, 0.508), xytext=(14, 0.28),
-            arrowprops=dict(arrowstyle='->', color='#2ecc71'), fontsize=7, ha='center', color='#2ecc71', fontweight='bold')
-ax1.annotate('aug=4000\nBEST', xy=(21, 0.690), xytext=(21, 0.82),
-            arrowprops=dict(arrowstyle='->', color='#2ecc71'), fontsize=7, ha='center', color='#2ecc71', fontweight='bold')
+            arrowprops=dict(arrowstyle='->', color='black'), fontsize=7, ha='center', color='black')
+ax1.annotate('k_floor=1.0\nbreakthrough', xy=(14, 0.508), xytext=(14, 0.28),
+            arrowprops=dict(arrowstyle='->', color='black'), fontsize=7, ha='center', color='black')
+ax1.annotate('aug=4000', xy=(21, 0.690), xytext=(21, 0.82),
+            arrowprops=dict(arrowstyle='->', color='black'), fontsize=7, ha='center', color='black')
+ax1.annotate('lr_sub=0.001\npeak', xy=(35, 0.726), xytext=(35, 0.88),
+            arrowprops=dict(arrowstyle='->', color='black'), fontsize=7, ha='center', color='black')
+ax1.annotate('seed=123\n↓0.24', xy=(41, 0.487), xytext=(41, 0.30),
+            arrowprops=dict(arrowstyle='->', color='black'), fontsize=7, ha='center', color='black')
 
 ax1.set_xlabel('Iteration')
 ax1.set_ylabel('rate_constants R² (raw)')
 ax1.set_ylim(-0.02, 1.05)
-ax1.set_xticks([1, 4, 8, 12, 14, 17, 21, 24, 28, 32])
+ax1.set_xticks([1, 6, 12, 14, 21, 24, 32, 35, 36, 40, 44])
 
 # outlier count on secondary axis
 ax2 = ax1.twinx()
@@ -105,7 +121,7 @@ lines1, labels1 = ax1.get_legend_handles_labels()
 lines2, labels2 = ax2.get_legend_handles_labels()
 ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left', fontsize=8)
 
-ax1.set_title('UCB Exploration: Rate Constant Recovery (32 iterations)')
+ax1.set_title('UCB Exploration: Rate Constant Recovery (44 iterations)')
 plt.tight_layout()
 plt.show()
 ```
@@ -128,18 +144,20 @@ The `coeff_k_floor=1.0` penalty at iteration 14 produced a **10× improvement** 
 |-------|-------------|---------|---------|
 | 4 (iter 13--16) | `k_floor=1.0` | **0.508** | Breakthrough — R² jumped 10× |
 | 5 (iter 17--20) | `aug=3000` | **0.642** | Longer training + k_floor synergistic |
-| 6 (iter 21--24) | `aug=4000` | **0.690** | Best overall; $\alpha = 0.85$, 16 outliers |
+| 6 (iter 21--24) | `aug=4000` | **0.690** | First to reach 0.69; $\alpha = 0.85$, 16 outliers |
 
-**Best result — Iteration 21**: `data_augmentation_loop=4000`, `coeff_k_floor=1.0`, `coeff_MLP_sub_norm=1.0`
+**Best result — Iteration 35**: `lr_sub=0.001`, `data_augmentation_loop=4000`, `coeff_k_floor=1.0`, `coeff_MLP_sub_norm=1.0`
 
 | Metric | Value |
 |--------|-------|
-| Raw R² | **0.690** |
-| Trimmed R² | 0.962 |
-| Outliers | 16 / 256 (6.3%) |
-| Slope | 0.976 |
-| $\alpha$ | 0.85 |
-| test_pearson | 0.33 |
+| Raw R² | **0.726** |
+| Trimmed R² | 0.975 |
+| Outliers | 15 / 256 (5.9%) |
+| Slope | 0.99 |
+| $\alpha$ | 0.83 |
+| test_pearson | 0.35 |
+
+*Note: This peak R² is partly seed-dependent (±0.2 variance — see Block 4). The stable baseline is R² ≈ 0.69 (e.g. iteration 42: `aug=4500`, $\alpha = 0.94$).*
 
 ### Rate Constants Recovery
 
@@ -149,13 +167,13 @@ The `coeff_k_floor=1.0` penalty at iteration 14 produced a **10× improvement** 
 
 ![Iteration 14 (breakthrough). R² = 0.508, 33 outliers. The `k_floor=1.0` penalty prevents outlier $\log k$ from drifting below the true minimum, producing a 10$\times$ R² jump.](figures/rank_50/rate_constants_breakthrough.png){#fig-k-breakthrough}
 
-![Iteration 21 (best). R² = 0.690 (trimmed: 0.962), 16 outliers. Combining `k_floor`, `sub_norm`, and `aug=4000` yields tight clustering around the diagonal.](figures/rank_50/rate_constants_best.png){#fig-k-best}
+![Iteration 35 (best). R² = 0.726 (trimmed: 0.975), 15 outliers. Combining `k_floor`, `sub_norm`, `aug=4000`, and `lr_sub=0.001` yields the tightest clustering around the diagonal.](figures/rank_50/rate_constants_best.png){#fig-k-best}
 
 :::
 
-### Kinograph — Best Run (Iteration 21)
+### Kinograph — Best Run (Iteration 35)
 
-![Kinograph montage for iteration 21. Top-left: ground-truth $dc/dt$; top-right: GNN prediction; bottom-left: residual (same color scale as GT); bottom-right: predicted vs. true $dc/dt$ scatter (Pearson = 0.33). The GNN captures the dominant oscillatory patterns but misses fine-grained temporal structure.](figures/rank_50/kinograph_best.png){#fig-kinograph-best}
+![Kinograph montage for iteration 35. Top-left: ground-truth $dc/dt$; top-right: GNN prediction; bottom-left: residual (same color scale as GT); bottom-right: predicted vs. true $dc/dt$ scatter (Pearson = 0.35). The GNN captures the dominant oscillatory patterns but misses fine-grained temporal structure.](figures/rank_50/kinograph_best.png){#fig-kinograph-best}
 
 ### Learned MLPs
 
@@ -163,7 +181,7 @@ The `coeff_k_floor=1.0` penalty at iteration 14 produced a **10× improvement** 
 
 ![Iteration 1 (baseline). MLP$_{\text{sub}}$: $\alpha$ at $|s|=1$ is 0.42 — under-scaled. MLP$_{\text{node}}$: flat at zero.](figures/rank_50/mlp_baseline.png){#fig-mlp-baseline}
 
-![Iteration 21 (best R²). MLP$_{\text{sub}}$: $\alpha$ at $|s|=1$ is 0.79 — closer to the true scale. MLP$_{\text{node}}$: still flat at zero across all 32 iterations — homeostasis not learned.](figures/rank_50/mlp_best.png){#fig-mlp-best}
+![Iteration 35 (best R²). MLP$_{\text{sub}}$: $\alpha$ at $|s|=1$ is 0.83 — closer to the true scale. MLP$_{\text{node}}$: still flat at zero across all 44 iterations — homeostasis not learned.](figures/rank_50/mlp_best.png){#fig-mlp-best}
 
 :::
 
@@ -226,7 +244,7 @@ The most stable configuration (iter 42: `aug=4500`) achieved R² = 0.690 with $\
 
 ### UCB Exploration Tree
 
-![UCB tree after 24 iterations. Each node represents a hyperparameter configuration; color encodes R² (green = high, red = low). The tree shows how the exploration branched from the `k_floor=1.0` breakthrough (node 14) and converged on the `aug=4000` regime. Node 21 (best R² = 0.69) is highlighted.](figures/rank_50/ucb_tree.png){#fig-ucb-tree}
+![UCB tree after 24 iterations (snapshot). Each node represents a hyperparameter configuration; color encodes R² (green = high, red = low). The tree shows how the exploration branched from the `k_floor=1.0` breakthrough (node 14) and converged on the `aug=4000` regime. The tree has since grown to 44 nodes; the overall best is node 35 (R² = 0.726).](figures/rank_50/ucb_tree.png){#fig-ucb-tree}
 
 ### Established Principles
 

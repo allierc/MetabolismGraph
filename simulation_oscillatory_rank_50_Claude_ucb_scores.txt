@@ -1,6 +1,10 @@
-=== UCB Scores (Simulation block 0, iters 1-12, N=4, c=1.414) ===
+=== UCB Scores (Simulation block 3, iters 37-48, N=8, c=1.414) ===
 
-Node 1: UCB=1.458, parent=root, visits=1, R2=0.044, Pearson=0.000, Mutation=None (baseline)
-Node 3: UCB=1.458, parent=root, visits=1, R2=0.044, Pearson=0.000, Mutation=lr_node: 0.001 -> 0.002
-Node 4: UCB=1.445, parent=root, visits=1, R2=0.031, Pearson=0.141, Mutation=lr_sub: 0.0005 -> 0.0002
-Node 2: UCB=1.441, parent=root, visits=1, R2=0.027, Pearson=0.117, Mutation=lr_k: 0.005 -> 0.01
+Node 40: UCB=2.662, parent=root, visits=1, R2=0.662, Pearson=0.212, Mutation=coeff_MLP_node_L1: 1.0 -> 0.0. Testing principle: "L1=0.0 + longer training hurts R²"
+Node 39: UCB=2.653, parent=root, visits=1, R2=0.654, Pearson=0.221, Mutation=learning_rate_node: 0.001 -> 0.002
+Node 43: UCB=2.608, parent=42, visits=1, R2=0.608, Pearson=0.334, Mutation=coeff_MLP_sub_diff: 5 -> 3
+Node 44: UCB=2.593, parent=42, visits=1, R2=0.593, Pearson=0.200, Mutation=learning_rate_k: 0.005 -> 0.007. Testing principle: "lr_k=0.005 is appropriate"
+Node 37: UCB=2.588, parent=root, visits=1, R2=0.588, Pearson=0.165, Mutation=coeff_MLP_sub_norm: 1.0 -> 2.0
+Node 38: UCB=2.517, parent=root, visits=1, R2=0.518, Pearson=0.420, Mutation=learning_rate_sub: 0.001 -> 0.002
+Node 41: UCB=2.487, parent=root, visits=1, R2=0.487, Pearson=0.031, Mutation=seed: 42 -> 123
+Node 42: UCB=1.689, parent=root, visits=3, R2=0.690, Pearson=0.307, Mutation=data_augmentation_loop: 4000 -> 4500

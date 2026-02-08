@@ -654,7 +654,9 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     final_loss = list_loss[-1] if list_loss else 0.0
 
     # --- compare learned vs GT functions ---
-    func_metrics = _compare_functions(model, gt_model, x, device)
+    eps = getattr(train_config, 'cluster_distance_threshold', 0.1)
+    func_metrics = _compare_functions(model, gt_model, x, device,
+                                      cluster_distance_threshold=eps)
 
     training_elapsed_min = (time.time() - training_start_time) / 60.0
     print(f"\n=== training complete ({training_elapsed_min:.1f} min) ===")
@@ -1497,7 +1499,7 @@ def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N,
     return raw_r2, trimmed_r2, n_outliers, slope
 
 
-def _compare_functions(model, gt_model, x, device):
+def _compare_functions(model, gt_model, x, device, cluster_distance_threshold=0.1):
     """Compare learned vs ground truth MLP_sub and MLP_node functions.
 
     Evaluates MLP_sub on a grid of inputs and computes correlation metrics.
@@ -1590,13 +1592,8 @@ def _compare_functions(model, gt_model, x, device):
 
             a_np = model.a.detach().cpu().numpy()
             true_labels = x[:, 6].long().cpu().numpy().flatten()
-            n_types_emb = int(true_labels.max()) + 1
 
-            # auto-select eps: median pairwise distance / 2
-            from scipy.spatial.distance import pdist
-            dists = pdist(a_np)
-            eps = float(np.median(dists) / 2) if len(dists) > 0 else 0.5
-
+            eps = cluster_distance_threshold
             dbscan = DBSCAN(eps=eps, min_samples=5)
             cluster_labels = dbscan.fit_predict(a_np)
 

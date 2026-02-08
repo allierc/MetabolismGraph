@@ -189,6 +189,8 @@ class TrainingConfig(BaseModel):
     # external input learning
     learn_external_input: bool = False
 
+    cluster_distance_threshold: float = 0.1  # DBSCAN eps for embedding clustering
+
     data_augmentation_loop: int = 40
 
 

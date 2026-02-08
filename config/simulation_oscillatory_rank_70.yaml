@@ -1,15 +1,15 @@
-description: Oscillatory baseline (activity rank ~20)
-dataset: simulation_oscillatory_rank_20
+description: Oscillatory high-rank (activity rank ~70)
+dataset: simulation_oscillatory_rank_70
 
 simulation:
   n_metabolites: 100
   n_metabolite_types: 2
-  n_reactions: 256
+  n_reactions: 512
   max_metabolites_per_reaction: 4
   n_frames: 2880
   delta_t: 0.1
   start_frame: 0
-  seed: 42
+  seed: 49
   # wider initial concentration range for more dynamics
   concentration_min: 1.0
   concentration_max: 9.0
@@ -18,8 +18,8 @@ simulation:
   cycle_length: 3
   # use true mass-action kinetics: v = k * Π(c^s) for oscillations
   use_mass_action: true
-  # rate constants: k in [0.003, 0.1] - wider range includes slow inert reactions
-  log_k_min: -2.5
+  # rate constants: k in [0.01, 0.1] - narrower range, all reactions active
+  log_k_min: -2.0
   log_k_max: -1.0
   # no flux limiting for freer oscillatory dynamics
   flux_limit: false

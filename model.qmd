@@ -166,15 +166,15 @@ With multiplicative aggregation, autocatalytic cycles create positive feedback: 
 | Parameter | Value |
 |-----------|-------|
 | n_metabolites | 100 |
-| n_reactions | 512 |
+| n_reactions | 256 |
 | Stoichiometry | 100% autocatalytic 3-cycles |
 | Aggregation | Product (multiplicative) |
 | $\lambda$ (homeostatic strength) | 0.0 |
-| Rate constants $k_j$ | $[10^{-2.0}, 10^{-1}]$ |
+| Rate constants $k_j$ | $[10^{-2.5}, 10^{-1}]$ |
 | Initial concentrations | [1.0, 9.0] |
 | Flux limiting | Disabled |
 
-![Oscillatory dynamics: autocatalytic 3-cycles with multiplicative aggregation produce sustained oscillations. 512 reactions, rate constant range $[10^{-2.0}, 10^{-1}]$, activity rank 68.](graphs_data/simulation_oscillatory/concentrations.png){width=100%}
+![Oscillatory dynamics (activity rank 20): autocatalytic 3-cycles with multiplicative aggregation produce sustained oscillations. The wide rate constant range $[10^{-2.5}, 10^{-1}]$ means ~40% of reactions have $k < 0.01$ and contribute negligibly.](graphs_data/simulation_oscillatory_rank_20/concentrations.png){width=100%}
 
 ## Activity Rank
 
@@ -189,9 +189,21 @@ $$\text{rank}_{99} = \min \left\{ k : \frac{\sum_{i=1}^{k} \sigma_i^2}{\sum_{i=1
 - **Low rank** (1-5): concentrations are highly correlated, dynamics are simple (equilibration or uniform decay)
 - **High rank** (>20): metabolites evolve independently with rich, complex dynamics
 
-### Activity Rank and GNN Training Dataset
+### Increasing Activity Rank
 
-The oscillatory config above (512 reactions, $k_j \in [10^{-2.0}, 10^{-1}]$) has activity rank **68**. For GNN training, we use a reduced variant with **256 reactions** (activity rank **47**) — complex enough to test rate constant recovery while keeping the problem tractable:
+With the baseline oscillatory config ($k_j \in [10^{-2.5}, 10^{-1}]$, 256 reactions), the activity rank is **20**. Activity rank is controlled by the **number of actively contributing reactions per metabolite**:
+
+| Config | Reactions | $k_j$ range | Activity Rank |
+|--------|:---------:|:-----------:|:---:|
+| Baseline (rank_20) | 256 | $[10^{-2.5}, 10^{-1}]$ | **20** |
+| Narrow $k$ (rank_50) | 256 | $[10^{-2.0}, 10^{-1}]$ | **47** |
+| More reactions (rank_70) | 512 | $[10^{-2.0}, 10^{-1}]$ | **70** |
+
+The most impactful change is **narrowing the rate constant range** from $[10^{-2.5}, 10^{-1}]$ to $[10^{-2.0}, 10^{-1}]$. With the wider range, ~40% of reactions have $k < 0.01$ and contribute negligibly. Removing these inert reactions more than doubles the activity rank (20 → 47). Doubling the number of reactions further increases overlap per metabolite (47 → 70).
+
+### GNN Training Dataset
+
+For GNN training and rate constant recovery, we use the **rank_50** config (256 reactions, activity rank 47) — complex enough to test the inverse problem while keeping it tractable:
 
 | Parameter | Value |
 |-----------|-------|
@@ -201,7 +213,7 @@ The oscillatory config above (512 reactions, $k_j \in [10^{-2.0}, 10^{-1}]$) has
 | Rate constants $k_j$ | $[10^{-2.0}, 10^{-1}]$ |
 | All other parameters | Same as oscillatory above |
 
-![Oscillatory dynamics with 256 reactions (activity rank 47). This is the primary dataset used for GNN training and rate constant recovery.](graphs_data/simulation_oscillatory_rank_50/concentrations.png){width=100%}
+![Oscillatory dynamics with narrowed rate constants (activity rank 47). Eliminating slow inert reactions produces richer dynamics. This is the primary dataset for GNN training.](graphs_data/simulation_oscillatory_rank_50/concentrations.png){width=100%}
 
 ## Summary: The Full Model
 

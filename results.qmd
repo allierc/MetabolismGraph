@@ -279,6 +279,30 @@ To recover homeostasis, we propose a two-phase training scheme:
 
 This separates the two learning problems by time scale: fast reactions are learned from instantaneous gradients, slow homeostasis from trajectory matching. The key insight is that recurrent training is not needed for $k_j$ recovery (it was tried and failed — iter 13, 34), but may be essential specifically for homeostasis once the reaction parameters are frozen.
 
+### Alternative approach: residual-based supervision
+
+The kinograph residual (@fig-kinograph-best, bottom-left) directly reveals what the single-step model cannot learn. After Phase 1, we can roll out the learned model autoregressively:
+
+$$
+\hat{c}_i(t+1) = \hat{c}_i(t) + \Delta t \cdot \left[ \sum_j S_{ij} \cdot k_j \prod_k \text{MLP}_{\text{sub}}(\hat{c}_k, |S_{kj}|) \right]
+$$
+
+The rollout trajectory $\hat{c}(t)$ drifts from the observation $c(t)$ because the missing homeostatic restoring force is not applied at each step. The accumulated residual
+
+$$
+r_i(t) = c_i(t) - \hat{c}_i(t)
+$$
+
+is precisely the integrated effect of the missing slow terms — homeostasis, external sources, and degradation. This residual provides a direct supervision signal for Phase 2 without requiring backpropagation through time: we can compute a per-step target
+
+$$
+\frac{r_i(t+1) - r_i(t)}{\Delta t} \approx \text{MLP}_{\text{node}}(c_i(t), a_i)
+$$
+
+and train MLP$_{\text{node}}$ with a standard single-step loss on this derived target. This avoids the instabilities of recurrent training while still capturing the long-term dynamics that the reaction-only model structurally cannot predict.
+
+This approach is an instance of the **Universal Differential Equations** framework ([Rackauckas et al., 2021](https://arxiv.org/abs/2001.04385)), where a partially known ODE is augmented with a neural network that learns the missing terms from data. Here, the known part is the reaction dynamics $\sum_j S_{ij} k_j \prod_k \text{MLP}_{\text{sub}}$, and the unknown part is the homeostatic correction learned by MLP$_{\text{node}}$. The residual-based supervision strategy is also related to **PDE-Refiner** ([Lippe et al., NeurIPS 2023](https://arxiv.org/abs/2308.05732)), which uses iterative refinement on rollout residuals to recover low-amplitude dynamics that single-pass neural solvers miss — analogous to the small homeostatic signal masked by dominant reactions.
+
 ### Related work
 
 The difficulty of learning slow dynamics from single-step training is well established in the literature:

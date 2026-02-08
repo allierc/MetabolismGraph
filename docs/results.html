@@ -217,6 +217,7 @@ window.Quarto = {
   <li><a href="#the-scale-mismatch-problem" id="toc-the-scale-mismatch-problem" class="nav-link" data-scroll-target="#the-scale-mismatch-problem">The scale mismatch problem</a></li>
   <li><a href="#homeostasis-is-an-integral-problem" id="toc-homeostasis-is-an-integral-problem" class="nav-link" data-scroll-target="#homeostasis-is-an-integral-problem">Homeostasis is an integral problem</a></li>
   <li><a href="#proposed-approach-two-phase-training" id="toc-proposed-approach-two-phase-training" class="nav-link" data-scroll-target="#proposed-approach-two-phase-training">Proposed approach: two-phase training</a></li>
+  <li><a href="#alternative-approach-residual-based-supervision" id="toc-alternative-approach-residual-based-supervision" class="nav-link" data-scroll-target="#alternative-approach-residual-based-supervision">Alternative approach: residual-based supervision</a></li>
   <li><a href="#related-work" id="toc-related-work" class="nav-link" data-scroll-target="#related-work">Related work</a></li>
   </ul></li>
   </ul>
@@ -783,6 +784,23 @@ c_i(t + T) \approx c_i(t) + \int_t^{t+T} \left[ -\lambda_i (c_i - c_i^{\text{bas
 <li><p><strong>Phase 2 — Homeostasis recovery</strong> (recurrent, <span class="math inline">\(t \to t+T\)</span>): With the reaction term frozen, train only MLP<span class="math inline">\(_{\text{node}}\)</span> and embeddings <span class="math inline">\(a_i\)</span> using multi-step rollout. The recurrent loss forces the model to match trajectories over <span class="math inline">\(T\)</span> steps, where the homeostatic drift becomes visible.</p></li>
 </ol>
 <p>This separates the two learning problems by time scale: fast reactions are learned from instantaneous gradients, slow homeostasis from trajectory matching. The key insight is that recurrent training is not needed for <span class="math inline">\(k_j\)</span> recovery (it was tried and failed — iter 13, 34), but may be essential specifically for homeostasis once the reaction parameters are frozen.</p>
+</section>
+<section id="alternative-approach-residual-based-supervision" class="level3">
+<h3 class="anchored" data-anchor-id="alternative-approach-residual-based-supervision">Alternative approach: residual-based supervision</h3>
+<p>The kinograph residual (<a href="#fig-kinograph-best" class="quarto-xref">Figure&nbsp;7</a>, bottom-left) directly reveals what the single-step model cannot learn. After Phase 1, we can roll out the learned model autoregressively:</p>
+<p><span class="math display">\[
+\hat{c}_i(t+1) = \hat{c}_i(t) + \Delta t \cdot \left[ \sum_j S_{ij} \cdot k_j \prod_k \text{MLP}_{\text{sub}}(\hat{c}_k, |S_{kj}|) \right]
+\]</span></p>
+<p>The rollout trajectory <span class="math inline">\(\hat{c}(t)\)</span> drifts from the observation <span class="math inline">\(c(t)\)</span> because the missing homeostatic restoring force is not applied at each step. The accumulated residual</p>
+<p><span class="math display">\[
+r_i(t) = c_i(t) - \hat{c}_i(t)
+\]</span></p>
+<p>is precisely the integrated effect of the missing slow terms — homeostasis, external sources, and degradation. This residual provides a direct supervision signal for Phase 2 without requiring backpropagation through time: we can compute a per-step target</p>
+<p><span class="math display">\[
+\frac{r_i(t+1) - r_i(t)}{\Delta t} \approx \text{MLP}_{\text{node}}(c_i(t), a_i)
+\]</span></p>
+<p>and train MLP<span class="math inline">\(_{\text{node}}\)</span> with a standard single-step loss on this derived target. This avoids the instabilities of recurrent training while still capturing the long-term dynamics that the reaction-only model structurally cannot predict.</p>
+<p>This approach is an instance of the <strong>Universal Differential Equations</strong> framework (<a href="https://arxiv.org/abs/2001.04385">Rackauckas et al., 2021</a>), where a partially known ODE is augmented with a neural network that learns the missing terms from data. Here, the known part is the reaction dynamics <span class="math inline">\(\sum_j S_{ij} k_j \prod_k \text{MLP}_{\text{sub}}\)</span>, and the unknown part is the homeostatic correction learned by MLP<span class="math inline">\(_{\text{node}}\)</span>. The residual-based supervision strategy is also related to <strong>PDE-Refiner</strong> (<a href="https://arxiv.org/abs/2308.05732">Lippe et al., NeurIPS 2023</a>), which uses iterative refinement on rollout residuals to recover low-amplitude dynamics that single-pass neural solvers miss — analogous to the small homeostatic signal masked by dominant reactions.</p>
 </section>
 <section id="related-work" class="level3">
 <h3 class="anchored" data-anchor-id="related-work">Related work</h3>

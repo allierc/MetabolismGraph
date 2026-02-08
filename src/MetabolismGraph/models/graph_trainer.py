@@ -654,7 +654,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     final_loss = list_loss[-1] if list_loss else 0.0
 
     # --- compare learned vs GT functions ---
-    func_metrics = _compare_functions(model, gt_model, device)
+    func_metrics = _compare_functions(model, gt_model, x, device)
 
     training_elapsed_min = (time.time() - training_start_time) / 60.0
     print(f"\n=== training complete ({training_elapsed_min:.1f} min) ===")
@@ -676,6 +676,11 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     _detail_str = f' ({", ".join(_details)})' if _details else ''
     print(f"  {_r2_color}{r2_name} R2: {final_r2:.4f}{_detail_str}\033[0m")
     print(f"  MLP_sub R2: {func_metrics['MLP_sub_r2']:.4f}")
+    if 'MLP_node_slope_0' in func_metrics:
+        for t in range(func_metrics.get('n_types', 0)):
+            learned = func_metrics[f'MLP_node_slope_{t}']
+            gt = func_metrics[f'MLP_node_gt_slope_{t}']
+            print(f"  MLP_node type {t}: slope={learned:.6f} (GT: {gt:.6f})")
     logger.info(f"final prediction loss: {final_loss:.6f}")
     logger.info(f"{r2_name} R2: {final_r2:.4f}")
     logger.info(f"MLP_sub R2: {func_metrics['MLP_sub_r2']:.4f}")
@@ -690,6 +695,10 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
             log_file.write(f"slope: {final_slope:.4f}\n")
         log_file.write(f"MLP_sub_R2: {func_metrics['MLP_sub_r2']:.4f}\n")
         log_file.write(f"MLP_sub_corr: {func_metrics['MLP_sub_corr']:.4f}\n")
+        if 'MLP_node_slope_0' in func_metrics:
+            for t in range(func_metrics.get('n_types', 0)):
+                log_file.write(f"MLP_node_slope_{t}: {func_metrics[f'MLP_node_slope_{t}']:.6f}\n")
+                log_file.write(f"MLP_node_gt_slope_{t}: {func_metrics[f'MLP_node_gt_slope_{t}']:.6f}\n")
 
 
 def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=None, log_file=None):
@@ -1106,7 +1115,7 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
             transform=ax.transAxes, fontsize=10, verticalalignment='top')
 
     ax.set_xlabel('concentration', fontsize=14)
-    ax.set_ylabel('MLP_sub output', fontsize=14)
+    ax.set_ylabel(r'$\|\mathrm{MLP_{sub}}(c, |s|)\|$', fontsize=14)
     ax.legend(fontsize=10)
     ax.tick_params(labelsize=12)
     plt.tight_layout()
@@ -1124,7 +1133,8 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
 
         fig, ax = plt.subplots(figsize=(8, 8))
 
-        # plot MLP_node for each individual metabolite
+        # plot MLP_node for each individual metabolite, collect slopes
+        slopes_by_type = {}
         for i in range(n_met):
             a_i = model.a[i]  # embedding for metabolite i
             t = metabolite_types[i].item()
@@ -1134,8 +1144,12 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
             node_in = torch.cat([conc_range.unsqueeze(-1), a_repeated], dim=-1)
             homeostasis = model.node_func(node_in).squeeze(-1)
 
-            ax.plot(c_np, to_numpy(homeostasis), linewidth=1, color=cmap(t),
-                    alpha=0.3)
+            h_np = to_numpy(homeostasis)
+            ax.plot(c_np, h_np, linewidth=1, color=cmap(t), alpha=0.3)
+
+            # linear fit y = a*x + b
+            coeffs = np.polyfit(c_np, h_np, 1)
+            slopes_by_type.setdefault(t, []).append(coeffs[0])
 
         # GT homeostasis if available: -λ_t * (c - c_baseline_t)
         if gt_model is not None and hasattr(gt_model, 'p'):
@@ -1149,6 +1163,23 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
                             linestyle='--', label=f'GT type {t}')
                     ax.axvline(x=c_baseline_t, color=cmap(t), linestyle=':',
                                alpha=0.3)
+
+        # annotate mean learned slope vs GT slope per type
+        slope_lines = []
+        for t in sorted(slopes_by_type.keys()):
+            mean_slope = np.mean(slopes_by_type[t])
+            gt_slope_str = ''
+            if gt_model is not None and hasattr(gt_model, 'p'):
+                p = to_numpy(gt_model.p.detach().cpu())
+                if t < p.shape[0]:
+                    gt_slope_str = f', GT: {-p[t, 0]:.4f}'
+            slope_lines.append(f'type {t}: slope={mean_slope:.4f}{gt_slope_str}')
+        if slope_lines:
+            ax.text(0.05, 0.96, '\n'.join(slope_lines),
+                    transform=ax.transAxes, fontsize=10, verticalalignment='top',
+                    fontfamily='monospace',
+                    bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
+                              alpha=0.8))
 
         ax.axhline(y=0, color='gray', linestyle='-', alpha=0.3)
         ax.set_xlabel('concentration $c$', fontsize=14)
@@ -1446,16 +1477,20 @@ def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N,
     return raw_r2, trimmed_r2, n_outliers, slope
 
 
-def _compare_functions(model, gt_model, device):
-    """Compare learned vs ground truth MLP_sub (substrate function).
+def _compare_functions(model, gt_model, x, device):
+    """Compare learned vs ground truth MLP_sub and MLP_node functions.
 
     Evaluates MLP_sub on a grid of inputs and computes correlation metrics.
+    For MLP_node, fits y = a*x + b per metabolite and compares slopes to GT.
 
     Returns
     -------
     dict with keys:
         MLP_sub_r2: R² between GT and learned MLP_sub outputs
         MLP_sub_corr: Pearson correlation for MLP_sub
+        MLP_node_slope_t: mean learned slope for type t (one key per type)
+        MLP_node_gt_slope_t: GT slope (-λ_t) for type t (one key per type)
+        n_types: number of metabolite types
     """
     model.eval()
     gt_model.eval()
@@ -1490,7 +1525,39 @@ def _compare_functions(model, gt_model, device):
             learned_centered.norm() * gt_centered.norm() + 1e-8
         )
 
-    return {
+    result = {
         'MLP_sub_r2': float(sub_r2.cpu()),
         'MLP_sub_corr': float(sub_corr.cpu()),
     }
+
+    # --- MLP_node comparison ---
+    # For each metabolite, sweep concentration, fit y = a*x + b
+    # Compare learned slope to GT slope (-λ_type)
+    if hasattr(model, 'node_func') and gt_model is not None and hasattr(gt_model, 'p'):
+        p_node = gt_model.p.detach().cpu()
+        n_met = model.a.shape[0]
+        metabolite_types = x[:, 6].long()
+        n_types = metabolite_types.max().item() + 1
+
+        conc_sweep = torch.linspace(0, 40, 50, device=device)
+        c_np_sweep = conc_sweep.cpu().numpy()
+
+        slopes_by_type = {}  # {type_id: [slopes]}
+        for i in range(n_met):
+            a_i = model.a[i]
+            t = metabolite_types[i].item()
+            a_rep = a_i.unsqueeze(0).expand(50, -1)
+            node_in = torch.cat([conc_sweep.unsqueeze(-1), a_rep], dim=-1)
+            out = model.node_func(node_in).squeeze(-1)
+            coeffs = np.polyfit(c_np_sweep, out.cpu().numpy(), 1)  # [slope, intercept]
+            slopes_by_type.setdefault(t, []).append(coeffs[0])
+
+        result['n_types'] = n_types
+        for t in range(n_types):
+            if t < p_node.shape[0]:
+                gt_slope = -p_node[t, 0].item()
+                learned_slopes = slopes_by_type.get(t, [0.0])
+                result[f'MLP_node_slope_{t}'] = float(np.mean(learned_slopes))
+                result[f'MLP_node_gt_slope_{t}'] = float(gt_slope)
+
+    return result

@@ -212,6 +212,12 @@ window.Quarto = {
   <li><a href="#refuted-hypotheses" id="toc-refuted-hypotheses" class="nav-link" data-scroll-target="#refuted-hypotheses">Refuted Hypotheses</a></li>
   <li><a href="#open-questions" id="toc-open-questions" class="nav-link" data-scroll-target="#open-questions">Open Questions</a></li>
   </ul></li>
+  <li><a href="#why-homeostasis-is-not-learned" id="toc-why-homeostasis-is-not-learned" class="nav-link" data-scroll-target="#why-homeostasis-is-not-learned">Why Homeostasis Is Not Learned</a>
+  <ul class="collapse">
+  <li><a href="#the-scale-mismatch-problem" id="toc-the-scale-mismatch-problem" class="nav-link" data-scroll-target="#the-scale-mismatch-problem">The scale mismatch problem</a></li>
+  <li><a href="#homeostasis-is-an-integral-problem" id="toc-homeostasis-is-an-integral-problem" class="nav-link" data-scroll-target="#homeostasis-is-an-integral-problem">Homeostasis is an integral problem</a></li>
+  <li><a href="#proposed-approach-two-phase-training" id="toc-proposed-approach-two-phase-training" class="nav-link" data-scroll-target="#proposed-approach-two-phase-training">Proposed approach: two-phase training</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -747,6 +753,35 @@ Figure&nbsp;11: UCB tree after 24 iterations. Each node represents a hyperparame
 <li><strong>Can recurrent training break the plateau with the optimal config?</strong> Previous test (iter 13) was before k_floor.</li>
 <li><strong>Is the remaining 31% error from identifiability issues?</strong> Multiple <span class="math inline">\(k\)</span> combinations may produce similar <span class="math inline">\(dc/dt\)</span>.</li>
 </ol>
+</section>
+</section>
+<section id="why-homeostasis-is-not-learned" class="level2">
+<h2 class="anchored" data-anchor-id="why-homeostasis-is-not-learned">Why Homeostasis Is Not Learned</h2>
+<p>Across all 36 iterations, MLP<span class="math inline">\(_{\text{node}}\)</span> remains flat — the homeostasis function <span class="math inline">\(-\lambda_t(c_i - c_i^{\text{baseline}})\)</span> is never recovered. This is not a hyperparameter issue. It is a structural limitation of single-step (<span class="math inline">\(t \to t+1\)</span>) training.</p>
+<section id="the-scale-mismatch-problem" class="level3">
+<h3 class="anchored" data-anchor-id="the-scale-mismatch-problem">The scale mismatch problem</h3>
+<p>The GNN predicts <span class="math inline">\(dc/dt\)</span> at each time step:</p>
+<p><span class="math display">\[
+\frac{dc_i}{dt} = \underbrace{\text{MLP}_{\text{node}}(c_i, a_i)}_{\text{homeostasis}} + \underbrace{\sum_j S_{ij} \cdot k_j \prod_k \text{MLP}_{\text{sub}}(c_k, |S_{kj}|)}_{\text{reaction}}
+\]</span></p>
+<p>The reaction term dominates the instantaneous <span class="math inline">\(dc/dt\)</span> — it drives the fast oscillatory dynamics. Homeostasis acts as a slow restoring force that only manifests over many time steps: it prevents concentrations from drifting away from baseline. In a single-step loss <span class="math inline">\(\| \hat{y}_{t+1} - y_{t+1} \|^2\)</span>, the gradient signal from homeostasis is negligible compared to the reaction term. The optimizer has no reason to learn it.</p>
+</section>
+<section id="homeostasis-is-an-integral-problem" class="level3">
+<h3 class="anchored" data-anchor-id="homeostasis-is-an-integral-problem">Homeostasis is an integral problem</h3>
+<p>Homeostasis determines the <strong>long-term trajectory envelope</strong>, not the instantaneous derivative. Its effect accumulates over time:</p>
+<p><span class="math display">\[
+c_i(t + T) \approx c_i(t) + \int_t^{t+T} \left[ -\lambda_i (c_i - c_i^{\text{base}}) + \text{reaction terms} \right] d\tau
+\]</span></p>
+<p>A model trained on <span class="math inline">\(t \to t+1\)</span> can achieve low loss by fitting the dominant reaction signal and ignoring the small homeostatic correction. Over many steps this error accumulates — but the single-step loss never sees it.</p>
+</section>
+<section id="proposed-approach-two-phase-training" class="level3">
+<h3 class="anchored" data-anchor-id="proposed-approach-two-phase-training">Proposed approach: two-phase training</h3>
+<p>To recover homeostasis, we propose a two-phase training scheme:</p>
+<ol type="1">
+<li><p><strong>Phase 1 — Reaction recovery</strong> (<span class="math inline">\(t \to t+1\)</span>): Train as currently done. Recover <span class="math inline">\(k_j\)</span>, MLP<span class="math inline">\(_{\text{sub}}\)</span>, and the stoichiometric structure. Freeze these parameters.</p></li>
+<li><p><strong>Phase 2 — Homeostasis recovery</strong> (recurrent, <span class="math inline">\(t \to t+T\)</span>): With the reaction term frozen, train only MLP<span class="math inline">\(_{\text{node}}\)</span> and embeddings <span class="math inline">\(a_i\)</span> using multi-step rollout. The recurrent loss forces the model to match trajectories over <span class="math inline">\(T\)</span> steps, where the homeostatic drift becomes visible.</p></li>
+</ol>
+<p>This separates the two learning problems by time scale: fast reactions are learned from instantaneous gradients, slow homeostasis from trajectory matching. The key insight is that recurrent training is not needed for <span class="math inline">\(k_j\)</span> recovery (it was tried and failed — iter 13, 34), but may be essential specifically for homeostasis once the reaction parameters are frozen.</p>
 
 
 </section>

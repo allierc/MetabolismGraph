@@ -141,7 +141,8 @@ The following metrics are written to `analysis.log` at the end of training:
 |--------|-------------|------------|
 | `training_time_min` | Wall-clock training time in minutes | Informational |
 | `final_loss` | Final prediction loss (MSE on dc/dt) | Lower is better |
-| `rate_constants_R2` | R² between learned and true rate constants k (after MLP_sub scalar correction) | > 0.9 |
+| `rate_constants_R2` | Trimmed R² between learned and true rate constants k (excluding outlier reactions where \|Δlog_k\| > 0.3, after MLP_sub scalar correction) | > 0.9 |
+| `n_outliers` | Number of outlier reactions excluded from R² (reactions with \|corrected_log_k − gt_log_k\| > 0.3, i.e. factor of 2 error) | < 10% of n_reactions |
 | `test_R2` | R² on held-out test frames | > 0.9 |
 | `test_pearson` | Pearson correlation on test frames | > 0.95 |
 | `alpha` | MLP_sub scale factor α = ‖substrate_func(c=1, \|s\|=1)‖. Measures how far MLP_sub deviates from unit normalization. α > 1 means MLP_sub is amplifying, α < 1 means compressing. The scalar correction adjusts k by α^{n_substrates} | ~1.0 |
@@ -164,7 +165,8 @@ Read `{config}_memory.md` to recall:
 ### Step 2: Analyze Current Results
 
 **Metrics from `analysis.log`:**
-- `rate_constants_R2`: Primary metric — R² of learned vs true k values (after MLP_sub scalar correction)
+- `rate_constants_R2`: Primary metric — trimmed R² of learned vs true k values (excluding outliers, after MLP_sub scalar correction)
+- `n_outliers`: Number of outlier reactions excluded from R² (|Δlog_k| > 0.3). High n_outliers with high R² means most reactions are recovered but a few are off.
 - `test_R2`: Dynamics prediction quality
 - `test_pearson`: Correlation on test frames
 - `final_loss`: Training loss
@@ -210,7 +212,7 @@ Append to Full Log (`{config}_analysis.md`) and Working Memory (`{config}_memory
 Node: id=N, parent=P
 Mode/Strategy: [exploit/explore/boundary]
 Config: seed=S, lr_k=X, lr_node=Y, lr_sub=Z, batch_size=B, n_epochs=E, data_augmentation_loop=A, coeff_MLP_node_L1=L, coeff_MLP_sub_norm=N, coeff_k_floor=K
-Metrics: rate_constants_R2=C, test_R2=A, test_pearson=B, final_loss=E, alpha=A
+Metrics: rate_constants_R2=C, n_outliers=N, test_R2=A, test_pearson=B, final_loss=E, alpha=A
 Visual: MLP_sub=[good/partial/bad: brief description], MLP_node=[good/partial/bad: brief description], k_scatter=[good/partial/bad: brief description]
 Mutation: [param]: [old] -> [new]
 Parent rule: [one line]

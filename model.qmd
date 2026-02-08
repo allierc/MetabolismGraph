@@ -7,28 +7,39 @@ title: "Model: Metabolic Network Dynamics"
 A metabolic network can be represented as a **bipartite graph** connecting metabolites to reactions:
 
 ```{mermaid}
-%%| fig-width: 8
+%%| fig-width: 9
 %%{init: {'theme': 'neutral'}}%%
 flowchart LR
-    subgraph Metabolites
-        A[Glucose]
-        B[ATP]
-        C[Pyruvate]
-        D[ADP]
+    subgraph met["Metabolites"]
+        direction TB
+        A((Glucose))
+        B((ATP))
+        C((Pyruvate))
+        D((ADP))
     end
 
-    subgraph Reactions
-        R1((R1))
-        R2((R2))
+    subgraph rxn["Reactions"]
+        direction TB
+        R1["R₁ · k₁"]
+        R2["R₂ · k₂"]
     end
 
-    A -->|"-1"| R1
-    B -->|"-1"| R1
+    A -->|"−1"| R1
+    B -->|"−1"| R1
     R1 -->|"+2"| C
     R1 -->|"+1"| D
 
-    C -->|"-1"| R2
+    C -->|"−1"| R2
     R2 -->|"+1"| B
+
+    style A fill:#e1f5fe,stroke:#0277bd
+    style B fill:#e1f5fe,stroke:#0277bd
+    style C fill:#e1f5fe,stroke:#0277bd
+    style D fill:#e1f5fe,stroke:#0277bd
+    style R1 fill:#fff3e0,stroke:#ef6c00
+    style R2 fill:#fff3e0,stroke:#ef6c00
+    style met fill:none,stroke:#0277bd,stroke-dasharray: 5 5
+    style rxn fill:none,stroke:#ef6c00,stroke-dasharray: 5 5
 ```
 
 Each edge has a **stoichiometric coefficient**:

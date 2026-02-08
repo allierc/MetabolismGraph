@@ -568,7 +568,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                 with torch.no_grad():
                     if freeze_stoichiometry and gt_model is not None:
                         # S is given, plot k_j comparison
-                        last_S_r2 = _plot_rate_constants_comparison(
+                        last_S_r2, _ = _plot_rate_constants_comparison(
                             model, gt_model, log_dir, epoch, N,
                             device=device,
                         )
@@ -635,9 +635,10 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
         )
 
     # --- final analysis: compute R2 and write to log ---
+    final_n_outliers = 0
     with torch.no_grad():
         if freeze_stoichiometry and gt_model is not None:
-            final_r2 = _plot_rate_constants_comparison(
+            final_r2, final_n_outliers = _plot_rate_constants_comparison(
                 model, gt_model, log_dir, epoch='final', N=0,
                 device=device,
             )
@@ -656,7 +657,15 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     training_elapsed_min = (time.time() - training_start_time) / 60.0
     print(f"\n=== training complete ({training_elapsed_min:.1f} min) ===")
     print(f"  final prediction loss: {final_loss:.6f}")
-    print(f"  {r2_name} R2: {final_r2:.4f}")
+    # color-coded R² print
+    if final_r2 > 0.9:
+        _r2_color = '\033[92m'   # green
+    elif final_r2 > 0.3:
+        _r2_color = '\033[38;5;208m'  # orange
+    else:
+        _r2_color = '\033[91m'   # red
+    _outlier_str = f' (outliers: {final_n_outliers})' if final_n_outliers > 0 else ''
+    print(f"  {_r2_color}{r2_name} R2: {final_r2:.4f}{_outlier_str}\033[0m")
     print(f"  MLP_sub R2: {func_metrics['MLP_sub_r2']:.4f}")
     logger.info(f"final prediction loss: {final_loss:.6f}")
     logger.info(f"{r2_name} R2: {final_r2:.4f}")
@@ -666,6 +675,8 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
         log_file.write(f"training_time_min: {training_elapsed_min:.1f}\n")
         log_file.write(f"final_loss: {final_loss:.6f}\n")
         log_file.write(f"{r2_name}_R2: {final_r2:.4f}\n")
+        if freeze_stoichiometry:
+            log_file.write(f"n_outliers: {final_n_outliers}\n")
         log_file.write(f"MLP_sub_R2: {func_metrics['MLP_sub_r2']:.4f}\n")
         log_file.write(f"MLP_sub_corr: {func_metrics['MLP_sub_corr']:.4f}\n")
 
@@ -1010,6 +1021,8 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
     # --- rate constants R2 (for S given mode) ---
     freeze_stoichiometry = getattr(train_config, 'freeze_stoichiometry', False)
     rate_constants_r2 = 0.0
+    rate_constants_n_outliers = 0
+    outlier_threshold = 0.3
     if freeze_stoichiometry:
         # load ground truth log_k directly from checkpoint (avoids config mismatch)
         gt_model_path = f'graphs_data/{dataset_name}/gt_model.pt'
@@ -1021,6 +1034,7 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
                 with torch.no_grad():
                     gt_log_k_np = to_numpy(gt_log_k.cpu())
                     learned_log_k_np = to_numpy(model.log_k.detach().cpu())
+                    n_rxn = len(gt_log_k_np)
 
                     # apply scalar correction from MLP_sub scale factor
                     if hasattr(model, 'substrate_func') and hasattr(model, 'n_sub_per_rxn'):
@@ -1029,14 +1043,34 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
                     else:
                         corrected_log_k = learned_log_k_np
 
-                    # R² from linear fit (same as NeuralGraph plot_signal)
-                    lin_fit_k, _ = curve_fit(linear_model, gt_log_k_np, corrected_log_k)
-                    residuals_k = corrected_log_k - linear_model(gt_log_k_np, *lin_fit_k)
+                    # outlier detection
+                    identity_errors = np.abs(corrected_log_k - gt_log_k_np)
+                    outlier_mask = identity_errors > outlier_threshold
+                    rate_constants_n_outliers = int(np.sum(outlier_mask))
+                    if rate_constants_n_outliers > n_rxn * 0.5:
+                        keep_mask = np.ones(n_rxn, dtype=bool)
+                        rate_constants_n_outliers = 0
+                    else:
+                        keep_mask = ~outlier_mask
+
+                    # trimmed R² from linear fit (excluding outliers)
+                    gt_kept = gt_log_k_np[keep_mask]
+                    pred_kept = corrected_log_k[keep_mask]
+                    lin_fit_k, _ = curve_fit(linear_model, gt_kept, pred_kept)
+                    residuals_k = pred_kept - linear_model(gt_kept, *lin_fit_k)
                     ss_res_k = np.sum(residuals_k ** 2)
-                    ss_tot_k = np.sum((corrected_log_k - np.mean(corrected_log_k)) ** 2)
+                    ss_tot_k = np.sum((pred_kept - np.mean(pred_kept)) ** 2)
                     rate_constants_r2 = 1 - (ss_res_k / ss_tot_k) if ss_tot_k > 0 else 0.0
 
-                print(f'  rate_constants R2: {rate_constants_r2:.4f}')
+                # color-coded R² print
+                if rate_constants_r2 > 0.9:
+                    _r2c = '\033[92m'
+                elif rate_constants_r2 > 0.3:
+                    _r2c = '\033[38;5;208m'
+                else:
+                    _r2c = '\033[91m'
+                _out_str = f' (outliers: {rate_constants_n_outliers})' if rate_constants_n_outliers > 0 else ''
+                print(f'  {_r2c}rate_constants R2: {rate_constants_r2:.4f}{_out_str}\033[0m')
             except Exception as e:
                 print(f'  rate_constants R2: skipped ({e})')
 
@@ -1055,6 +1089,7 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
         log_file.write(f"test_pearson: {test_pearson:.4f}\n")
         if freeze_stoichiometry:
             log_file.write(f"rate_constants_R2: {rate_constants_r2:.4f}\n")
+            log_file.write(f"n_outliers: {rate_constants_n_outliers}\n")
         if alpha_val is not None:
             log_file.write(f"alpha: {alpha_val:.4f}\n")
 
@@ -1316,16 +1351,21 @@ def _compute_scalar_correction(model, device):
 
 
 def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N,
-                                    device=None):
+                                    device=None, outlier_threshold=0.3):
     """plot learned vs ground-truth rate constants k_j.
 
     When device is provided, computes a scalar correction from the MLP_sub
     scale factor (analogous to second_correction in NeuralGraph).
 
+    Outlier reactions (|corrected_log_k - gt_log_k| > outlier_threshold)
+    are highlighted in red and excluded from the R² computation.
+
     returns
     -------
     r_squared : float
-        R2 between true and learned rate constants (in log space).
+        Trimmed R2 (excluding outliers) in log space.
+    n_outliers : int
+        Number of outlier reactions excluded.
     """
     out_dir = f"./{log_dir}/tmp_training/rate_constants"
     os.makedirs(out_dir, exist_ok=True)
@@ -1348,49 +1388,79 @@ def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N,
         np.save(f"./{log_dir}/scalar_correction.npy",
                 np.array([log_alpha, 10.0 ** log_alpha]))
 
+    # use corrected values for R² computation
+    plot_log_k = corrected_log_k if has_correction else learned_log_k
+
+    # --- outlier detection ---
+    identity_errors = np.abs(plot_log_k - gt_log_k)
+    outlier_mask = identity_errors > outlier_threshold
+    n_outliers = int(np.sum(outlier_mask))
+    # if >50% are outliers, model failed — don't trim
+    if n_outliers > n_rxn * 0.5:
+        keep_mask = np.ones(n_rxn, dtype=bool)
+        n_outliers = 0
+    else:
+        keep_mask = ~outlier_mask
+
     fig, ax = plt.subplots(figsize=(8, 8))
 
     if has_correction:
         # faded uncorrected points
         ax.scatter(gt_log_k, learned_log_k, s=15, c='gray', alpha=0.3,
                    edgecolors='none', label='uncorrected')
-        # corrected points
-        ax.scatter(gt_log_k, corrected_log_k, s=20, c='k', alpha=0.6,
-                   edgecolors='none', label='corrected')
+        # corrected inlier points
+        ax.scatter(gt_log_k[keep_mask], corrected_log_k[keep_mask],
+                   s=20, c='k', alpha=0.6, edgecolors='none', label='corrected')
+        # corrected outlier points in red
+        if n_outliers > 0:
+            ax.scatter(gt_log_k[outlier_mask], corrected_log_k[outlier_mask],
+                       s=20, c='red', alpha=0.6, edgecolors='none',
+                       label=f'outlier ({n_outliers})')
     else:
-        ax.scatter(gt_log_k, learned_log_k, s=20, c='k', alpha=0.6,
-                   edgecolors='none')
+        ax.scatter(gt_log_k[keep_mask], learned_log_k[keep_mask],
+                   s=20, c='k', alpha=0.6, edgecolors='none')
+        if n_outliers > 0:
+            ax.scatter(gt_log_k[outlier_mask], learned_log_k[outlier_mask],
+                       s=20, c='red', alpha=0.6, edgecolors='none',
+                       label=f'outlier ({n_outliers})')
 
     ax.set_xlabel(r'true $\log_{10}(k_j)$', fontsize=14)
     ax.set_ylabel(r'learned $\log_{10}(k_j)$', fontsize=14)
 
-    # use corrected values for R² computation
-    plot_log_k = corrected_log_k if has_correction else learned_log_k
-
     r_squared = 0.0
     try:
-        # R² and slope from linear fit (same as NeuralGraph plot_signal)
-        lin_fit, _ = curve_fit(linear_model, gt_log_k, plot_log_k)
-        residuals = plot_log_k - linear_model(gt_log_k, *lin_fit)
+        # trimmed R² and slope from linear fit (excluding outliers)
+        gt_kept = gt_log_k[keep_mask]
+        pred_kept = plot_log_k[keep_mask]
+        lin_fit, _ = curve_fit(linear_model, gt_kept, pred_kept)
+        residuals = pred_kept - linear_model(gt_kept, *lin_fit)
         ss_res = np.sum(residuals ** 2)
-        ss_tot = np.sum((plot_log_k - np.mean(plot_log_k)) ** 2)
+        ss_tot = np.sum((pred_kept - np.mean(pred_kept)) ** 2)
         r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
 
-        ax.text(0.05, 0.96, f'$R^2$: {r_squared:.3f}', transform=ax.transAxes,
+        y_text = 0.97
+        ax.text(0.05, y_text, f'$R^2$: {r_squared:.3f}', transform=ax.transAxes,
                 fontsize=12, verticalalignment='top')
-        ax.text(0.05, 0.89, f'slope: {lin_fit[0]:.3f}', transform=ax.transAxes,
+        y_text -= 0.05
+        ax.text(0.05, y_text, f'slope: {lin_fit[0]:.3f}', transform=ax.transAxes,
                 fontsize=12, verticalalignment='top')
     except Exception:
-        pass
+        y_text = 0.87
 
-    y_text = 0.82
+    y_text -= 0.05
     ax.text(0.05, y_text, f'n={n_rxn} reactions', transform=ax.transAxes,
             fontsize=12, verticalalignment='top')
+    if n_outliers > 0:
+        y_text -= 0.05
+        ax.text(0.05, y_text, f'outliers: {n_outliers}', transform=ax.transAxes,
+                fontsize=12, verticalalignment='top', color='red')
     if has_correction:
-        y_text -= 0.07
+        y_text -= 0.05
         ax.text(0.05, y_text,
                 f'$\\log_{{10}}\\alpha$: {log_alpha:.3f}',
                 transform=ax.transAxes, fontsize=12, verticalalignment='top')
+        ax.legend(fontsize=10, loc='lower right')
+    elif n_outliers > 0:
         ax.legend(fontsize=10, loc='lower right')
 
     # axis limits based on GT data range with small margin
@@ -1410,7 +1480,7 @@ def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N,
     plt.savefig(f"{out_dir}/comparison_{epoch}_{N}.png", dpi=150, bbox_inches='tight')
     plt.close()
 
-    return r_squared
+    return r_squared, n_outliers
 
 
 def _compare_functions(model, gt_model, device):

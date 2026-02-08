@@ -9,6 +9,47 @@ title: "MetabolismGraph: Learning Metabolism Dynamics with Graph Neural Networks
 1. **Rate constants** $k_j$ — the intrinsic speed of each reaction
 2. **Functional forms** $f_{\text{sub}}(c, s)$, $f_{\text{node}}(c)$ — how substrates drive reactions and how metabolites self-regulate
 
+```{mermaid}
+%%| fig-width: 9
+flowchart LR
+    subgraph met["Metabolites"]
+        direction TB
+        c1((c₁))
+        c2((c₂))
+        c3((c₃))
+        c4((c₄))
+    end
+
+    subgraph rxn["Reactions"]
+        direction TB
+        R1["R₁ · k₁"]
+        R2["R₂ · k₂"]
+        R3["R₃ · k₃"]
+    end
+
+    c1 -->|"−1"| R1
+    c2 -->|"−1"| R1
+    R1 -->|"+1"| c3
+    R1 -->|"+1"| c4
+    c3 -->|"−1"| R2
+    R2 -->|"+1"| c1
+    c2 -->|"−1"| R3
+    c4 -->|"−1"| R3
+    R3 -->|"+1"| c2
+
+    style c1 fill:#e1f5fe,stroke:#0277bd
+    style c2 fill:#e1f5fe,stroke:#0277bd
+    style c3 fill:#e1f5fe,stroke:#0277bd
+    style c4 fill:#e1f5fe,stroke:#0277bd
+    style R1 fill:#fff3e0,stroke:#ef6c00
+    style R2 fill:#fff3e0,stroke:#ef6c00
+    style R3 fill:#fff3e0,stroke:#ef6c00
+    style met fill:none,stroke:#0277bd,stroke-dasharray: 5 5
+    style rxn fill:none,stroke:#ef6c00,stroke-dasharray: 5 5
+```
+
+Metabolites (blue circles) and reactions (orange boxes) form a **bipartite graph** — a graph with two distinct node types where edges only connect nodes of different types. Each edge carries a stoichiometric coefficient $S_{ij}$. A standard single-partite graph (metabolite $\leftrightarrow$ metabolite) cannot represent this system because each reaction involves *multiple* substrates and products simultaneously. A single edge between two metabolites would lose the information that they participate in the *same* reaction with a specific rate constant $k_j$.
+
 ## The Full Model
 
 The complete metabolic dynamics:
@@ -46,6 +87,27 @@ This is challenging because the system is high-dimensional ($n$ metabolites, $m$
 We address this by casting the inverse problem as a **Graph Neural Network** learning task. The metabolic network is naturally a bipartite graph (metabolites $\leftrightarrow$ reactions), and we replace the unknown functions with learnable MLPs that operate on this graph structure. The GNN is trained end-to-end by minimizing the prediction error on $dc/dt$, recovering the rate constants and homeostatic functions simultaneously. An LLM-driven closed-loop exploration engine systematically searches the hyperparameter space — see [GNN-LLM-Memory](gnn-llm-memory.qmd) for the training scheme, regularization terms, and exploration loop.
 
 ### GNN Parameterization
+
+```{mermaid}
+%%| fig-width: 8
+flowchart LR
+    C["cₖ"] --> SUB["MLP_sub<br/>(cₖ, |Sₖⱼ|)"]
+    SUB --> AGG["aggr<br/>Σ / Π"]
+    AGG --> K["× kⱼ"]
+    K --> S["× Sᵢⱼ<br/>Σⱼ"]
+    NODE["MLP_node<br/>(cᵢ, aᵢ)"] --> OUT(["dcᵢ/dt"])
+    S --> OUT
+
+    style C fill:#e1f5fe,stroke:#0277bd
+    style SUB fill:#f3e5f5,stroke:#7b1fa2
+    style AGG fill:#fff3e0,stroke:#ef6c00
+    style K fill:#fff3e0,stroke:#ef6c00
+    style S fill:#e8f5e9,stroke:#2e7d32
+    style NODE fill:#f3e5f5,stroke:#7b1fa2
+    style OUT fill:#fce4ec,stroke:#c62828
+```
+
+Substrate concentrations flow through **MLP_sub** (purple), are aggregated per-reaction and scaled by **$k_j$** (orange), then mixed via stoichiometry **$S$** (green). **MLP_node** (purple) adds homeostatic regulation. The output is $dc/dt$ (red).
 
 $$
 \frac{dc_i}{dt} = \underbrace{\text{MLP}_{\text{node}}(c_i, a_i)}_{\text{learns } -\lambda_i(c_i - c_i^{\text{baseline}})} + \sum_{j=1}^{m} S_{ij} \cdot \underbrace{k_j \cdot \underset{k \in \text{sub}(j)}{\text{aggr}} \; \text{MLP}_{\text{sub}}(c_k, |S_{kj}|)}_{\text{learns } k_j \text{ and } c_k^{|S_{kj}|}}

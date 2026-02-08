@@ -66,7 +66,7 @@ Same as base instructions, but you write 4 entries per batch:
 Node: id=N, parent=P
 Mode/Strategy: [strategy]
 Config: seed=S, lr_k=X, lr_node=Y, lr_sub=Z, batch_size=B, n_epochs=E, data_augmentation_loop=A, coeff_MLP_node_L1=L, coeff_MLP_sub_norm=N, coeff_k_floor=K
-Metrics: rate_constants_R2=C, n_outliers=N, slope=S, test_R2=A, test_pearson=B, final_loss=E, alpha=A
+Metrics: rate_constants_R2=C, trimmed_R2=T, n_outliers=N, slope=S, test_R2=A, test_pearson=B, final_loss=E, alpha=A
 Visual: MLP_sub=[good/partial/bad: brief description], MLP_node=[good/partial/bad: brief description]
 Mutation: [param]: [old] -> [new]
 Parent rule: [one line]

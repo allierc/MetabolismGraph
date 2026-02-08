@@ -568,7 +568,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                 with torch.no_grad():
                     if freeze_stoichiometry and gt_model is not None:
                         # S is given, plot k_j comparison
-                        last_r2, _, _ = _plot_rate_constants_comparison(
+                        last_r2, _, _, _ = _plot_rate_constants_comparison(
                             model, gt_model, log_dir, epoch, N,
                             device=device,
                         )
@@ -635,11 +635,12 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
         )
 
     # --- final analysis: compute R2 and write to log ---
+    final_trimmed_r2 = 0.0
     final_n_outliers = 0
     final_slope = 0.0
     with torch.no_grad():
         if freeze_stoichiometry and gt_model is not None:
-            final_r2, final_n_outliers, final_slope = _plot_rate_constants_comparison(
+            final_r2, final_trimmed_r2, final_n_outliers, final_slope = _plot_rate_constants_comparison(
                 model, gt_model, log_dir, epoch='final', N=0,
                 device=device,
             )
@@ -666,6 +667,8 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     else:
         _r2_color = '\033[91m'   # red
     _details = []
+    if freeze_stoichiometry:
+        _details.append(f'trimmed: {final_trimmed_r2:.4f}')
     if final_n_outliers > 0:
         _details.append(f'outliers: {final_n_outliers}')
     if freeze_stoichiometry:
@@ -682,6 +685,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
         log_file.write(f"final_loss: {final_loss:.6f}\n")
         log_file.write(f"{r2_name}_R2: {final_r2:.4f}\n")
         if freeze_stoichiometry:
+            log_file.write(f"trimmed_R2: {final_trimmed_r2:.4f}\n")
             log_file.write(f"n_outliers: {final_n_outliers}\n")
             log_file.write(f"slope: {final_slope:.4f}\n")
         log_file.write(f"MLP_sub_R2: {func_metrics['MLP_sub_r2']:.4f}\n")
@@ -928,28 +932,32 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
     vmax_res = np.abs(residual).max()
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    ax_gt, ax_res, ax_pred, ax_scat = axes[0, 0], axes[0, 1], axes[1, 0], axes[1, 1]
+    ax_gt, ax_pred, ax_res, ax_scat = axes[0, 0], axes[0, 1], axes[1, 0], axes[1, 1]
 
     # Top-left: GT
-    im_gt = ax_gt.imshow(activity_true, aspect='auto', cmap='viridis', vmin=vmin_true, vmax=vmax_true, origin='lower')
+    im_gt = ax_gt.imshow(activity_true, aspect='auto', cmap='viridis', vmin=vmin_true, vmax=vmax_true, origin='lower', interpolation='nearest')
     ax_gt.set_ylabel('metabolites', fontsize=14)
     ax_gt.set_xticks([0, n_test_frames - 1]); ax_gt.set_xticklabels([0, n_test_frames], fontsize=12)
     ax_gt.set_yticks([0, n_metabolites - 1]); ax_gt.set_yticklabels([1, n_metabolites], fontsize=12)
+    ax_gt.text(0.02, 0.97, 'ground truth', transform=ax_gt.transAxes, fontsize=9,
+               color='white', va='top', ha='left')
     fig.colorbar(im_gt, ax=ax_gt, fraction=0.046, pad=0.04).ax.tick_params(labelsize=12)
 
-    # Top-right: Residual
-    im_res = ax_res.imshow(residual, aspect='auto', cmap='RdBu_r', vmin=-vmax_res, vmax=vmax_res, origin='lower')
+    # Top-right: GNN prediction (same color scale as GT for direct comparison)
+    im_pred = ax_pred.imshow(activity_pred, aspect='auto', cmap='viridis', vmin=vmin_true, vmax=vmax_true, origin='lower', interpolation='nearest')
+    ax_pred.set_xticks([0, n_test_frames - 1]); ax_pred.set_xticklabels([0, n_test_frames], fontsize=12)
+    ax_pred.set_yticks([0, n_metabolites - 1]); ax_pred.set_yticklabels([1, n_metabolites], fontsize=12)
+    ax_pred.text(0.02, 0.97, 'GNN prediction', transform=ax_pred.transAxes, fontsize=9,
+                 color='white', va='top', ha='left')
+    fig.colorbar(im_pred, ax=ax_pred, fraction=0.046, pad=0.04).ax.tick_params(labelsize=12)
+
+    # Bottom-left: Residual (same vmin/vmax as top panels)
+    im_res = ax_res.imshow(residual, aspect='auto', cmap='RdBu_r', vmin=vmin_true, vmax=vmax_true, origin='lower', interpolation='nearest')
+    ax_res.set_ylabel('metabolites', fontsize=14)
+    ax_res.set_xlabel('time', fontsize=14)
     ax_res.set_xticks([0, n_test_frames - 1]); ax_res.set_xticklabels([0, n_test_frames], fontsize=12)
     ax_res.set_yticks([0, n_metabolites - 1]); ax_res.set_yticklabels([1, n_metabolites], fontsize=12)
     fig.colorbar(im_res, ax=ax_res, fraction=0.046, pad=0.04).ax.tick_params(labelsize=12)
-
-    # Bottom-left: GNN prediction (same color scale as GT for direct comparison)
-    im_pred = ax_pred.imshow(activity_pred, aspect='auto', cmap='viridis', vmin=vmin_true, vmax=vmax_true, origin='lower')
-    ax_pred.set_ylabel('metabolites', fontsize=14)
-    ax_pred.set_xlabel('time', fontsize=14)
-    ax_pred.set_xticks([0, n_test_frames - 1]); ax_pred.set_xticklabels([0, n_test_frames], fontsize=12)
-    ax_pred.set_yticks([0, n_metabolites - 1]); ax_pred.set_yticklabels([1, n_metabolites], fontsize=12)
-    fig.colorbar(im_pred, ax=ax_pred, fraction=0.046, pad=0.04).ax.tick_params(labelsize=12)
 
     # Bottom-right: Scatter true vs predicted (use true concentration range)
     gt_flat = activity_true.flatten()
@@ -1307,12 +1315,14 @@ def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N,
     scale factor (analogous to second_correction in NeuralGraph).
 
     Outlier reactions (|corrected_log_k - gt_log_k| > outlier_threshold)
-    are highlighted in red and excluded from the R² computation.
+    are highlighted in red and excluded from the trimmed R² computation.
 
     returns
     -------
-    r_squared : float
-        Trimmed R2 (excluding outliers) in log space.
+    raw_r2 : float
+        R2 on all reactions in log space.
+    trimmed_r2 : float
+        R2 excluding outliers in log space.
     n_outliers : int
         Number of outlier reactions excluded.
     slope : float
@@ -1375,23 +1385,31 @@ def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N,
     ax.set_xlabel(r'true $\log_{10}(k_j)$', fontsize=14)
     ax.set_ylabel(r'learned $\log_{10}(k_j)$', fontsize=14)
 
-    r_squared = 0.0
+    raw_r2 = 0.0
+    trimmed_r2 = 0.0
     slope = 0.0
     dy = 0.04  # text line spacing
     try:
-        # trimmed R² and slope from linear fit (excluding outliers if trimmed)
+        # raw R² on ALL reactions
+        lin_fit_all, _ = curve_fit(linear_model, gt_log_k, plot_log_k)
+        res_all = plot_log_k - linear_model(gt_log_k, *lin_fit_all)
+        ss_res_all = np.sum(res_all ** 2)
+        ss_tot_all = np.sum((plot_log_k - np.mean(plot_log_k)) ** 2)
+        raw_r2 = 1 - (ss_res_all / ss_tot_all) if ss_tot_all > 0 else 0.0
+
+        # trimmed R² (excluding outliers)
         gt_kept = gt_log_k[keep_mask]
         pred_kept = plot_log_k[keep_mask]
         lin_fit, _ = curve_fit(linear_model, gt_kept, pred_kept)
         residuals = pred_kept - linear_model(gt_kept, *lin_fit)
         ss_res = np.sum(residuals ** 2)
         ss_tot = np.sum((pred_kept - np.mean(pred_kept)) ** 2)
-        r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
+        trimmed_r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
         slope = lin_fit[0]
 
         y_text = 0.98
-        ax.text(0.05, y_text, f'$R^2$: {r_squared:.3f}', transform=ax.transAxes,
-                fontsize=12, verticalalignment='top')
+        ax.text(0.05, y_text, f'$R^2$: {raw_r2:.3f} (trimmed: {trimmed_r2:.3f})',
+                transform=ax.transAxes, fontsize=12, verticalalignment='top')
         y_text -= dy
         ax.text(0.05, y_text, f'slope: {slope:.3f}', transform=ax.transAxes,
                 fontsize=12, verticalalignment='top')
@@ -1414,16 +1432,10 @@ def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N,
     elif n_outliers > 0:
         ax.legend(fontsize=10, loc='lower right')
 
-    # axis limits based on GT data range with small margin
-    margin = 0.1 * (gt_log_k.max() - gt_log_k.min())
-    x_min = gt_log_k.min() - margin
-    x_max = gt_log_k.max() + margin
-    y_min = min(plot_log_k.min(), x_min) - margin
-    y_max = max(plot_log_k.max(), x_max) + margin
-    lims = [min(x_min, y_min), max(x_max, y_max)]
-
+    # fixed axis limits
+    lims = [-2.5, -0.75]
     ax.plot(lims, lims, 'r--', alpha=0.5, linewidth=1)
-    ax.set_xlim([x_min, x_max])
+    ax.set_xlim(lims)
     ax.set_ylim(lims)
     ax.tick_params(labelsize=12)
 
@@ -1431,7 +1443,7 @@ def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N,
     plt.savefig(f"{out_dir}/comparison_{epoch}_{N}.png", dpi=150, bbox_inches='tight')
     plt.close()
 
-    return r_squared, n_outliers, slope
+    return raw_r2, trimmed_r2, n_outliers, slope
 
 
 def _compare_functions(model, gt_model, device):

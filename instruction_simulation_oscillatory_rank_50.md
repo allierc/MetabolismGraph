@@ -141,8 +141,9 @@ The following metrics are written to `analysis.log` at the end of training:
 |--------|-------------|------------|
 | `training_time_min` | Wall-clock training time in minutes | Informational |
 | `final_loss` | Final prediction loss (MSE on dc/dt) | Lower is better |
-| `rate_constants_R2` | Trimmed R² between learned and true rate constants k (excluding outlier reactions where \|Δlog_k\| > 0.3, after MLP_sub scalar correction) | > 0.9 |
-| `n_outliers` | Number of outlier reactions excluded from R² (reactions with \|corrected_log_k − gt_log_k\| > 0.3, i.e. factor of 2 error) | < 10% of n_reactions |
+| `rate_constants_R2` | Raw R² between learned and true rate constants k (all reactions, after MLP_sub scalar correction) | > 0.9 |
+| `trimmed_R2` | Trimmed R² excluding outlier reactions where \|Δlog_k\| > 0.3 | > 0.9 |
+| `n_outliers` | Number of outlier reactions (reactions with \|corrected_log_k − gt_log_k\| > 0.3, i.e. factor of 2 error) | < 10% of n_reactions |
 | `slope` | Slope of linear fit (learned vs true log_k). slope < 1 means learned k range is compressed vs true range. | ~1.0 |
 | `test_R2` | R² on held-out test frames | > 0.9 |
 | `test_pearson` | Pearson correlation on test frames | > 0.95 |
@@ -166,8 +167,9 @@ Read `{config}_memory.md` to recall:
 ### Step 2: Analyze Current Results
 
 **Metrics from `analysis.log`:**
-- `rate_constants_R2`: Primary metric — trimmed R² of learned vs true k values (excluding outliers, after MLP_sub scalar correction)
-- `n_outliers`: Number of outlier reactions excluded from R² (|Δlog_k| > 0.3). High n_outliers with high R² means most reactions are recovered but a few are off.
+- `rate_constants_R2`: Primary metric — raw R² of learned vs true k values (all reactions, after MLP_sub scalar correction)
+- `trimmed_R2`: R² excluding outlier reactions (|Δlog_k| > 0.3)
+- `n_outliers`: Number of outlier reactions (|Δlog_k| > 0.3). High n_outliers with high trimmed_R2 means most reactions are recovered but a few are off.
 - `test_R2`: Dynamics prediction quality
 - `test_pearson`: Correlation on test frames
 - `final_loss`: Training loss
@@ -213,7 +215,7 @@ Append to Full Log (`{config}_analysis.md`) and Working Memory (`{config}_memory
 Node: id=N, parent=P
 Mode/Strategy: [exploit/explore/boundary]
 Config: seed=S, lr_k=X, lr_node=Y, lr_sub=Z, batch_size=B, n_epochs=E, data_augmentation_loop=A, coeff_MLP_node_L1=L, coeff_MLP_sub_norm=N, coeff_k_floor=K
-Metrics: rate_constants_R2=C, n_outliers=N, slope=S, test_R2=A, test_pearson=B, final_loss=E, alpha=A
+Metrics: rate_constants_R2=C, trimmed_R2=T, n_outliers=N, slope=S, test_R2=A, test_pearson=B, final_loss=E, alpha=A
 Visual: MLP_sub=[good/partial/bad: brief description], MLP_node=[good/partial/bad: brief description]
 Mutation: [param]: [old] -> [new]
 Parent rule: [one line]

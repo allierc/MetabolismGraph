@@ -29,6 +29,8 @@ website:
   repo-url: https://github.com/allierc/MetabolismGraph/
   site-url: https://allierc.github.io/MetabolismGraph/
 
+lightbox: auto
+
 format:
   html:
     theme: flatly

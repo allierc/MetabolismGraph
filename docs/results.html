@@ -795,6 +795,7 @@ c_i(t + T) \approx c_i(t) + \int_t^{t+T} \left[ -\lambda_i (c_i - c_i^{\text{bas
 <li><p><strong>Multi-scale separation in dynamical systems.</strong> <a href="https://doi.org/10.1016/0022-0396(79)90152-9">Fenichel (1979)</a> established geometric singular perturbation theory: for systems with fast and slow time scales, the fast subsystem is solved first, then the dynamics are reduced to a slow manifold. Our two-phase training mirrors this decomposition — Phase 1 recovers the fast reaction dynamics, Phase 2 learns the slow homeostatic manifold.</p></li>
 <li><p><strong>Latent timescales in Neural ODEs.</strong> <a href="https://arxiv.org/abs/2403.02224">Gupta et al.&nbsp;(2024)</a> showed that training trajectory length directly controls the timescales a Neural ODE can recover: longer trajectories are needed to capture slower dynamics. This supports the need for multi-step rollout in Phase 2.</p></li>
 </ul>
+<p>The scale mismatch / integral argument is essentially the same observation that Bengio (1994) made for RNNs and Kim et al.&nbsp;(2021) made for stiff ODEs. The two-phase proposal mirrors Fenichel’s fast-then-slow decomposition. The novelty here is applying this reasoning to GNN-based metabolic network recovery, where the bipartite graph structure and the identifiability of rate constants <span class="math inline">\(k_j\)</span> add domain-specific constraints.</p>
 
 
 </section>

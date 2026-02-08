@@ -244,3 +244,37 @@ The LLM's persistent memory has accumulated these validated principles after 32 
 1. **Why does R² plateau at 0.69?** Is this a fundamental limit of single-step training with the current loss function?
 2. **Can recurrent training break the plateau with the optimal config?** Previous test (iter 13) was before k_floor.
 3. **Is the remaining 31% error from identifiability issues?** Multiple $k$ combinations may produce similar $dc/dt$.
+
+## Why Homeostasis Is Not Learned
+
+Across all 36 iterations, MLP$_{\text{node}}$ remains flat — the homeostasis function $-\lambda_t(c_i - c_i^{\text{baseline}})$ is never recovered. This is not a hyperparameter issue. It is a structural limitation of single-step ($t \to t+1$) training.
+
+### The scale mismatch problem
+
+The GNN predicts $dc/dt$ at each time step:
+
+$$
+\frac{dc_i}{dt} = \underbrace{\text{MLP}_{\text{node}}(c_i, a_i)}_{\text{homeostasis}} + \underbrace{\sum_j S_{ij} \cdot k_j \prod_k \text{MLP}_{\text{sub}}(c_k, |S_{kj}|)}_{\text{reaction}}
+$$
+
+The reaction term dominates the instantaneous $dc/dt$ — it drives the fast oscillatory dynamics. Homeostasis acts as a slow restoring force that only manifests over many time steps: it prevents concentrations from drifting away from baseline. In a single-step loss $\| \hat{y}_{t+1} - y_{t+1} \|^2$, the gradient signal from homeostasis is negligible compared to the reaction term. The optimizer has no reason to learn it.
+
+### Homeostasis is an integral problem
+
+Homeostasis determines the **long-term trajectory envelope**, not the instantaneous derivative. Its effect accumulates over time:
+
+$$
+c_i(t + T) \approx c_i(t) + \int_t^{t+T} \left[ -\lambda_i (c_i - c_i^{\text{base}}) + \text{reaction terms} \right] d\tau
+$$
+
+A model trained on $t \to t+1$ can achieve low loss by fitting the dominant reaction signal and ignoring the small homeostatic correction. Over many steps this error accumulates — but the single-step loss never sees it.
+
+### Proposed approach: two-phase training
+
+To recover homeostasis, we propose a two-phase training scheme:
+
+1. **Phase 1 — Reaction recovery** ($t \to t+1$): Train as currently done. Recover $k_j$, MLP$_{\text{sub}}$, and the stoichiometric structure. Freeze these parameters.
+
+2. **Phase 2 — Homeostasis recovery** (recurrent, $t \to t+T$): With the reaction term frozen, train only MLP$_{\text{node}}$ and embeddings $a_i$ using multi-step rollout. The recurrent loss forces the model to match trajectories over $T$ steps, where the homeostatic drift becomes visible.
+
+This separates the two learning problems by time scale: fast reactions are learned from instantaneous gradients, slow homeostasis from trajectory matching. The key insight is that recurrent training is not needed for $k_j$ recovery (it was tried and failed — iter 13, 34), but may be essential specifically for homeostasis once the reaction parameters are frozen.

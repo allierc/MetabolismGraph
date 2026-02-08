@@ -382,34 +382,76 @@ window.Quarto = {
 <td>100 to 5000</td>
 </tr>
 <tr class="even">
+<td>Epochs</td>
+<td><code>n_epochs</code></td>
+<td>Number of training epochs</td>
+<td>1 to 5</td>
+</tr>
+<tr class="odd">
+<td>Time step</td>
+<td><code>time_step</code></td>
+<td>Steps per gradient update (1 = single-step, &gt;1 = recurrent rollout)</td>
+<td>1 to 8</td>
+</tr>
+<tr class="even">
+<td>Recurrent training</td>
+<td><code>recurrent_training</code></td>
+<td>Enable multi-step rollout training</td>
+<td>true / false</td>
+</tr>
+<tr class="odd">
 <td>MLP<span class="math inline">\(_{\text{sub}}\)</span> monotonicity</td>
 <td><code>coeff_MLP_sub_diff</code></td>
 <td>Penalize non-increasing MLP<span class="math inline">\(_{\text{sub}}\)</span></td>
 <td>0 to 500</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>MLP<span class="math inline">\(_{\text{node}}\)</span> L1</td>
 <td><code>coeff_MLP_node_L1</code></td>
 <td>Penalize large homeostasis output</td>
 <td>0 to 10</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>MLP<span class="math inline">\(_{\text{sub}}\)</span> normalization</td>
 <td><code>coeff_MLP_sub_norm</code></td>
 <td>Pin MLP<span class="math inline">\(_{\text{sub}}(c{=}1, |s|{=}1)\)</span> to 1</td>
 <td>0 to 10</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Rate constant floor</td>
 <td><code>coeff_k_floor</code></td>
 <td>Penalize <span class="math inline">\(\log k\)</span> below threshold</td>
 <td>0 to 10</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Floor threshold</td>
 <td><code>k_floor_threshold</code></td>
 <td>Threshold for k floor penalty</td>
 <td><span class="math inline">\(-3\)</span> (default)</td>
+</tr>
+<tr class="even">
+<td>MLP<span class="math inline">\(_{\text{sub}}\)</span> hidden dim</td>
+<td><code>hidden_dim_sub</code></td>
+<td>Hidden layer width for substrate MLP</td>
+<td>16 to 128</td>
+</tr>
+<tr class="odd">
+<td>MLP<span class="math inline">\(_{\text{sub}}\)</span> layers</td>
+<td><code>n_layers_sub</code></td>
+<td>Number of layers for substrate MLP</td>
+<td>2 to 5</td>
+</tr>
+<tr class="even">
+<td>MLP<span class="math inline">\(_{\text{node}}\)</span> hidden dim</td>
+<td><code>hidden_dim_node</code></td>
+<td>Hidden layer width for homeostasis MLP</td>
+<td>16 to 128</td>
+</tr>
+<tr class="odd">
+<td>MLP<span class="math inline">\(_{\text{node}}\)</span> layers</td>
+<td><code>n_layers_node</code></td>
+<td>Number of layers for homeostasis MLP</td>
+<td>2 to 5</td>
 </tr>
 </tbody>
 </table>
@@ -434,12 +476,22 @@ window.Quarto = {
 <tbody>
 <tr class="odd">
 <td><code>rate_constants_R2</code></td>
-<td>R² between learned and true rate constants <span class="math inline">\(k\)</span> (after scalar correction)</td>
+<td>R² between learned and true rate constants <span class="math inline">\(k\)</span> (after scalar correction, excluding outliers)</td>
 <td>&gt; 0.9</td>
 </tr>
 <tr class="even">
+<td><code>n_outliers</code></td>
+<td>Number of reactions with <span class="math inline">\(|\Delta \log_{10} k| &gt; 0.3\)</span> (factor of 2 error in <span class="math inline">\(k\)</span>-space)</td>
+<td>&lt; 25</td>
+</tr>
+<tr class="odd">
+<td><code>slope</code></td>
+<td>Slope of linear fit between learned and true <span class="math inline">\(\log_{10} k\)</span>. Slope <span class="math inline">\(&lt; 1\)</span> means the learned range is compressed.</td>
+<td><span class="math inline">\(\approx 1.0\)</span></td>
+</tr>
+<tr class="even">
 <td><code>test_R2</code></td>
-<td>R² on held-out test frames</td>
+<td>R² on held-out test frames (rollout prediction)</td>
 <td>&gt; 0.9</td>
 </tr>
 <tr class="odd">
@@ -461,19 +513,17 @@ window.Quarto = {
 </table>
 <section id="diagnostic-interpretation" class="level3">
 <h3 class="anchored" data-anchor-id="diagnostic-interpretation">Diagnostic Interpretation</h3>
-<p>The <strong>degeneracy gap</strong> = <code>test_pearson</code> <span class="math inline">\(-\)</span> <code>rate_constants_R2</code> diagnoses whether the model found the true rate constants or a degenerate solution:</p>
+<p>The relationship between <code>rate_constants_R2</code> and <code>test_pearson</code> diagnoses whether the model found the true rate constants or a degenerate solution:</p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 37%">
-<col style="width: 18%">
-<col style="width: 13%">
-<col style="width: 29%">
+<col style="width: 43%">
+<col style="width: 21%">
+<col style="width: 34%">
 </colgroup>
 <thead>
 <tr class="header">
 <th style="text-align: center;">test_pearson</th>
 <th style="text-align: center;"><span class="math inline">\(R^2\)</span></th>
-<th style="text-align: center;">Gap</th>
 <th>Diagnosis</th>
 </tr>
 </thead>
@@ -481,29 +531,31 @@ window.Quarto = {
 <tr class="odd">
 <td style="text-align: center;">&gt; 0.95</td>
 <td style="text-align: center;">&gt; 0.9</td>
-<td style="text-align: center;">&lt; 0.1</td>
 <td><strong>Healthy</strong> — good dynamics from correct <span class="math inline">\(k\)</span></td>
 </tr>
 <tr class="even">
 <td style="text-align: center;">&gt; 0.95</td>
 <td style="text-align: center;">0.3–0.9</td>
-<td style="text-align: center;">0.1–0.7</td>
-<td><strong>Degenerate</strong> — good dynamics from wrong <span class="math inline">\(k\)</span></td>
+<td><strong>Degenerate</strong> — good dynamics from wrong <span class="math inline">\(k\)</span> (MLPs compensate)</td>
 </tr>
 <tr class="odd">
 <td style="text-align: center;">&gt; 0.95</td>
 <td style="text-align: center;">&lt; 0.3</td>
-<td style="text-align: center;">&gt; 0.7</td>
-<td><strong>Severely degenerate</strong> — MLPs compensating</td>
+<td><strong>Severely degenerate</strong> — MLPs absorb all dynamics</td>
 </tr>
 <tr class="even">
 <td style="text-align: center;">&lt; 0.5</td>
+<td style="text-align: center;">&gt; 0.9</td>
+<td><strong>Good <span class="math inline">\(k\)</span>, poor rollout</strong> — rate constants correct but MLP errors compound during integration</td>
+</tr>
+<tr class="odd">
 <td style="text-align: center;">&lt; 0.5</td>
-<td style="text-align: center;">~0</td>
+<td style="text-align: center;">&lt; 0.5</td>
 <td><strong>Failed</strong> — both dynamics and <span class="math inline">\(k\)</span> poor</td>
 </tr>
 </tbody>
 </table>
+<p>The current oscillatory regime experiments show the <strong>good <span class="math inline">\(k\)</span>, poor rollout</strong> pattern: <span class="math inline">\(R^2 \approx 0.93\)</span> but Pearson <span class="math inline">\(\approx 0.05\)</span>. The MLP<span class="math inline">\(_{\text{sub}}\)</span> scale compression (<span class="math inline">\(\alpha \approx 0.4\)</span>) and MLP<span class="math inline">\(_{\text{node}}\)</span> failure (flat at zero) produce errors that accumulate during multi-step rollout, even though the rate constants themselves are well-recovered.</p>
 <hr>
 </section>
 </section>

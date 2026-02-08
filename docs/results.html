@@ -206,7 +206,8 @@ window.Quarto = {
   <li><a href="#rate-constants-recovery" id="toc-rate-constants-recovery" class="nav-link" data-scroll-target="#rate-constants-recovery">Rate Constants Recovery</a></li>
   <li><a href="#kinograph-best-run-iteration-21" id="toc-kinograph-best-run-iteration-21" class="nav-link" data-scroll-target="#kinograph-best-run-iteration-21">Kinograph — Best Run (Iteration 21)</a></li>
   <li><a href="#learned-mlps" id="toc-learned-mlps" class="nav-link" data-scroll-target="#learned-mlps">Learned MLPs</a></li>
-  <li><a href="#block-3-plateau-at-r²-0.69-iter-2532" id="toc-block-3-plateau-at-r²-0.69-iter-2532" class="nav-link" data-scroll-target="#block-3-plateau-at-r²-0.69-iter-2532">Block 3: Plateau at R² ≈ 0.69 (Iter 25–32)</a></li>
+  <li><a href="#block-3-plateau-and-breakthrough-iter-2536" id="toc-block-3-plateau-and-breakthrough-iter-2536" class="nav-link" data-scroll-target="#block-3-plateau-and-breakthrough-iter-2536">Block 3: Plateau and Breakthrough (Iter 25–36)</a></li>
+  <li><a href="#block-4-seed-sensitivity-and-convergence-iter-3744" id="toc-block-4-seed-sensitivity-and-convergence-iter-3744" class="nav-link" data-scroll-target="#block-4-seed-sensitivity-and-convergence-iter-3744">Block 4: Seed Sensitivity and Convergence (Iter 37–44)</a></li>
   <li><a href="#ucb-exploration-tree" id="toc-ucb-exploration-tree" class="nav-link" data-scroll-target="#ucb-exploration-tree">UCB Exploration Tree</a></li>
   <li><a href="#established-principles" id="toc-established-principles" class="nav-link" data-scroll-target="#established-principles">Established Principles</a></li>
   <li><a href="#refuted-hypotheses" id="toc-refuted-hypotheses" class="nav-link" data-scroll-target="#refuted-hypotheses">Refuted Hypotheses</a></li>
@@ -598,9 +599,9 @@ Figure&nbsp;9: Iteration 21 (best R²). MLP<span class="math inline">\(_{\text{s
 </div>
 </div>
 </section>
-<section id="block-3-plateau-at-r²-0.69-iter-2532" class="level3">
-<h3 class="anchored" data-anchor-id="block-3-plateau-at-r²-0.69-iter-2532">Block 3: Plateau at R² ≈ 0.69 (Iter 25–32)</h3>
-<p>Eight additional iterations failed to break the R² = 0.69 plateau. Every variation — longer training (<code>aug=5000</code>), higher <code>lr_node</code>, different seeds, smaller batches, stronger regularization — produced equal or worse R².</p>
+<section id="block-3-plateau-and-breakthrough-iter-2536" class="level3">
+<h3 class="anchored" data-anchor-id="block-3-plateau-and-breakthrough-iter-2536">Block 3: Plateau and Breakthrough (Iter 25–36)</h3>
+<p>Twelve iterations explored the R² = 0.69 plateau. Eight variations failed — but doubling <code>lr_sub</code> from 0.0005 to 0.001 broke through to R² = 0.726.</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 18%">
@@ -629,6 +630,12 @@ Figure&nbsp;9: Iteration 21 (best R²). MLP<span class="math inline">\(_{\text{s
 <td>0.619</td>
 <td><code>sub_norm=2.0</code>: fewest outliers (14), best slope (0.99)</td>
 </tr>
+<tr class="odd">
+<td>9 (iter 33–36)</td>
+<td><code>sub_norm=2.0</code>+<code>aug=3500</code>, recurrent, <strong><code>lr_sub=0.001</code></strong>, <code>aug=3500</code></td>
+<td><strong>0.726</strong></td>
+<td><code>lr_sub=0.001</code> broke the plateau</td>
+</tr>
 </tbody>
 </table>
 <div id="cell-fig-strategies" class="cell" data-execution_count="2">
@@ -641,27 +648,28 @@ Figure&nbsp;9: Iteration 21 (best R²). MLP<span class="math inline">\(_{\text{s
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'No k_floor</span><span class="ch">\n</span><span class="st">(Block 1)'</span>: [<span class="fl">0.044</span>, <span class="fl">0.027</span>, <span class="fl">0.044</span>, <span class="fl">0.031</span>, <span class="fl">0.013</span>, <span class="fl">0.067</span>, <span class="fl">0.041</span>, <span class="fl">0.051</span>, <span class="fl">0.054</span>, <span class="fl">0.061</span>, <span class="fl">0.017</span>, <span class="fl">0.061</span>],</span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">'k_floor=1.0</span><span class="ch">\n</span><span class="st">aug≤2000'</span>: [<span class="fl">0.508</span>],</span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">'k_floor=1.0</span><span class="ch">\n</span><span class="st">aug=3000'</span>: [<span class="fl">0.638</span>, <span class="fl">0.419</span>, <span class="fl">0.658</span>, <span class="fl">0.559</span>, <span class="fl">0.470</span>, <span class="fl">0.373</span>],</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'k_floor=1.0</span><span class="ch">\n</span><span class="st">aug=4000'</span>: [<span class="fl">0.690</span>, <span class="fl">0.652</span>, <span class="fl">0.638</span>, <span class="fl">0.614</span>, <span class="fl">0.600</span>, <span class="fl">0.507</span>, <span class="fl">0.619</span>, <span class="fl">0.530</span>, <span class="fl">0.409</span>],</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'k_floor=1.0</span><span class="ch">\n</span><span class="st">aug=5000'</span>: [<span class="fl">0.652</span>],</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>))</span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>positions <span class="op">=</span> []</span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, (label, vals) <span class="kw">in</span> <span class="bu">enumerate</span>(strategies.items()):</span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> np.random.normal(i, <span class="fl">0.08</span>, <span class="bu">len</span>(vals))</span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    ax.scatter(x, vals, s<span class="op">=</span><span class="dv">40</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, zorder<span class="op">=</span><span class="dv">3</span>)</span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    ax.plot([i<span class="op">-</span><span class="fl">0.3</span>, i<span class="op">+</span><span class="fl">0.3</span>], [np.mean(vals), np.mean(vals)], <span class="st">'k-'</span>, linewidth<span class="op">=</span><span class="dv">2</span>, zorder<span class="op">=</span><span class="dv">4</span>)</span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    positions.append(i)</span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>ax.set_xticks(positions)</span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>ax.set_xticklabels(<span class="bu">list</span>(strategies.keys()), fontsize<span class="op">=</span><span class="dv">9</span>)</span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'Raw R²'</span>)</span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>ax.set_ylim(<span class="op">-</span><span class="fl">0.05</span>, <span class="fl">0.85</span>)</span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>ax.axhline(y<span class="op">=</span><span class="fl">0.690</span>, color<span class="op">=</span><span class="st">'green'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'R² by Strategy Group'</span>)</span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>ax.grid(axis<span class="op">=</span><span class="st">'y'</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
-<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'k_floor=1.0</span><span class="ch">\n</span><span class="st">aug=3500-4500'</span>: [<span class="fl">0.521</span>, <span class="fl">0.544</span>, <span class="fl">0.690</span>],</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'k_floor=1.0</span><span class="ch">\n</span><span class="st">aug=4000'</span>: [<span class="fl">0.690</span>, <span class="fl">0.652</span>, <span class="fl">0.638</span>, <span class="fl">0.614</span>, <span class="fl">0.600</span>, <span class="fl">0.507</span>, <span class="fl">0.619</span>, <span class="fl">0.530</span>, <span class="fl">0.409</span>, <span class="fl">0.478</span>, <span class="fl">0.726</span>, <span class="fl">0.588</span>, <span class="fl">0.518</span>, <span class="fl">0.654</span>, <span class="fl">0.662</span>, <span class="fl">0.487</span>, <span class="fl">0.608</span>, <span class="fl">0.593</span>],</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">'k_floor=1.0</span><span class="ch">\n</span><span class="st">aug=5000'</span>: [<span class="fl">0.652</span>],</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>))</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>positions <span class="op">=</span> []</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, (label, vals) <span class="kw">in</span> <span class="bu">enumerate</span>(strategies.items()):</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> np.random.normal(i, <span class="fl">0.08</span>, <span class="bu">len</span>(vals))</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    ax.scatter(x, vals, s<span class="op">=</span><span class="dv">40</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, zorder<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    ax.plot([i<span class="op">-</span><span class="fl">0.3</span>, i<span class="op">+</span><span class="fl">0.3</span>], [np.mean(vals), np.mean(vals)], <span class="st">'k-'</span>, linewidth<span class="op">=</span><span class="dv">2</span>, zorder<span class="op">=</span><span class="dv">4</span>)</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    positions.append(i)</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>ax.set_xticks(positions)</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>ax.set_xticklabels(<span class="bu">list</span>(strategies.keys()), fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'Raw R²'</span>)</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>ax.set_ylim(<span class="op">-</span><span class="fl">0.05</span>, <span class="fl">0.85</span>)</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>ax.axhline(y<span class="op">=</span><span class="fl">0.690</span>, color<span class="op">=</span><span class="st">'green'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'R² by Strategy Group'</span>)</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>ax.grid(axis<span class="op">=</span><span class="st">'y'</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-display">
 <div id="fig-strategies" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -676,6 +684,41 @@ Figure&nbsp;10: Impact of key strategies on R². Each dot is one iteration. The 
 </div>
 </div>
 </div>
+</section>
+<section id="block-4-seed-sensitivity-and-convergence-iter-3744" class="level3">
+<h3 class="anchored" data-anchor-id="block-4-seed-sensitivity-and-convergence-iter-3744">Block 4: Seed Sensitivity and Convergence (Iter 37–44)</h3>
+<p>Block 4 tested combinations with <code>lr_sub=0.001</code> and revealed that the R² = 0.726 breakthrough (iter 35) was partly seed-dependent. Running the identical configuration with a different seed (iter 41, seed=123) dropped R² by 0.24.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 18%">
+<col style="width: 34%">
+<col style="width: 23%">
+<col style="width: 23%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Batch</th>
+<th>Key mutation</th>
+<th>Best R²</th>
+<th>Finding</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>10 (iter 37–40)</td>
+<td><code>sub_norm=2.0</code>, <code>lr_sub=0.002</code>, <code>lr_node=0.002</code>, L1=0</td>
+<td>0.662</td>
+<td>All combinations with <code>lr_sub=0.001</code> hurt R² vs baseline</td>
+</tr>
+<tr class="even">
+<td>11 (iter 41–44)</td>
+<td>seed=123, <strong><code>aug=4500</code></strong>, <code>sub_diff=3</code>, <code>lr_k=0.007</code></td>
+<td><strong>0.690</strong></td>
+<td><code>aug=4500</code> most stable; seed=123 crashed to R²=0.49</td>
+</tr>
+</tbody>
+</table>
+<p>The most stable configuration (iter 42: <code>aug=4500</code>) achieved R² = 0.690 with <span class="math inline">\(\alpha = 0.94\)</span> (best ever) and 16 outliers. This suggests the true performance ceiling for single-step training is R² <span class="math inline">\(\approx\)</span> 0.69, with seed-dependent variance of $$0.2.</p>
 </section>
 <section id="ucb-exploration-tree" class="level3">
 <h3 class="anchored" data-anchor-id="ucb-exploration-tree">UCB Exploration Tree</h3>
@@ -692,15 +735,18 @@ Figure&nbsp;11: UCB tree after 24 iterations. Each node represents a hyperparame
 </section>
 <section id="established-principles" class="level3">
 <h3 class="anchored" data-anchor-id="established-principles">Established Principles</h3>
-<p>The LLM’s persistent memory has accumulated these validated principles after 32 iterations:</p>
+<p>The LLM’s persistent memory has accumulated these validated principles after 44 iterations:</p>
 <ol type="1">
 <li><strong><code>coeff_MLP_sub_norm=1.0</code> is essential</strong> — enables correct MLP shapes: c² becomes quadratic, MLP<span class="math inline">\(_{\text{node}}\)</span> activates</li>
 <li><strong><code>coeff_k_floor=1.0</code> is critical</strong> — R² jumped from 0.06 to 0.51 (10× improvement). <code>k_floor=2.0</code> too strong.</li>
-<li><strong>Longer training helps (up to <code>aug=4000</code>)</strong> — aug=2000→3000→4000 consistently improves R². aug=5000 hurts R².</li>
-<li><strong><code>lr_k=0.005</code> is optimal</strong> — lower (0.003) too slow, higher (0.01) destabilizes</li>
+<li><strong>Longer training helps (up to <code>aug=4000--4500</code>)</strong> — aug=2000→3000→4000 consistently improves R². aug=5000 hurts R². aug=4500 gives best stability.</li>
+<li><strong><code>lr_k=0.005</code> is optimal</strong> — lower (0.003) too slow, higher (0.007, 0.01) destabilizes</li>
 <li><strong><code>k_floor_threshold=-2.0</code> matches <span class="math inline">\(\log k_{\min}\)</span></strong> — tighter threshold (-2.5) worsens R²</li>
-<li><strong><code>coeff_MLP_node_L1=0.0</code> + long training don’t combine</strong> — harmful interaction</li>
-<li><strong>MLP<span class="math inline">\(_{\text{node}}\)</span> remains flat across all 32 iterations</strong> — homeostasis <span class="math inline">\(-\lambda(c - c^{\text{base}})\)</span> is never learned, regardless of configuration</li>
+<li><strong><code>coeff_MLP_node_L1=0.0</code> + long training don’t combine</strong> — harmful interaction (confirmed 3 times: iter 22, 29, 40)</li>
+<li><strong><code>lr_sub=0.001</code> is optimal</strong> — 2× increase from 0.0005 broke the R² plateau; <code>lr_sub=0.002</code> too high</li>
+<li><strong>Seed sensitivity is significant</strong> — R² variance of $$0.2 across seeds with identical config (iter 35 vs 41)</li>
+<li><strong><code>sub_diff=5</code> is optimal</strong> — less monotonicity (<code>sub_diff=3</code>) hurts R²; more (<code>sub_diff=10</code>) also hurts</li>
+<li><strong>MLP<span class="math inline">\(_{\text{node}}\)</span> remains flat across all 44 iterations</strong> — homeostasis <span class="math inline">\(-\lambda(c - c^{\text{base}})\)</span> is never learned, regardless of configuration</li>
 </ol>
 </section>
 <section id="refuted-hypotheses" class="level3">
@@ -719,7 +765,7 @@ Figure&nbsp;11: UCB tree after 24 iterations. Each node represents a hyperparame
 <tbody>
 <tr class="odd">
 <td>Recurrent training breaks degeneracy</td>
-<td>No R² improvement, 3.5× slower (iter 13)</td>
+<td>No R² improvement, 3.5× slower (iter 13, 34)</td>
 </tr>
 <tr class="even">
 <td>Smaller MLP improves k recovery</td>
@@ -727,23 +773,39 @@ Figure&nbsp;11: UCB tree after 24 iterations. Each node represents a hyperparame
 </tr>
 <tr class="odd">
 <td>Higher <code>lr_node</code> activates MLP<span class="math inline">\(_{\text{node}}\)</span></td>
-<td><code>lr_node=0.005</code> hurts (iter 11); 0.002 no effect (iter 26)</td>
+<td><code>lr_node=0.005</code> hurts (iter 11); 0.002 no effect (iter 26, 39)</td>
 </tr>
 <tr class="even">
 <td>Different seed breaks degeneracy</td>
-<td>Same MLP<span class="math inline">\(_{\text{node}}\)</span> flatness (iter 27)</td>
+<td>Same MLP<span class="math inline">\(_{\text{node}}\)</span> flatness (iter 27); R² variance $$0.2 (iter 41)</td>
 </tr>
 <tr class="odd">
 <td>Stronger monotonicity (<code>sub_diff=10</code>) helps</td>
 <td>R² dropped to 0.41 (iter 32)</td>
 </tr>
 <tr class="even">
+<td>Weaker monotonicity (<code>sub_diff=3</code>) helps</td>
+<td>R² dropped to 0.61 (iter 43)</td>
+</tr>
+<tr class="odd">
 <td>Smaller batch size helps convergence</td>
 <td>R² dropped (iter 28)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>aug=5000</code> continues to improve</td>
 <td>R² dropped from 0.69 to 0.65 (iter 25)</td>
+</tr>
+<tr class="odd">
+<td><code>lr_sub=0.002</code> improves over 0.001</td>
+<td>R² dropped from 0.73 to 0.52 (iter 38)</td>
+</tr>
+<tr class="even">
+<td><code>sub_norm=2.0</code> improves R²</td>
+<td>Improves <span class="math inline">\(\alpha\)</span> but hurts R² (iter 30, 37)</td>
+</tr>
+<tr class="odd">
+<td>Combining <code>lr_sub=0.001</code> with other changes</td>
+<td>All combinations hurt R² vs baseline (iter 37–40)</td>
 </tr>
 </tbody>
 </table>
@@ -751,15 +813,15 @@ Figure&nbsp;11: UCB tree after 24 iterations. Each node represents a hyperparame
 <section id="open-questions" class="level3">
 <h3 class="anchored" data-anchor-id="open-questions">Open Questions</h3>
 <ol type="1">
-<li><strong>Why does R² plateau at 0.69?</strong> Is this a fundamental limit of single-step training with the current loss function?</li>
-<li><strong>Can recurrent training break the plateau with the optimal config?</strong> Previous test (iter 13) was before k_floor.</li>
+<li><strong>Is R² <span class="math inline">\(\approx\)</span> 0.69 the true ceiling for single-step training?</strong> The R² = 0.726 peak (iter 35) appears seed-dependent; stable performance converges to $$0.69.</li>
+<li><strong>Can ensemble averaging across seeds reduce variance?</strong> Seed sensitivity of $$0.2 suggests averaging could improve robustness.</li>
 <li><strong>Is the remaining 31% error from identifiability issues?</strong> Multiple <span class="math inline">\(k\)</span> combinations may produce similar <span class="math inline">\(dc/dt\)</span>.</li>
 </ol>
 </section>
 </section>
 <section id="why-homeostasis-is-not-learned" class="level2">
 <h2 class="anchored" data-anchor-id="why-homeostasis-is-not-learned">Why Homeostasis Is Not Learned</h2>
-<p>Across all 36 iterations, MLP<span class="math inline">\(_{\text{node}}\)</span> remains flat — the homeostasis function <span class="math inline">\(-\lambda_t(c_i - c_i^{\text{baseline}})\)</span> is never recovered. This is not a hyperparameter issue. It is a structural limitation of single-step (<span class="math inline">\(t \to t+1\)</span>) training.</p>
+<p>Across all 44 iterations, MLP<span class="math inline">\(_{\text{node}}\)</span> remains flat — the homeostasis function <span class="math inline">\(-\lambda_t(c_i - c_i^{\text{baseline}})\)</span> is never recovered. This is not a hyperparameter issue. It is a structural limitation of single-step (<span class="math inline">\(t \to t+1\)</span>) training.</p>
 <section id="the-scale-mismatch-problem" class="level3">
 <h3 class="anchored" data-anchor-id="the-scale-mismatch-problem">The scale mismatch problem</h3>
 <p>The GNN predicts <span class="math inline">\(dc/dt\)</span> at each time step:</p>

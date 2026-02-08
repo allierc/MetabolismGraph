@@ -167,14 +167,15 @@ The `coeff_k_floor=1.0` penalty at iteration 14 produced a **10× improvement** 
 
 :::
 
-### Block 3: Plateau at R² ≈ 0.69 (Iter 25--32)
+### Block 3: Plateau and Breakthrough (Iter 25--36)
 
-Eight additional iterations failed to break the R² = 0.69 plateau. Every variation — longer training (`aug=5000`), higher `lr_node`, different seeds, smaller batches, stronger regularization — produced equal or worse R².
+Twelve iterations explored the R² = 0.69 plateau. Eight variations failed — but doubling `lr_sub` from 0.0005 to 0.001 broke through to R² = 0.726.
 
 | Batch | Key mutation | Best R² | Finding |
 |-------|-------------|---------|---------|
 | 7 (iter 25--28) | `aug=5000`, seed, batch_size | 0.652 | `aug=5000` hurt R² but $\alpha=0.95$ (best ever) |
 | 8 (iter 29--32) | L1=0, `sub_norm=2.0`, lr_k | 0.619 | `sub_norm=2.0`: fewest outliers (14), best slope (0.99) |
+| 9 (iter 33--36) | `sub_norm=2.0`+`aug=3500`, recurrent, **`lr_sub=0.001`**, `aug=3500` | **0.726** | `lr_sub=0.001` broke the plateau |
 
 ```{python}
 #| code-fold: true
@@ -188,7 +189,8 @@ strategies = {
     'No k_floor\n(Block 1)': [0.044, 0.027, 0.044, 0.031, 0.013, 0.067, 0.041, 0.051, 0.054, 0.061, 0.017, 0.061],
     'k_floor=1.0\naug≤2000': [0.508],
     'k_floor=1.0\naug=3000': [0.638, 0.419, 0.658, 0.559, 0.470, 0.373],
-    'k_floor=1.0\naug=4000': [0.690, 0.652, 0.638, 0.614, 0.600, 0.507, 0.619, 0.530, 0.409],
+    'k_floor=1.0\naug=3500-4500': [0.521, 0.544, 0.690],
+    'k_floor=1.0\naug=4000': [0.690, 0.652, 0.638, 0.614, 0.600, 0.507, 0.619, 0.530, 0.409, 0.478, 0.726, 0.588, 0.518, 0.654, 0.662, 0.487, 0.608, 0.593],
     'k_floor=1.0\naug=5000': [0.652],
 }
 
@@ -211,43 +213,61 @@ plt.tight_layout()
 plt.show()
 ```
 
+### Block 4: Seed Sensitivity and Convergence (Iter 37--44)
+
+Block 4 tested combinations with `lr_sub=0.001` and revealed that the R² = 0.726 breakthrough (iter 35) was partly seed-dependent. Running the identical configuration with a different seed (iter 41, seed=123) dropped R² by 0.24.
+
+| Batch | Key mutation | Best R² | Finding |
+|-------|-------------|---------|---------|
+| 10 (iter 37--40) | `sub_norm=2.0`, `lr_sub=0.002`, `lr_node=0.002`, L1=0 | 0.662 | All combinations with `lr_sub=0.001` hurt R² vs baseline |
+| 11 (iter 41--44) | seed=123, **`aug=4500`**, `sub_diff=3`, `lr_k=0.007` | **0.690** | `aug=4500` most stable; seed=123 crashed to R²=0.49 |
+
+The most stable configuration (iter 42: `aug=4500`) achieved R² = 0.690 with $\alpha = 0.94$ (best ever) and 16 outliers. This suggests the true performance ceiling for single-step training is R² $\approx$ 0.69, with seed-dependent variance of $\pm$0.2.
+
 ### UCB Exploration Tree
 
 ![UCB tree after 24 iterations. Each node represents a hyperparameter configuration; color encodes R² (green = high, red = low). The tree shows how the exploration branched from the `k_floor=1.0` breakthrough (node 14) and converged on the `aug=4000` regime. Node 21 (best R² = 0.69) is highlighted.](figures/rank_50/ucb_tree.png){#fig-ucb-tree}
 
 ### Established Principles
 
-The LLM's persistent memory has accumulated these validated principles after 32 iterations:
+The LLM's persistent memory has accumulated these validated principles after 44 iterations:
 
 1. **`coeff_MLP_sub_norm=1.0` is essential** — enables correct MLP shapes: c² becomes quadratic, MLP$_{\text{node}}$ activates
 2. **`coeff_k_floor=1.0` is critical** — R² jumped from 0.06 to 0.51 (10× improvement). `k_floor=2.0` too strong.
-3. **Longer training helps (up to `aug=4000`)** — aug=2000→3000→4000 consistently improves R². aug=5000 hurts R².
-4. **`lr_k=0.005` is optimal** — lower (0.003) too slow, higher (0.01) destabilizes
+3. **Longer training helps (up to `aug=4000--4500`)** — aug=2000→3000→4000 consistently improves R². aug=5000 hurts R². aug=4500 gives best stability.
+4. **`lr_k=0.005` is optimal** — lower (0.003) too slow, higher (0.007, 0.01) destabilizes
 5. **`k_floor_threshold=-2.0` matches $\log k_{\min}$** — tighter threshold (-2.5) worsens R²
-6. **`coeff_MLP_node_L1=0.0` + long training don't combine** — harmful interaction
-7. **MLP$_{\text{node}}$ remains flat across all 32 iterations** — homeostasis $-\lambda(c - c^{\text{base}})$ is never learned, regardless of configuration
+6. **`coeff_MLP_node_L1=0.0` + long training don't combine** — harmful interaction (confirmed 3 times: iter 22, 29, 40)
+7. **`lr_sub=0.001` is optimal** — 2× increase from 0.0005 broke the R² plateau; `lr_sub=0.002` too high
+8. **Seed sensitivity is significant** — R² variance of $\pm$0.2 across seeds with identical config (iter 35 vs 41)
+9. **`sub_diff=5` is optimal** — less monotonicity (`sub_diff=3`) hurts R²; more (`sub_diff=10`) also hurts
+10. **MLP$_{\text{node}}$ remains flat across all 44 iterations** — homeostasis $-\lambda(c - c^{\text{base}})$ is never learned, regardless of configuration
 
 ### Refuted Hypotheses
 
 | Hypothesis | Evidence |
 |-----------|---------|
-| Recurrent training breaks degeneracy | No R² improvement, 3.5× slower (iter 13) |
+| Recurrent training breaks degeneracy | No R² improvement, 3.5× slower (iter 13, 34) |
 | Smaller MLP improves k recovery | Worst R² = 0.011 (iter 15) |
-| Higher `lr_node` activates MLP$_{\text{node}}$ | `lr_node=0.005` hurts (iter 11); 0.002 no effect (iter 26) |
-| Different seed breaks degeneracy | Same MLP$_{\text{node}}$ flatness (iter 27) |
+| Higher `lr_node` activates MLP$_{\text{node}}$ | `lr_node=0.005` hurts (iter 11); 0.002 no effect (iter 26, 39) |
+| Different seed breaks degeneracy | Same MLP$_{\text{node}}$ flatness (iter 27); R² variance $\pm$0.2 (iter 41) |
 | Stronger monotonicity (`sub_diff=10`) helps | R² dropped to 0.41 (iter 32) |
+| Weaker monotonicity (`sub_diff=3`) helps | R² dropped to 0.61 (iter 43) |
 | Smaller batch size helps convergence | R² dropped (iter 28) |
 | `aug=5000` continues to improve | R² dropped from 0.69 to 0.65 (iter 25) |
+| `lr_sub=0.002` improves over 0.001 | R² dropped from 0.73 to 0.52 (iter 38) |
+| `sub_norm=2.0` improves R² | Improves $\alpha$ but hurts R² (iter 30, 37) |
+| Combining `lr_sub=0.001` with other changes | All combinations hurt R² vs baseline (iter 37--40) |
 
 ### Open Questions
 
-1. **Why does R² plateau at 0.69?** Is this a fundamental limit of single-step training with the current loss function?
-2. **Can recurrent training break the plateau with the optimal config?** Previous test (iter 13) was before k_floor.
+1. **Is R² $\approx$ 0.69 the true ceiling for single-step training?** The R² = 0.726 peak (iter 35) appears seed-dependent; stable performance converges to $\sim$0.69.
+2. **Can ensemble averaging across seeds reduce variance?** Seed sensitivity of $\pm$0.2 suggests averaging could improve robustness.
 3. **Is the remaining 31% error from identifiability issues?** Multiple $k$ combinations may produce similar $dc/dt$.
 
 ## Why Homeostasis Is Not Learned
 
-Across all 36 iterations, MLP$_{\text{node}}$ remains flat — the homeostasis function $-\lambda_t(c_i - c_i^{\text{baseline}})$ is never recovered. This is not a hyperparameter issue. It is a structural limitation of single-step ($t \to t+1$) training.
+Across all 44 iterations, MLP$_{\text{node}}$ remains flat — the homeostasis function $-\lambda_t(c_i - c_i^{\text{baseline}})$ is never recovered. This is not a hyperparameter issue. It is a structural limitation of single-step ($t \to t+1$) training.
 
 ### The scale mismatch problem
 

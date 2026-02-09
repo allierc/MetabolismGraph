@@ -36,7 +36,7 @@ graph_model:
   output_size: 1
   hidden_dim: 64
   n_layers: 3
-  hidden_dim_sub: 128
+  hidden_dim_sub: 64
   n_layers_sub: 3
   hidden_dim_node: 64
   n_layers_node: 3
@@ -60,8 +60,8 @@ training:
   coeff_S_L1: 0.0
   coeff_S_integer: 0.0
   coeff_mass_conservation: 0.0
-  coeff_MLP_sub_diff: 5
-  coeff_MLP_node_L1: 1.0
+  coeff_MLP_sub_diff: 7
+  coeff_MLP_node_L1: 0.5
   coeff_MLP_sub_norm: 1.0
   coeff_k_floor: 1.0
   k_floor_threshold: -2.0

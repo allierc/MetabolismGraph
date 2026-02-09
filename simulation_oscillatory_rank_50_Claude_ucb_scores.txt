@@ -1,10 +1,10 @@
-=== UCB Scores (Simulation block 3, iters 37-48, N=8, c=1.414) ===
+=== UCB Scores (Simulation block 4, iters 49-60, N=8, c=1.414) ===
 
-Node 40: UCB=2.662, parent=root, visits=1, R2=0.662, Pearson=0.212, Mutation=coeff_MLP_node_L1: 1.0 -> 0.0. Testing principle: "L1=0.0 + longer training hurts R²"
-Node 39: UCB=2.653, parent=root, visits=1, R2=0.654, Pearson=0.221, Mutation=learning_rate_node: 0.001 -> 0.002
-Node 43: UCB=2.608, parent=42, visits=1, R2=0.608, Pearson=0.334, Mutation=coeff_MLP_sub_diff: 5 -> 3
-Node 44: UCB=2.593, parent=42, visits=1, R2=0.593, Pearson=0.200, Mutation=learning_rate_k: 0.005 -> 0.007. Testing principle: "lr_k=0.005 is appropriate"
-Node 37: UCB=2.588, parent=root, visits=1, R2=0.588, Pearson=0.165, Mutation=coeff_MLP_sub_norm: 1.0 -> 2.0
-Node 38: UCB=2.517, parent=root, visits=1, R2=0.518, Pearson=0.420, Mutation=learning_rate_sub: 0.001 -> 0.002
-Node 41: UCB=2.487, parent=root, visits=1, R2=0.487, Pearson=0.031, Mutation=seed: 42 -> 123
-Node 42: UCB=1.689, parent=root, visits=3, R2=0.690, Pearson=0.307, Mutation=data_augmentation_loop: 4000 -> 4500
+Node 55: UCB=2.701, parent=root, visits=1, R2=0.701, Pearson=0.214, Mutation=seed: 42 -> 123, data_augmentation_loop: 4500 -> 4000
+Node 49: UCB=2.695, parent=root, visits=1, R2=0.696, Pearson=0.092, Mutation=data_augmentation_loop: 4500 -> 5000
+Node 53: UCB=2.661, parent=root, visits=1, R2=0.662, Pearson=0.187, Mutation=data_augmentation_loop: 4500 -> 4250
+Node 51: UCB=2.655, parent=root, visits=1, R2=0.655, Pearson=0.057, Mutation=seed: 42 -> 123
+Node 56: UCB=2.599, parent=root, visits=1, R2=0.600, Pearson=0.151, Mutation=learning_rate_sub: 0.001 -> 0.0015. Testing principle: "lr_sub=0.001 is optimal"
+Node 50: UCB=2.590, parent=root, visits=1, R2=0.591, Pearson=0.159, Mutation=coeff_MLP_sub_diff: 7 -> 8
+Node 54: UCB=2.560, parent=root, visits=1, R2=0.560, Pearson=0.099, Mutation=coeff_MLP_sub_diff: 7 -> 6
+Node 52: UCB=2.545, parent=root, visits=1, R2=0.545, Pearson=0.036, Mutation=n_layers_sub: 3 -> 4. Testing principle: "default MLP architecture is optimal"

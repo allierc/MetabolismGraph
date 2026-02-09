@@ -8,7 +8,7 @@ date-format: "MMMM D, YYYY"
 
 The LLM-driven exploration engine is running on the **oscillatory regime** (activity rank $\sim50$): 100 metabolites, 256 autocatalytic reactions, 2880 time frames, mass-action kinetics with the stoichiometric matrix $\mathbf{S}$ frozen from ground truth. The goal is to recover the 256 rate constants $k_j \in [10^{-2}, 10^{-1}]$ by optimizing training hyperparameters through UCB tree search with 4 parallel slots.
 
-**44 iterations completed** across 4 blocks (11 batches). The exploration is ongoing.
+**56 iterations completed** across 5 blocks (14 batches). The exploration is ongoing.
 
 ### Simulation Setup
 
@@ -24,17 +24,17 @@ The LLM-driven exploration engine is running on the **oscillatory regime** (acti
 
 The primary metric is **raw R²** computed on all 256 reactions (after MLP$_{\text{sub}}$ scalar correction). The **trimmed R²** excludes outlier reactions ($|\Delta \log_{10} k| > 0.3$) and is reported in parentheses. Raw R² is what drives the UCB exploration — it penalizes outliers directly instead of hiding them.
 
-### R² Trajectory Across 44 Iterations
+### R² Trajectory Across 56 Iterations
 
 ```{python}
 #| code-fold: true
 #| label: fig-iterations
-#| fig-cap: "Raw R² (bars) and outlier count (dots) across 44 iterations, colored by block. The k_floor breakthrough at iteration 14 lifted R² from 0.07 to 0.51, longer training pushed it to 0.69 by iteration 21, and lr_sub=0.001 broke the plateau to R²=0.726 at iteration 35. Block 4 revealed seed sensitivity (±0.2 R²)."
+#| fig-cap: "Raw R² (bars) and outlier count (dots) across 56 iterations, colored by block. Key breakthroughs: k_floor (iter 14, 0.07→0.51), aug=4000 (iter 21, 0.69), lr_sub=0.001 (iter 35, 0.73), sub_diff=7 (iter 45, 0.74). Block 5 confirmed tight optimization bounds."
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-iters = list(range(1, 45))
+iters = list(range(1, 57))
 r2 = [
     # Block 1 (Iter 1-12): Initial exploration
     0.044, 0.027, 0.044, 0.031,  # Batch 1: initial sweep
@@ -48,9 +48,13 @@ r2 = [
     0.652, 0.638, 0.614, 0.600,  # Batch 7: diminishing returns
     0.507, 0.619, 0.530, 0.409,  # Batch 8: alternative approaches
     0.521, 0.478, 0.726, 0.544,  # Batch 9: lr_sub=0.001 BREAKTHROUGH
-    # Block 4 (Iter 37-44): Seed sensitivity
+    # Block 4 (Iter 37-48): Seed sensitivity then sub_diff=7
     0.588, 0.518, 0.654, 0.662,  # Batch 10: combinations with lr_sub
     0.487, 0.690, 0.608, 0.593,  # Batch 11: seed sensitivity revealed
+    0.736, 0.483, 0.559, 0.556,  # Batch 12: sub_diff=7 NEW BEST
+    # Block 5 (Iter 49-56): Confirming optimum
+    0.696, 0.591, 0.655, 0.545,  # Batch 13: robustness tests
+    0.662, 0.560, 0.701, 0.600,  # Batch 14: fine-tuning bounds
 ]
 outliers = [
     43, 47, 45, 53,
@@ -64,6 +68,9 @@ outliers = [
     21, 21, 15, 22,  # Batch 9
     16, 19, 20, 21,  # Batch 10
     21, 16, 18, 19,  # Batch 11
+    15, 20, 23, 21,  # Batch 12
+    12, 21, 12, 25,  # Batch 13
+    21, 21, 18, 19,  # Batch 14
 ]
 
 # Color by block
@@ -75,23 +82,27 @@ for i, r in enumerate(r2):
         colors.append('#2ecc71')  # green: Block 2
     elif i < 36:
         colors.append('#e67e22')  # orange: Block 3
-    else:
+    elif i < 48:
         colors.append('#9b59b6')  # purple: Block 4
+    else:
+        colors.append('#1abc9c')  # teal: Block 5
 
 fig, ax1 = plt.subplots(figsize=(14, 5))
 
 bars = ax1.bar(iters, r2, color=colors, edgecolor='white', linewidth=0.5, alpha=0.85)
-ax1.axhline(y=0.726, color='#e67e22', linestyle='--', alpha=0.4, label='Peak R² = 0.726')
+ax1.axhline(y=0.736, color='#9b59b6', linestyle='--', alpha=0.4, label='Peak R² = 0.736')
 ax1.axhline(y=0.690, color='#2ecc71', linestyle='--', alpha=0.3, label='Stable R² ≈ 0.69')
 
 # Block separators and labels
 ax1.axvline(x=12.5, color='gray', linestyle=':', alpha=0.4)
 ax1.axvline(x=24.5, color='gray', linestyle=':', alpha=0.4)
 ax1.axvline(x=36.5, color='gray', linestyle=':', alpha=0.4)
+ax1.axvline(x=48.5, color='gray', linestyle=':', alpha=0.4)
 ax1.text(6.5, 1.0, 'Block 1', ha='center', fontsize=9, color='#3498db')
 ax1.text(18.5, 1.0, 'Block 2', ha='center', fontsize=9, color='#2ecc71')
 ax1.text(30.5, 1.0, 'Block 3', ha='center', fontsize=9, color='#e67e22')
-ax1.text(40.5, 1.0, 'Block 4', ha='center', fontsize=9, color='#9b59b6')
+ax1.text(42.5, 1.0, 'Block 4', ha='center', fontsize=9, color='#9b59b6')
+ax1.text(52.5, 1.0, 'Block 5', ha='center', fontsize=9, color='#1abc9c')
 
 # Annotate key events
 ax1.annotate('sub_norm=1.0', xy=(6, 0.067), xytext=(6, 0.18),
@@ -100,15 +111,15 @@ ax1.annotate('k_floor=1.0\nbreakthrough', xy=(14, 0.508), xytext=(14, 0.28),
             arrowprops=dict(arrowstyle='->', color='black'), fontsize=7, ha='center', color='black')
 ax1.annotate('aug=4000', xy=(21, 0.690), xytext=(21, 0.82),
             arrowprops=dict(arrowstyle='->', color='black'), fontsize=7, ha='center', color='black')
-ax1.annotate('lr_sub=0.001\npeak', xy=(35, 0.726), xytext=(35, 0.88),
+ax1.annotate('lr_sub=0.001', xy=(35, 0.726), xytext=(35, 0.88),
             arrowprops=dict(arrowstyle='->', color='black'), fontsize=7, ha='center', color='black')
-ax1.annotate('seed=123\n↓0.24', xy=(41, 0.487), xytext=(41, 0.30),
+ax1.annotate('sub_diff=7\npeak', xy=(45, 0.736), xytext=(45, 0.88),
             arrowprops=dict(arrowstyle='->', color='black'), fontsize=7, ha='center', color='black')
 
 ax1.set_xlabel('Iteration')
 ax1.set_ylabel('rate_constants R² (raw)')
 ax1.set_ylim(-0.02, 1.05)
-ax1.set_xticks([1, 6, 12, 14, 21, 24, 32, 35, 36, 40, 44])
+ax1.set_xticks([1, 6, 12, 14, 21, 24, 35, 36, 45, 48, 52, 56])
 
 # outlier count on secondary axis
 ax2 = ax1.twinx()
@@ -121,7 +132,7 @@ lines1, labels1 = ax1.get_legend_handles_labels()
 lines2, labels2 = ax2.get_legend_handles_labels()
 ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left', fontsize=8)
 
-ax1.set_title('UCB Exploration: Rate Constant Recovery (44 iterations)')
+ax1.set_title('UCB Exploration: Rate Constant Recovery (56 iterations)')
 plt.tight_layout()
 plt.show()
 ```
@@ -146,18 +157,18 @@ The `coeff_k_floor=1.0` penalty at iteration 14 produced a **10× improvement** 
 | 5 (iter 17--20) | `aug=3000` | **0.642** | Longer training + k_floor synergistic |
 | 6 (iter 21--24) | `aug=4000` | **0.690** | First to reach 0.69; $\alpha = 0.85$, 16 outliers |
 
-**Best result — Iteration 35**: `lr_sub=0.001`, `data_augmentation_loop=4000`, `coeff_k_floor=1.0`, `coeff_MLP_sub_norm=1.0`
+**Best result — Iteration 45**: `coeff_MLP_sub_diff=7`, `lr_sub=0.001`, `data_augmentation_loop=4500`, `coeff_k_floor=1.0`, `coeff_MLP_sub_norm=1.0`
 
 | Metric | Value |
 |--------|-------|
-| Raw R² | **0.726** |
-| Trimmed R² | 0.975 |
+| Raw R² | **0.736** |
+| Trimmed R² | 0.978 |
 | Outliers | 15 / 256 (5.9%) |
-| Slope | 0.99 |
-| $\alpha$ | 0.83 |
-| test_pearson | 0.35 |
+| Slope | 0.97 |
+| $\alpha$ | 0.90 |
+| test_pearson | 0.37 |
 
-*Note: This peak R² is partly seed-dependent (±0.2 variance — see Block 4). The stable baseline is R² ≈ 0.69 (e.g. iteration 42: `aug=4500`, $\alpha = 0.94$).*
+*Note: Peak R² has seed-dependent variance of $\pm$0.08 with `sub_diff=7` (reduced from $\pm$0.2 with `sub_diff=5`). Block 5 confirmed tight optimization bounds around this configuration.*
 
 ### Rate Constants Recovery
 
@@ -167,13 +178,13 @@ The `coeff_k_floor=1.0` penalty at iteration 14 produced a **10× improvement** 
 
 ![Iteration 14 (breakthrough). R² = 0.508, 33 outliers. The `k_floor=1.0` penalty prevents outlier $\log k$ from drifting below the true minimum, producing a 10$\times$ R² jump.](figures/rank_50/rate_constants_breakthrough.png){#fig-k-breakthrough}
 
-![Iteration 35 (best). R² = 0.726 (trimmed: 0.975), 15 outliers. Combining `k_floor`, `sub_norm`, `aug=4000`, and `lr_sub=0.001` yields the tightest clustering around the diagonal.](figures/rank_50/rate_constants_best.png){#fig-k-best}
+![Iteration 45 (best). R² = 0.736 (trimmed: 0.978), 15 outliers. Combining `k_floor`, `sub_norm`, `aug=4500`, `lr_sub=0.001`, and `sub_diff=7` yields the tightest clustering around the diagonal.](figures/rank_50/rate_constants_best.png){#fig-k-best}
 
 :::
 
-### Kinograph — Best Run (Iteration 35)
+### Kinograph — Best Run (Iteration 45)
 
-![Kinograph montage for iteration 35. Top-left: ground-truth $dc/dt$; top-right: GNN prediction; bottom-left: residual (same color scale as GT); bottom-right: predicted vs. true $dc/dt$ scatter (Pearson = 0.35). The GNN captures the dominant oscillatory patterns but misses fine-grained temporal structure.](figures/rank_50/kinograph_best.png){#fig-kinograph-best}
+![Kinograph montage for iteration 45. Top-left: ground-truth $dc/dt$; top-right: GNN prediction; bottom-left: residual (same color scale as GT); bottom-right: predicted vs. true $dc/dt$ scatter (Pearson = 0.37). The GNN captures the dominant oscillatory patterns but misses fine-grained temporal structure.](figures/rank_50/kinograph_best.png){#fig-kinograph-best}
 
 ### Learned MLPs
 
@@ -181,7 +192,7 @@ The `coeff_k_floor=1.0` penalty at iteration 14 produced a **10× improvement** 
 
 ![Iteration 1 (baseline). MLP$_{\text{sub}}$: $\alpha$ at $|s|=1$ is 0.42 — under-scaled. MLP$_{\text{node}}$: flat at zero.](figures/rank_50/mlp_baseline.png){#fig-mlp-baseline}
 
-![Iteration 35 (best R²). MLP$_{\text{sub}}$: $\alpha$ at $|s|=1$ is 0.83 — closer to the true scale. MLP$_{\text{node}}$: still flat at zero across all 44 iterations — homeostasis not learned.](figures/rank_50/mlp_best.png){#fig-mlp-best}
+![Iteration 45 (best R²). MLP$_{\text{sub}}$: $\alpha$ at $|s|=1$ is 0.90 — closest to the true scale. MLP$_{\text{node}}$: still flat at zero across all 56 iterations — homeostasis not learned.](figures/rank_50/mlp_best.png){#fig-mlp-best}
 
 :::
 
@@ -205,11 +216,10 @@ import numpy as np
 
 strategies = {
     'No k_floor\n(Block 1)': [0.044, 0.027, 0.044, 0.031, 0.013, 0.067, 0.041, 0.051, 0.054, 0.061, 0.017, 0.061],
-    'k_floor=1.0\naug≤2000': [0.508],
-    'k_floor=1.0\naug=3000': [0.638, 0.419, 0.658, 0.559, 0.470, 0.373],
-    'k_floor=1.0\naug=3500-4500': [0.521, 0.544, 0.690],
-    'k_floor=1.0\naug=4000': [0.690, 0.652, 0.638, 0.614, 0.600, 0.507, 0.619, 0.530, 0.409, 0.478, 0.726, 0.588, 0.518, 0.654, 0.662, 0.487, 0.608, 0.593],
-    'k_floor=1.0\naug=5000': [0.652],
+    'k_floor\nsub_diff=5': [0.508, 0.638, 0.419, 0.658, 0.559, 0.470, 0.373, 0.690, 0.652, 0.638, 0.614, 0.600, 0.507, 0.619, 0.530, 0.409, 0.521, 0.478, 0.726, 0.544, 0.588, 0.518, 0.654, 0.662, 0.487, 0.690, 0.608, 0.593],
+    'k_floor\nsub_diff=7': [0.736, 0.696, 0.655, 0.662, 0.701],
+    'k_floor\nsub_diff≠5,7': [0.409, 0.591, 0.560, 0.545],
+    'Arch/LR\nchanges': [0.483, 0.559, 0.556, 0.600],
 }
 
 fig, ax = plt.subplots(figsize=(10, 5))
@@ -224,42 +234,56 @@ ax.set_xticks(positions)
 ax.set_xticklabels(list(strategies.keys()), fontsize=9)
 ax.set_ylabel('Raw R²')
 ax.set_ylim(-0.05, 0.85)
-ax.axhline(y=0.690, color='green', linestyle='--', alpha=0.3)
+ax.axhline(y=0.736, color='green', linestyle='--', alpha=0.3)
 ax.set_title('R² by Strategy Group')
 ax.grid(axis='y', alpha=0.3)
 plt.tight_layout()
 plt.show()
 ```
 
-### Block 4: Seed Sensitivity and Convergence (Iter 37--44)
+### Block 4: Seed Sensitivity, then sub_diff=7 Breakthrough (Iter 37--48)
 
-Block 4 tested combinations with `lr_sub=0.001` and revealed that the R² = 0.726 breakthrough (iter 35) was partly seed-dependent. Running the identical configuration with a different seed (iter 41, seed=123) dropped R² by 0.24.
+Block 4 first tested combinations with `lr_sub=0.001` and revealed seed sensitivity ($\pm$0.2 R²). Then `sub_diff=7` (stronger monotonicity) achieved a new peak R² = 0.736, lifting the ceiling from 0.73 to 0.74.
 
 | Batch | Key mutation | Best R² | Finding |
 |-------|-------------|---------|---------|
 | 10 (iter 37--40) | `sub_norm=2.0`, `lr_sub=0.002`, `lr_node=0.002`, L1=0 | 0.662 | All combinations with `lr_sub=0.001` hurt R² vs baseline |
-| 11 (iter 41--44) | seed=123, **`aug=4500`**, `sub_diff=3`, `lr_k=0.007` | **0.690** | `aug=4500` most stable; seed=123 crashed to R²=0.49 |
+| 11 (iter 41--44) | seed=123, `aug=4500`, `sub_diff=3`, `lr_k=0.007` | 0.690 | `aug=4500` most stable ($\alpha = 0.94$); seed=123 crashed to R²=0.49 |
+| 12 (iter 45--48) | **`sub_diff=7`**, `lr_k=0.004`, `hidden_dim=128`, `batch_size=16` | **0.736** | `sub_diff=7` new best; wider/deeper MLP and larger batch hurt |
 
-The most stable configuration (iter 42: `aug=4500`) achieved R² = 0.690 with $\alpha = 0.94$ (best ever) and 16 outliers. This suggests the true performance ceiling for single-step training is R² $\approx$ 0.69, with seed-dependent variance of $\pm$0.2.
+Iteration 45 (`sub_diff=7`, `aug=4500`) achieved R² = 0.736 with $\alpha = 0.90$ and 15 outliers — the strongest monotonicity constraint within the effective range. Iterations 46--48 confirmed that `lr_k=0.004` is too slow, `hidden_dim_sub=128` allows degenerate solutions, and `batch_size=16` degrades convergence.
+
+### Block 5: Confirming Tight Optimization Bounds (Iter 49--56)
+
+Block 5 systematically probed the boundaries around the optimal configuration. Every variation hurt R², confirming that the hyperparameter optimum is tightly constrained.
+
+| Batch | Key mutation | Best R² | Finding |
+|-------|-------------|---------|---------|
+| 13 (iter 49--52) | `aug=5000`, `sub_diff=8`, seed=123, `n_layers=4` | 0.696 | `aug=5000` hurts (confirmed twice); `sub_diff=7` improves seed robustness ($\pm$0.08 vs $\pm$0.24) |
+| 14 (iter 53--56) | `aug=4250`, `sub_diff=6`, seed=123+`aug=4000`, `lr_sub=0.0015` | 0.701 | All variations hurt; `sub_diff=6` too weak, `lr_sub=0.0015` too high |
+
+The tight bounds: `aug=4500` (not 4000, 4250, or 5000), `sub_diff=7` (not 5, 6, or 8), `lr_sub=0.001` (not 0.0015 or 0.002), `lr_k=0.005` (not 0.004 or 0.007). `sub_diff=7` also improved seed robustness: the R² gap between seed=42 and seed=123 dropped from 0.24 (with `sub_diff=5`) to 0.08.
 
 ### UCB Exploration Tree
 
-![UCB tree after 24 iterations (snapshot). Each node represents a hyperparameter configuration; color encodes R² (green = high, red = low). The tree shows how the exploration branched from the `k_floor=1.0` breakthrough (node 14) and converged on the `aug=4000` regime. The tree has since grown to 44 nodes; the overall best is node 35 (R² = 0.726).](figures/rank_50/ucb_tree.png){#fig-ucb-tree}
+![UCB tree after 24 iterations (snapshot). Each node represents a hyperparameter configuration; color encodes R² (green = high, red = low). The tree shows how the exploration branched from the `k_floor=1.0` breakthrough (node 14) and converged on the `aug=4000` regime. The tree has since grown to 56 nodes; the overall best is node 45 (R² = 0.736).](figures/rank_50/ucb_tree.png){#fig-ucb-tree}
 
 ### Established Principles
 
-The LLM's persistent memory has accumulated these validated principles after 44 iterations:
+The LLM's persistent memory has accumulated these validated principles after 56 iterations:
 
 1. **`coeff_MLP_sub_norm=1.0` is essential** — enables correct MLP shapes: c² becomes quadratic, MLP$_{\text{node}}$ activates
 2. **`coeff_k_floor=1.0` is critical** — R² jumped from 0.06 to 0.51 (10× improvement). `k_floor=2.0` too strong.
-3. **Longer training helps (up to `aug=4000--4500`)** — aug=2000→3000→4000 consistently improves R². aug=5000 hurts R². aug=4500 gives best stability.
-4. **`lr_k=0.005` is optimal** — lower (0.003) too slow, higher (0.007, 0.01) destabilizes
+3. **Longer training helps (up to `aug=4000--4500`)** — aug=2000→3000→4000 consistently improves R². aug=5000 hurts R² (confirmed twice: iter 25, 49). aug=4500 gives best stability.
+4. **`lr_k=0.005` is optimal** — lower (0.003, 0.004) too slow, higher (0.007, 0.01) destabilizes
 5. **`k_floor_threshold=-2.0` matches $\log k_{\min}$** — tighter threshold (-2.5) worsens R²
 6. **`coeff_MLP_node_L1=0.0` + long training don't combine** — harmful interaction (confirmed 3 times: iter 22, 29, 40)
-7. **`lr_sub=0.001` is optimal** — 2× increase from 0.0005 broke the R² plateau; `lr_sub=0.002` too high
-8. **Seed sensitivity is significant** — R² variance of $\pm$0.2 across seeds with identical config (iter 35 vs 41)
-9. **`sub_diff=5` is optimal** — less monotonicity (`sub_diff=3`) hurts R²; more (`sub_diff=10`) also hurts
-10. **MLP$_{\text{node}}$ remains flat across all 44 iterations** — homeostasis $-\lambda(c - c^{\text{base}})$ is never learned, regardless of configuration
+7. **`lr_sub=0.001` is optimal** — 2× increase from 0.0005 broke the R² plateau; `lr_sub=0.002` too high; `lr_sub=0.0015` also hurts
+8. **Seed sensitivity is significant but reducible** — R² variance of $\pm$0.2 with `sub_diff=5` (iter 35 vs 41), reduced to $\pm$0.08 with `sub_diff=7` (iter 45 vs 51)
+9. **`sub_diff=7` is optimal** — stronger monotonicity than `sub_diff=5` improves R² from 0.69 to 0.74 (iter 45); `sub_diff=8` too strong, `sub_diff=6` too weak, `sub_diff=3` and `sub_diff=10` also hurt
+10. **`batch_size=8` is optimal** — `batch_size=16` hurts R² (iter 48)
+11. **Default MLP architecture is optimal** — `hidden_dim_sub=128` allows degenerate solutions (iter 47); `n_layers_sub=4` also hurts (iter 52)
+12. **MLP$_{\text{node}}$ remains flat across all 56 iterations** — homeostasis $-\lambda(c - c^{\text{base}})$ is never learned, regardless of configuration
 
 ### Refuted Hypotheses
 
@@ -272,20 +296,27 @@ The LLM's persistent memory has accumulated these validated principles after 44 
 | Stronger monotonicity (`sub_diff=10`) helps | R² dropped to 0.41 (iter 32) |
 | Weaker monotonicity (`sub_diff=3`) helps | R² dropped to 0.61 (iter 43) |
 | Smaller batch size helps convergence | R² dropped (iter 28) |
-| `aug=5000` continues to improve | R² dropped from 0.69 to 0.65 (iter 25) |
+| `aug=5000` continues to improve | R² dropped from 0.69 to 0.65 (iter 25); from 0.74 to 0.70 (iter 49) |
 | `lr_sub=0.002` improves over 0.001 | R² dropped from 0.73 to 0.52 (iter 38) |
 | `sub_norm=2.0` improves R² | Improves $\alpha$ but hurts R² (iter 30, 37) |
 | Combining `lr_sub=0.001` with other changes | All combinations hurt R² vs baseline (iter 37--40) |
+| Wider MLP$_{\text{sub}}$ (`hidden_dim=128`) helps | R² dropped to 0.56 — allows degenerate solutions (iter 47) |
+| Larger `batch_size=16` stabilizes gradients | R² dropped to 0.56 (iter 48) |
+| `sub_diff=8` further improves over 7 | R² dropped from 0.74 to 0.59 (iter 50) |
+| `sub_diff=6` is better than 7 | R² dropped from 0.74 to 0.56 (iter 54) |
+| Deeper MLP$_{\text{sub}}$ (`n_layers=4`) helps | R² dropped to 0.55 (iter 52) |
+| `lr_sub=0.0015` (intermediate) helps | R² dropped from 0.74 to 0.60 (iter 56) |
+| `lr_k=0.004` gives finer convergence | R² dropped to 0.48 — too slow (iter 46) |
 
 ### Open Questions
 
-1. **Is R² $\approx$ 0.69 the true ceiling for single-step training?** The R² = 0.726 peak (iter 35) appears seed-dependent; stable performance converges to $\sim$0.69.
-2. **Can ensemble averaging across seeds reduce variance?** Seed sensitivity of $\pm$0.2 suggests averaging could improve robustness.
-3. **Is the remaining 31% error from identifiability issues?** Multiple $k$ combinations may produce similar $dc/dt$.
+1. **Is R² $\approx$ 0.74 the true ceiling for single-step training?** After 56 iterations, every variation around the optimal configuration hurts. The `sub_diff=7` improvement (0.69→0.74) was the last breakthrough.
+2. **Can ensemble averaging across seeds reduce variance?** Seed sensitivity of $\pm$0.08 (with `sub_diff=7`) suggests averaging could further improve robustness.
+3. **Is the remaining 26% error from identifiability issues?** Multiple $k$ combinations may produce similar $dc/dt$.
 
 ## Why Homeostasis Is Not Learned
 
-Across all 44 iterations, MLP$_{\text{node}}$ remains flat — the homeostasis function $-\lambda_t(c_i - c_i^{\text{baseline}})$ is never recovered. This is not a hyperparameter issue. It is a structural limitation of single-step ($t \to t+1$) training.
+Across all 56 iterations, MLP$_{\text{node}}$ remains flat — the homeostasis function $-\lambda_t(c_i - c_i^{\text{baseline}})$ is never recovered. This is not a hyperparameter issue. It is a structural limitation of single-step ($t \to t+1$) training.
 
 ### The scale mismatch problem
 

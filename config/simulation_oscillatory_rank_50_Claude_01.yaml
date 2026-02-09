@@ -49,10 +49,10 @@ training:
   n_runs: 1
   device: auto
   batch_size: 8
-  seed: 42
+  seed: 99
   data_augmentation_loop: 4500
   learning_rate_start: 0.001
-  learning_rate_k: 0.004
+  learning_rate_k: 0.005
   learning_rate_node: 0.001
   learning_rate_sub: 0.001
   freeze_stoichiometry: true
@@ -60,7 +60,7 @@ training:
   coeff_S_L1: 0.0
   coeff_S_integer: 0.0
   coeff_mass_conservation: 0.0
-  coeff_MLP_sub_diff: 5
+  coeff_MLP_sub_diff: 7
   coeff_MLP_node_L1: 1.0
   coeff_MLP_sub_norm: 1.0
   coeff_k_floor: 1.0

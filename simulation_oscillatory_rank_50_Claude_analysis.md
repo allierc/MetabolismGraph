@@ -1177,3 +1177,331 @@ Base config from Iter 42: lr_k=0.005, lr_node=0.001, lr_sub=0.001, data_augmenta
 
 Rationale: Batch 11 revealed significant seed sensitivity (~0.2 R² variance). This batch explores stabilization: (1) stronger monotonicity, (2) lower lr_k, (3) wider MLP_sub, (4) larger batch size.
 
+---
+
+## Iter 45: partial (NEW BEST!)
+Node: id=45, parent=42
+Mode/Strategy: exploit
+Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.7358, trimmed_R2=0.9654, n_outliers=15, slope=0.9715, test_R2=-833457.93, test_pearson=0.2105, final_loss=34259.63, alpha=0.9000, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=good: c^1 matches GT well, c^2 follows quadratic shape closely, MLP_node=inactive: flat at 0, not learning homeostasis
+Mutation: coeff_MLP_sub_diff: 5 -> 7
+Parent rule: Highest UCB node (42)
+Observation: **NEW BEST R²=0.7358!** Stronger monotonicity (sub_diff=7) improves R² significantly, fewest outliers (15), excellent alpha=0.90
+Next: parent=45
+
+## Iter 46: partial
+Node: id=46, parent=42
+Mode/Strategy: exploit
+Config: seed=42, lr_k=0.004, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=5
+Metrics: rate_constants_R2=0.4827, trimmed_R2=0.9637, n_outliers=20, slope=0.9737, test_R2=-1103560.74, test_pearson=0.0788, final_loss=39442.65, alpha=0.8117, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.52, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 slightly below GT, c^2 follows quadratic, MLP_node=inactive: flat at 0
+Mutation: learning_rate_k: 0.005 -> 0.004
+Parent rule: Second highest UCB (42, different param)
+Observation: lr_k=0.004 TOO SLOW — R² dropped significantly to 0.48, confirms lr_k=0.005 is optimal
+Next: parent=45
+
+## Iter 47: partial
+Node: id=47, parent=42
+Mode/Strategy: explore
+Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=5, hidden_dim_sub=128
+Metrics: rate_constants_R2=0.5585, trimmed_R2=0.9506, n_outliers=23, slope=0.9763, test_R2=-23781026.46, test_pearson=0.0573, final_loss=48259.67, alpha=0.8494, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.50, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 good, c^2 slightly below GT quadratic, MLP_node=inactive: flat at 0
+Mutation: hidden_dim_sub: 64 -> 128
+Parent rule: Under-visited parameter dimension (architecture)
+Observation: Wider MLP_sub (128) HURTS R² — more capacity allows compensation for wrong k values
+Next: parent=45
+
+## Iter 48: partial
+Node: id=48, parent=42
+Mode/Strategy: principle-test
+Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=16, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=5
+Metrics: rate_constants_R2=0.5557, trimmed_R2=0.9643, n_outliers=21, slope=0.9662, test_R2=-110048.49, test_pearson=0.2477, final_loss=36272.77, alpha=0.8134, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.50, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 matches GT, c^2 slightly above GT quadratic, MLP_node=inactive: flat at 0
+Mutation: batch_size: 8 -> 16. Testing principle: "batch_size=8 is optimal"
+Parent rule: Principle testing
+Observation: batch_size=16 HURTS R² (0.56 vs 0.69) — fewer gradient updates per epoch degrades convergence, confirms batch_size=8 optimal
+Next: parent=45
+
+---
+
+### Batch 12 Summary
+
+**Results Table:**
+| Slot | Iter | Mutation | R² | outliers | alpha | slope | test_pearson |
+|------|------|----------|-----|----------|-------|-------|--------------|
+| 0 | 45 | sub_diff=7 | **0.7358** | **15** | **0.90** | 0.97 | 0.21 |
+| 1 | 46 | lr_k=0.004 | 0.4827 | 20 | 0.81 | 0.97 | 0.08 |
+| 2 | 47 | hidden_dim_sub=128 | 0.5585 | 23 | 0.85 | 0.98 | 0.06 |
+| 3 | 48 | batch_size=16 | 0.5557 | 21 | 0.81 | 0.97 | 0.25 |
+
+**Key Findings:**
+1. **Iter 45 is NEW BEST (R²=0.7358)** — stronger monotonicity (sub_diff=7) improved R² from 0.69 to 0.74!
+2. **lr_k=0.004 too slow** — R² dropped to 0.48, confirms lr_k=0.005 is optimal
+3. **Wider MLP_sub (128) hurts R²** — more capacity allows degenerate solutions
+4. **batch_size=16 hurts R²** — fewer gradient updates per epoch
+
+**Critical Insights:**
+- **sub_diff=7 is the new optimum** — replaces sub_diff=5, stronger monotonicity helps without being too strong like sub_diff=10
+- **Architecture changes (hidden_dim_sub=128) and batch_size=16 both hurt** — confirms that current architecture is good
+- **Best R² achieved: 0.7358** — a new record for this regime
+
+**Principle Updates:**
+- NEW: **sub_diff=7 is optimal** — improves over sub_diff=5, Iter 32 showed sub_diff=10 is too strong
+- CONFIRMED: "lr_k=0.005 is optimal" — lr_k=0.004 too slow (Iter 46)
+- NEW: "batch_size=8 is optimal" — larger batch_size=16 hurts R² (Iter 48)
+- NEW: "Wider MLP_sub hurts" — hidden_dim_sub=128 allows compensation (Iter 47)
+
+**Best Node This Batch: Iter 45 (R²=0.7358, outliers=15, alpha=0.90, slope=0.97)**
+
+### Block 4 Summary (Iter 37-48)
+
+**Block 4 explored stabilization after seed sensitivity discovery:**
+- **Best R² achieved: 0.7358** (Iter 45, sub_diff=7)
+- **Stable baseline: ~0.69** (Iter 42 with aug=4500)
+- **Key discovery: sub_diff=7 is optimal** — stronger monotonicity than sub_diff=5 helps R²
+
+**Block 4 R² Progression:**
+| Batch | Iters | Best R² | Key Finding |
+|-------|-------|---------|-------------|
+| 10 | 37-40 | 0.6622 | All below Iter 42 baseline |
+| 11 | 41-44 | 0.6896 | Seed sensitivity ~0.2 variance |
+| 12 | 45-48 | **0.7358** | sub_diff=7 NEW BEST! |
+
+>>> BLOCK 4 COMPLETE <<<
+
+### Block 5 (Iter 49-60): Exploiting sub_diff=7 and exploring further
+
+### Batch 13 (Iter 49-52): Exploiting sub_diff=7 breakthrough
+
+Base config from Iter 45: lr_k=0.005, lr_node=0.001, lr_sub=0.001, data_augmentation_loop=4500, coeff_MLP_sub_norm=1.0, coeff_MLP_node_L1=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+
+**Slot 0 (id=49)**: Longer training with sub_diff=7
+- Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: data_augmentation_loop: 4500 -> 5000
+- Parent rule: Node 45, testing if longer training helps with sub_diff=7
+
+**Slot 1 (id=50)**: Stronger monotonicity
+- Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=8
+- Mutation: coeff_MLP_sub_diff: 7 -> 8
+- Parent rule: Node 45, probing slightly stronger monotonicity
+
+**Slot 2 (id=51)**: Seed robustness test
+- Config: seed=123, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: seed: 42 -> 123
+- Parent rule: Node 45, testing seed robustness of sub_diff=7
+
+**Slot 3 (id=52)**: Deeper MLP_sub
+- Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7, n_layers_sub=4
+- Mutation: n_layers_sub: 3 -> 4. Testing principle: "default MLP architecture is optimal"
+- Parent rule: Node 45, testing if deeper MLP_sub improves learning
+
+---
+
+## Iter 49: partial
+Node: id=49, parent=45
+Mode/Strategy: exploit
+Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.6957, trimmed_R2=0.9645, n_outliers=12, slope=0.9805, test_R2=-719802.04, test_pearson=0.0925, final_loss=37175.33, alpha=0.8872, MLP_node_slope_0=0.000000, MLP_node_gt_slope_0=-0.001000, MLP_node_slope_1=0.000000, MLP_node_gt_slope_1=-0.002000, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=good: c^1 linear, c^2 quadratic shape correct, MLP_node=inactive: flat at 0
+Mutation: data_augmentation_loop: 4500 -> 5000
+Parent rule: Highest UCB node (45), testing longer training
+Observation: aug=5000 HURTS R² (0.70 vs 0.74) — confirms aug=5000 is past optimal; best outliers=12 in batch but R² degraded. Principle 2 confirmed (aug=4000-4500 optimal, 5000 hurts).
+Next: parent=45
+
+## Iter 50: partial
+Node: id=50, parent=45
+Mode/Strategy: exploit
+Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=8
+Metrics: rate_constants_R2=0.5905, trimmed_R2=0.9708, n_outliers=21, slope=0.9669, test_R2=-706074.79, test_pearson=0.1593, final_loss=37495.21, alpha=0.8604, MLP_node_slope_0=-0.000000, MLP_node_gt_slope_0=-0.001000, MLP_node_slope_1=-0.000000, MLP_node_gt_slope_1=-0.002000, embedding_cluster_acc=0.52, embedding_n_clusters=1
+Visual: MLP_sub=good: c^1 linear, c^2 quadratic, MLP_node=inactive: flat at 0
+Mutation: coeff_MLP_sub_diff: 7 -> 8
+Parent rule: Node 45, probing stronger monotonicity
+Observation: sub_diff=8 HURTS R² (0.59 vs 0.74) — sub_diff=7 is optimal, going higher degrades k recovery like sub_diff=10 did (Iter 32). Best trimmed_R²=0.97 but R² dropped.
+Next: parent=45
+
+## Iter 51: partial
+Node: id=51, parent=45
+Mode/Strategy: explore
+Config: seed=123, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.6552, trimmed_R2=0.9589, n_outliers=12, slope=0.9652, test_R2=-959568.19, test_pearson=0.0571, final_loss=32858.40, alpha=0.8587, MLP_node_slope_0=0.000000, MLP_node_gt_slope_0=-0.001000, MLP_node_slope_1=0.000000, MLP_node_gt_slope_1=-0.002000, embedding_cluster_acc=0.50, embedding_n_clusters=1
+Visual: MLP_sub=good: c^1 linear, c^2 quadratic, MLP_node=inactive: flat at 0
+Mutation: seed: 42 -> 123
+Parent rule: Node 45, testing seed robustness of sub_diff=7
+Observation: **sub_diff=7 more seed-robust than sub_diff=5!** R²=0.66 with seed=123 vs 0.49 with sub_diff=5 (Iter 41). Still below seed=42's 0.74 but gap reduced from 0.24 to 0.08. Best outliers=12 tied with Iter 49.
+Next: parent=45
+
+## Iter 52: partial
+Node: id=52, parent=45
+Mode/Strategy: principle-test
+Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7, n_layers_sub=4
+Metrics: rate_constants_R2=0.5450, trimmed_R2=0.9435, n_outliers=25, slope=1.0146, test_R2=-6218956.80, test_pearson=0.0356, final_loss=43091.13, alpha=0.7426, MLP_node_slope_0=-0.000000, MLP_node_gt_slope_0=-0.001000, MLP_node_slope_1=-0.000000, MLP_node_gt_slope_1=-0.002000, embedding_cluster_acc=0.50, embedding_n_clusters=1
+Visual: MLP_sub=good: c^1 linear, c^2 quadratic, MLP_node=inactive: flat at 0
+Mutation: n_layers_sub: 3 -> 4. Testing principle: "default MLP architecture is optimal"
+Parent rule: Node 45, testing if deeper MLP_sub helps
+Observation: n_layers_sub=4 HURTS R² significantly (0.55 vs 0.74) — deeper MLP allows more compensation for wrong k. Confirms principle that wider/deeper MLP_sub hurts. Worst alpha=0.74 in batch, slope=1.01 slightly overshoots.
+Next: parent=45
+
+---
+
+### Batch 13 Summary
+
+**Results Table:**
+| Slot | Iter | Mutation | R² | outliers | alpha | slope | test_pearson |
+|------|------|----------|-----|----------|-------|-------|--------------|
+| 0 | 49 | aug=5000 | 0.6957 | **12** | 0.89 | **0.98** | 0.09 |
+| 1 | 50 | sub_diff=8 | 0.5905 | 21 | 0.86 | 0.97 | 0.16 |
+| 2 | 51 | seed=123 | 0.6552 | **12** | 0.86 | 0.97 | 0.06 |
+| 3 | 52 | n_layers_sub=4 | 0.5450 | 25 | 0.74 | 1.01 | 0.04 |
+
+**Key Findings:**
+1. **NONE beat Iter 45's R²=0.7358** — sub_diff=7 with aug=4500 remains optimal
+2. **aug=5000 still hurts** — R² dropped from 0.74 to 0.70, confirms aug boundary at 4500
+3. **sub_diff=8 is too strong** — R² dropped to 0.59, optimal is sub_diff=7
+4. **sub_diff=7 is MORE SEED-ROBUST** — R²=0.66 with seed=123 vs 0.49 with sub_diff=5 (Iter 41)
+5. **Deeper MLP_sub (n_layers=4) hurts** — R² dropped to 0.55, confirms default architecture optimal
+
+**Critical Insights:**
+- **sub_diff=7 is confirmed optimal** — sub_diff=8 hurts, sub_diff=5 less robust
+- **Architecture changes (wider or deeper MLP) consistently hurt R²** — keeps principle confirmed
+- **Best R² still 0.7358** (Iter 45) — may be approaching a fundamental limit
+
+**Principle Updates:**
+- CONFIRMED: "aug=4000-4500 optimal, aug=5000 hurts" (Iter 49)
+- CONFIRMED: "sub_diff=7 is optimal" — sub_diff=8 too strong (Iter 50)
+- NEW: "sub_diff=7 improves seed robustness" — R² gap from 0.24 to 0.08 (Iter 51 vs Iter 41)
+- CONFIRMED: "Deeper MLP_sub hurts R²" — n_layers_sub=4 hurts (Iter 52)
+
+**Best Node Remains: Iter 45 (R²=0.7358, outliers=15, alpha=0.90, slope=0.97)**
+
+### Batch 14 (Iter 53-56): Fine-tuning around sub_diff=7 optimum
+
+Base config from Iter 45: lr_k=0.005, lr_node=0.001, lr_sub=0.001, data_augmentation_loop=4500, coeff_MLP_sub_norm=1.0, coeff_MLP_node_L1=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+
+**Slot 0 (id=53)**: Slightly shorter training (aug=4250) — testing if 4500 is past optimal
+- Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4250, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: data_augmentation_loop: 4500 -> 4250
+- Parent rule: Node 45, fine-tuning training length
+
+**Slot 1 (id=54)**: sub_diff=6 — testing between sub_diff=5 and 7
+- Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=6
+- Mutation: coeff_MLP_sub_diff: 7 -> 6
+- Parent rule: Node 45, exploring sub_diff=6 (between known good 5 and optimal 7)
+
+**Slot 2 (id=55)**: Combined seed=123 + aug=4000 — testing if different seed with shorter training helps
+- Config: seed=123, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: seed: 42 -> 123, data_augmentation_loop: 4500 -> 4000
+- Parent rule: Node 45, testing if shorter training helps with different seed
+
+**Slot 3 (id=56)**: Slightly higher lr_sub with sub_diff=7 — testing lr_sub=0.0015
+- Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.0015, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: learning_rate_sub: 0.001 -> 0.0015. Testing principle: "lr_sub=0.001 is optimal"
+- Parent rule: Node 45, testing intermediate lr_sub between 0.001 (optimal) and 0.002 (too high)
+
+Rationale: Iter 45 achieved NEW BEST R²=0.7358 with sub_diff=7. This batch fine-tunes: (1) training length, (2) monotonicity constraint, (3) seed-training length interaction, (4) lr_sub.
+
+---
+
+## Iter 53: partial
+Node: id=53, parent=45
+Mode/Strategy: exploit
+Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4250, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.6616, trimmed_R2=0.9650, n_outliers=21, slope=0.9784, test_R2=-1011282.19, test_pearson=0.1871, final_loss=35739.41, alpha=0.8353, MLP_node_slope_0=-0.000000, MLP_node_gt_slope_0=-0.001000, MLP_node_slope_1=-0.000000, MLP_node_gt_slope_1=-0.002000, embedding_cluster_acc=0.50, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 close to linear, c^2 slightly above quadratic GT, MLP_node=inactive: flat at 0
+Mutation: data_augmentation_loop: 4500 -> 4250
+Parent rule: Node 45, testing if shorter training helps
+Observation: aug=4250 HURTS R² (0.66 vs 0.74 with aug=4500). Training length matters — 4500 is optimal, not overshooting. alpha=0.84 slightly low, trimmed R²=0.97 excellent.
+Next: parent=45
+
+## Iter 54: partial
+Node: id=54, parent=45
+Mode/Strategy: exploit
+Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=6
+Metrics: rate_constants_R2=0.5602, trimmed_R2=0.9533, n_outliers=21, slope=1.0049, test_R2=-1007182.36, test_pearson=0.0988, final_loss=37097.34, alpha=0.8551, MLP_node_slope_0=0.000000, MLP_node_gt_slope_0=-0.001000, MLP_node_slope_1=0.000000, MLP_node_gt_slope_1=-0.002000, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 linear, c^2 above GT at high c, MLP_node=inactive: flat at 0
+Mutation: coeff_MLP_sub_diff: 7 -> 6
+Parent rule: Node 45, testing intermediate monotonicity constraint
+Observation: sub_diff=6 HURTS R² significantly (0.56 vs 0.74). Weaker monotonicity allows degenerate MLP_sub compensation. Confirms sub_diff=7 is optimal — not too weak (6) nor too strong (8).
+Next: parent=45
+
+## Iter 55: partial
+Node: id=55, parent=45
+Mode/Strategy: explore
+Config: seed=123, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.7009, trimmed_R2=0.9471, n_outliers=18, slope=0.9755, test_R2=-217840.10, test_pearson=0.2141, final_loss=34337.69, alpha=0.8069, MLP_node_slope_0=0.000000, MLP_node_gt_slope_0=-0.001000, MLP_node_slope_1=0.000000, MLP_node_gt_slope_1=-0.002000, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 close to linear, c^2 nearly matches GT quadratic, MLP_node=inactive: flat at 0
+Mutation: seed: 42 -> 123, data_augmentation_loop: 4500 -> 4000
+Parent rule: Node 45, testing different seed with shorter training
+Observation: **BEST OF BATCH** R²=0.70 with seed=123 and aug=4000 — better than Iter 51's R²=0.66 (seed=123, aug=4500). Shorter training may help seed=123. Still below seed=42's R²=0.74. outliers=18 second-best in batch.
+Next: parent=45
+
+## Iter 56: partial
+Node: id=56, parent=45
+Mode/Strategy: principle-test
+Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.0015, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.5997, trimmed_R2=0.9714, n_outliers=19, slope=0.9863, test_R2=-805335.39, test_pearson=0.1510, final_loss=36307.48, alpha=0.8304, MLP_node_slope_0=-0.000000, MLP_node_gt_slope_0=-0.001000, MLP_node_slope_1=-0.000000, MLP_node_gt_slope_1=-0.002000, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 linear, c^2 above GT at high c, MLP_node=inactive: flat at 0
+Mutation: learning_rate_sub: 0.001 -> 0.0015. Testing principle: "lr_sub=0.001 is optimal"
+Parent rule: Node 45, testing intermediate lr_sub
+Observation: lr_sub=0.0015 HURTS R² (0.60 vs 0.74). Confirms lr_sub=0.001 is optimal — not 0.0015 nor 0.002. Higher lr_sub allows MLP_sub to compensate faster, hurting k recovery.
+Next: parent=45
+
+---
+
+### Batch 14 Summary
+
+**Results Table:**
+| Slot | Iter | Mutation | R² | outliers | alpha | slope | test_pearson |
+|------|------|----------|-----|----------|-------|-------|--------------|
+| 0 | 53 | aug=4250 | 0.6616 | 21 | 0.84 | 0.98 | 0.19 |
+| 1 | 54 | sub_diff=6 | 0.5602 | 21 | 0.86 | 1.00 | 0.10 |
+| 2 | 55 | seed=123+aug=4000 | **0.7009** | **18** | 0.81 | **0.98** | 0.21 |
+| 3 | 56 | lr_sub=0.0015 | 0.5997 | 19 | 0.83 | 0.99 | 0.15 |
+
+**Key Findings:**
+1. **NONE beat Iter 45's R²=0.7358** — best config remains stable
+2. **aug=4250 hurts R²** — confirms aug=4500 is optimal, not overshooting
+3. **sub_diff=6 hurts R²** — confirms sub_diff=7 is optimal (not 6, not 8)
+4. **seed=123 + aug=4000 got R²=0.70** — best of batch! Better than aug=4500 for this seed
+5. **lr_sub=0.0015 hurts R²** — confirms lr_sub=0.001 is optimal
+
+**Critical Insights:**
+- **Optimal training length is tightly bounded** — aug=4250 too short, aug=5000 too long, aug=4500 optimal
+- **Monotonicity constraint tightly bounded** — sub_diff=6 too weak, sub_diff=8 too strong, sub_diff=7 optimal
+- **Different seeds may have different optimal training lengths** — seed=123 benefits from shorter training (aug=4000 > aug=4500)
+- **lr_sub=0.001 is strictly optimal** — 0.0015 hurts, 0.002 hurts more
+
+**Principle Updates:**
+- CONFIRMED: "aug=4500 is optimal" — aug=4250 hurts (Iter 53)
+- CONFIRMED: "sub_diff=7 is optimal" — sub_diff=6 too weak (Iter 54)
+- CONFIRMED: "lr_sub=0.001 is optimal" — lr_sub=0.0015 hurts (Iter 56)
+- NEW: "seed=123 benefits from shorter training" — aug=4000 > aug=4500 for this seed (Iter 55 vs Iter 51)
+
+**Best Node Remains: Iter 45 (R²=0.7358, outliers=15, alpha=0.90, slope=0.97)**
+
+### Batch 15 (Iter 57-60): Exploring seed optimization and regularization variants
+
+Base config from Iter 45: lr_k=0.005, lr_node=0.001, lr_sub=0.001, data_augmentation_loop=4500, coeff_MLP_sub_norm=1.0, coeff_MLP_node_L1=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+
+**Slot 0 (id=57)**: seed=123 with aug=3500 — testing if shorter training helps more for seed=123
+- Config: seed=123, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=3500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: seed: 42 -> 123, data_augmentation_loop: 4500 -> 3500
+- Parent rule: Node 55 (seed=123+aug=4000 got R²=0.70), exploring shorter training
+
+**Slot 1 (id=58)**: seed=99 — testing a new seed with optimal config
+- Config: seed=99, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: seed: 42 -> 99
+- Parent rule: Node 45, testing another seed to assess variance
+
+**Slot 2 (id=59)**: Softer L1 constraint — coeff_MLP_node_L1=0.5
+- Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=0.5, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: coeff_MLP_node_L1: 1.0 -> 0.5
+- Parent rule: Node 45, exploring intermediate L1 between 0 (hurt) and 1.0 (optimal)
+
+**Slot 3 (id=60)**: Weaker normalization — coeff_MLP_sub_norm=0.5
+- Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=0.5, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: coeff_MLP_sub_norm: 1.0 -> 0.5. Testing principle: "coeff_MLP_sub_norm=1.0 is essential"
+- Parent rule: Node 45, testing if weaker normalization helps
+
+Rationale: Iter 45 (R²=0.7358) remains best after tight optimization bounds discovered (aug, sub_diff, lr_sub all tightly constrained). This batch explores: (1) seed=123 with even shorter training, (2) new seed=99 to assess variance, (3) softer L1 constraint, (4) weaker sub_norm.
+

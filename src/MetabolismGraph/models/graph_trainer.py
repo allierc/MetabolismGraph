@@ -254,25 +254,6 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
         start_epoch = n_epochs
         print('skip_phase1: skipping Phase 1 training')
 
-    # --- debug: simple k plot after load ---
-    if gt_model is not None:
-        import matplotlib.pyplot as plt
-        with torch.no_grad():
-            gt_k = to_numpy(gt_model.log_k.cpu())
-            learned_k = to_numpy(model.log_k.cpu())
-        fig, ax = plt.subplots(figsize=(6, 6))
-        ax.scatter(gt_k, learned_k, s=10, alpha=0.5)
-        lo = min(gt_k.min(), learned_k.min()) - 0.1
-        hi = max(gt_k.max(), learned_k.max()) + 0.1
-        ax.plot([lo, hi], [lo, hi], 'r--', alpha=0.5)
-        ax.set_xlabel('true log_k')
-        ax.set_ylabel('learned log_k')
-        ax.set_title('k after load (no correction)')
-        plt.tight_layout()
-        plt.savefig('debug_k_after_load.png', dpi=100)
-        plt.close()
-        print(f'debug: saved debug_k_after_load.png')
-
     # --- optimizer (custom param groups for metabolism) ---
     lr = train_config.learning_rate_start
     lr_S = train_config.learning_rate_S_start

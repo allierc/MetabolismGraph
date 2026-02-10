@@ -67,7 +67,7 @@ def main():
             data_train(
                 config=config,
                 erase='True',
-                best_model='',
+                best_model=args.best_model if args.best_model else '',
                 device=device,
                 log_file=log_file
             )

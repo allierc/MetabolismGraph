@@ -711,7 +711,7 @@ def generate_summary_stats(nodes: list[ExperimentNode]) -> dict:
     return stats
 
 
-def compute_ucb_scores(analysis_path, ucb_path, c=1.0, current_log_path=None, current_iteration=None, block_size=12, config_file=None):
+def compute_ucb_scores(analysis_path, ucb_path, c=1.0, current_log_path=None, current_iteration=None, block_size=12, config_file=None, primary_metric='rate_constants_R2'):
     """
     Parse analysis file, build exploration tree, compute UCB scores.
 
@@ -723,6 +723,7 @@ def compute_ucb_scores(analysis_path, ucb_path, c=1.0, current_log_path=None, cu
         current_iteration: Current iteration number (optional)
         block_size: Size of each simulation block (default 12)
         config_file: Config file name (optional, unused)
+        primary_metric: Metric name to use as reward in UCB (default 'rate_constants_R2')
 
     Returns:
         True if UCB scores were computed, False if no nodes found
@@ -732,7 +733,6 @@ def compute_ucb_scores(analysis_path, ucb_path, c=1.0, current_log_path=None, cu
         from the current block are included in UCB scores. Block N covers
         iterations (N*block_size)+1 to (N+1)*block_size.
     """
-    primary_metric = 'rate_constants_R2'
     nodes = {}
     next_parent_map = {}  # maps iteration N -> parent for iteration N+1 (from "Next: parent=P")
 

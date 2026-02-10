@@ -149,7 +149,8 @@ block_labels = [
 ]
 block_centers = [6.5, 18.5, 30.5, 42.5, 54.5, 66.5, 78.5, 90.5, 102.5, 114.5, 126.5, 134.5]
 for i, (lbl, cx) in enumerate(zip(block_labels, block_centers)):
-    ax1.text(cx, 1.0, lbl, ha='center', fontsize=7, color=block_colors[i])
+    ax1.text(cx, 1.05, lbl, ha='center', fontsize=7, color=block_colors[i],
+             bbox=dict(boxstyle='round,pad=0.2', facecolor='white', edgecolor='none', alpha=0.8))
 
 # Annotate key events
 ax1.annotate('k_floor=1.0\nbreakthrough', xy=(14, 0.508), xytext=(14, 0.25),
@@ -167,7 +168,7 @@ ax1.annotate('seed=79+\naug=5000', xy=(96, 0.851), xytext=(93, 0.95),
 ax1.annotate('sub_diff=6\nR²=0.80', xy=(106, 0.804), xytext=(106, 0.90),
             arrowprops=dict(arrowstyle='->', color='black'), fontsize=7, ha='center', color='black')
 ax1.annotate('GLOBAL BEST\nR²=0.87', xy=(116, 0.869), xytext=(116, 0.96),
-            arrowprops=dict(arrowstyle='->', color='red'), fontsize=7, ha='center', color='red', fontweight='bold')
+            arrowprops=dict(arrowstyle='->', color='red'), fontsize=7, ha='center', color='red')
 ax1.annotate('k_floor=1.5\nR²=0.85', xy=(132, 0.846), xytext=(132, 0.93),
             arrowprops=dict(arrowstyle='->', color='black'), fontsize=7, ha='center', color='black')
 
@@ -178,9 +179,9 @@ ax1.set_xticks([1, 12, 24, 36, 48, 60, 72, 84, 96, 106, 108, 116, 120, 132, 136]
 
 # outlier count on secondary axis
 ax2 = ax1.twinx()
-ax2.plot(iters, outliers, 'o', color='#e74c3c', markersize=3, alpha=0.5, label='outliers')
-ax2.set_ylabel('outlier count', color='#e74c3c')
-ax2.tick_params(axis='y', labelcolor='#e74c3c')
+ax2.plot(iters, outliers, 'o', color='black', markersize=3, alpha=0.4, label='outliers')
+ax2.set_ylabel('outlier count')
+ax2.tick_params(axis='y')
 ax2.set_ylim(0, 70)
 
 lines1, labels1 = ax1.get_legend_handles_labels()
@@ -231,7 +232,7 @@ The `coeff_k_floor=1.0` penalty at iteration 14 produced a **10× improvement** 
 
 ![Iteration 14 (breakthrough). R² = 0.508, 33 outliers. The `k_floor=1.0` penalty prevents outlier $\log k$ from drifting below the true minimum, producing a 10$\times$ R² jump.](figures/rank_50/rate_constants_breakthrough.png){#fig-k-breakthrough}
 
-![Iteration 96 (best). R² = 0.851, 11 outliers. `seed=79` + `sub_diff=8` + `aug=5000` yields the tightest clustering around the diagonal.](figures/rank_50/rate_constants_best.png){#fig-k-best}
+![Iteration 116 (best). R² = 0.869, 10 outliers. `seed=77` + `sub_diff=6` + `aug=5500` yields the tightest clustering around the diagonal.](figures/rank_50/rate_constants_best.png){#fig-k-best}
 
 :::
 
@@ -239,7 +240,7 @@ The `coeff_k_floor=1.0` penalty at iteration 14 produced a **10× improvement** 
 
 ![Iteration 1 (baseline). Top-left: ground-truth $dc/dt$; top-right: GNN prediction; bottom-left: residual; bottom-right: scatter. The untrained GNN produces near-zero predictions — no reaction dynamics captured.](figures/rank_50/kinograph_baseline.png){#fig-kinograph-baseline}
 
-![Iteration 96 (best, seed=79, sub_diff=8, aug=5000). Same layout. The GNN captures the dominant oscillatory patterns but misses fine-grained temporal structure. The residual reveals the missing homeostatic signal.](figures/rank_50/kinograph_best.png){#fig-kinograph-best}
+![Iteration 116 (best, seed=77, sub_diff=6, aug=5500). Same layout. The GNN captures the dominant oscillatory patterns but misses fine-grained temporal structure. The residual reveals the missing homeostatic signal.](figures/rank_50/kinograph_best.png){#fig-kinograph-best}
 
 ### Learned MLPs
 
@@ -247,7 +248,7 @@ The `coeff_k_floor=1.0` penalty at iteration 14 produced a **10× improvement** 
 
 ![Iteration 1 (baseline). MLP$_{\text{sub}}$: $\alpha$ at $|s|=1$ is 0.42 — under-scaled. MLP$_{\text{node}}$: flat at zero.](figures/rank_50/mlp_baseline.png){#fig-mlp-baseline}
 
-![Iteration 96 (best R²). MLP$_{\text{sub}}$: $\alpha$ at $|s|=1$ is 0.94 — close to the true scale. MLP$_{\text{node}}$: still flat at zero across all 96 iterations — homeostasis not learned.](figures/rank_50/mlp_best.png){#fig-mlp-best}
+![Iteration 116 (best R²). MLP$_{\text{sub}}$: $\alpha$ at $|s|=1$ is 0.93 — close to the true scale. MLP$_{\text{node}}$: still flat at zero across all 136 iterations — homeostasis not learned.](figures/rank_50/mlp_best.png){#fig-mlp-best}
 
 :::
 

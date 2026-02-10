@@ -364,7 +364,7 @@ def setup_cluster_data_symlinks(phase1_dataset, slot_dataset_names):
         cluster_target = f"{CLUSTER_ROOT_DIR}/graphs_data/{phase1_dataset}"
         ssh_cmd = (
             f"ssh allierc@login1 "
-            f"\"test -e '{cluster_link}' || ln -s '{cluster_target}' '{cluster_link}'\""
+            f"\"ln -sf '{cluster_target}' '{cluster_link}'\""
         )
         result = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
         if result.returncode == 0:
@@ -377,17 +377,15 @@ def setup_cluster_checkpoint(phase1_model_path, slot_config_file, root_dir):
     """ensure Phase 1 checkpoint is available in slot's model dir on cluster.
 
     Args:
-        phase1_model_path: absolute path to the .pt model file
+        phase1_model_path: absolute path to the .pt model file (local)
         slot_config_file: config file name for this Phase 2 slot
         root_dir: project root directory
 
-    Copies the model file to the slot's model dir on the cluster.
+    Copies the model file on the cluster from the Phase 1 model dir to the
+    slot's model dir.  Uses ssh cp (cluster-side copy) rather than rsync
+    from local, since the model already exists on the cluster.
     Returns the best_model label string (e.g. '1_342000') or None if failed.
     """
-    if not os.path.isfile(phase1_model_path):
-        print(f"\033[91m  Phase 1 model not found: {phase1_model_path}\033[0m")
-        return None
-
     filename = os.path.basename(phase1_model_path)
 
     # extract label (e.g. "best_model_with_0_graphs_1_342000.pt" -> "1_342000")
@@ -397,21 +395,24 @@ def setup_cluster_checkpoint(phase1_model_path, slot_config_file, root_dir):
         return None
     best_model_label = parts[1].replace('.pt', '')
 
-    # copy to cluster slot model dir
+    # derive cluster-side source path from local path
+    rel_path = os.path.relpath(phase1_model_path, root_dir)
+    cluster_source = f"{CLUSTER_ROOT_DIR}/{rel_path}"
+
+    # target: slot model dir on cluster
     cluster_slot_models = f"{CLUSTER_ROOT_DIR}/log/{slot_config_file}/models"
     cluster_model_path = f"{cluster_slot_models}/{filename}"
 
     ssh_cmd = (
-        f"ssh allierc@login1 \"mkdir -p '{cluster_slot_models}'\""
+        f"ssh allierc@login1 "
+        f"\"mkdir -p '{cluster_slot_models}' && "
+        f"cp '{cluster_source}' '{cluster_model_path}'\""
     )
-    subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
-
-    rsync_cmd = f"rsync -az '{phase1_model_path}' allierc@login1:'{cluster_model_path}'"
-    result = subprocess.run(rsync_cmd, shell=True, capture_output=True, text=True)
+    result = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
     if result.returncode == 0:
-        print(f"\033[90m  checkpoint synced: {filename} -> {cluster_slot_models}/\033[0m")
+        print(f"\033[90m  cluster checkpoint copied: {filename} -> {cluster_slot_models}/\033[0m")
     else:
-        print(f"\033[91m  checkpoint sync failed: {result.stderr.strip()}\033[0m")
+        print(f"\033[91m  cluster checkpoint copy failed: {result.stderr.strip()}\033[0m")
         return None
 
     return best_model_label

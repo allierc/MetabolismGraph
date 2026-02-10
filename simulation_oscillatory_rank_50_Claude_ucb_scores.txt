@@ -1,10 +1,6 @@
-=== UCB Scores (Simulation block 4, iters 49-60, N=8, c=1.414) ===
+=== UCB Scores (Simulation block 11, iters 133-144, N=4, c=1.414) ===
 
-Node 55: UCB=2.701, parent=root, visits=1, R2=0.701, Pearson=0.214, Mutation=seed: 42 -> 123, data_augmentation_loop: 4500 -> 4000
-Node 49: UCB=2.695, parent=root, visits=1, R2=0.696, Pearson=0.092, Mutation=data_augmentation_loop: 4500 -> 5000
-Node 53: UCB=2.661, parent=root, visits=1, R2=0.662, Pearson=0.187, Mutation=data_augmentation_loop: 4500 -> 4250
-Node 51: UCB=2.655, parent=root, visits=1, R2=0.655, Pearson=0.057, Mutation=seed: 42 -> 123
-Node 56: UCB=2.599, parent=root, visits=1, R2=0.600, Pearson=0.151, Mutation=learning_rate_sub: 0.001 -> 0.0015. Testing principle: "lr_sub=0.001 is optimal"
-Node 50: UCB=2.590, parent=root, visits=1, R2=0.591, Pearson=0.159, Mutation=coeff_MLP_sub_diff: 7 -> 8
-Node 54: UCB=2.560, parent=root, visits=1, R2=0.560, Pearson=0.099, Mutation=coeff_MLP_sub_diff: 7 -> 6
-Node 52: UCB=2.545, parent=root, visits=1, R2=0.545, Pearson=0.036, Mutation=n_layers_sub: 3 -> 4. Testing principle: "default MLP architecture is optimal"
+Node 136: UCB=2.106, parent=root, visits=1, R2=0.692, Pearson=0.488, Mutation=coeff_k_floor: 1.5 -> 2.0. Testing principle: "k_floor=2.0 is too strong"
+Node 135: UCB=2.091, parent=root, visits=1, R2=0.677, Pearson=0.231, Mutation=coeff_k_floor: 1.0 -> 1.5 (test k_floor=1.5 with seed=42)
+Node 133: UCB=2.049, parent=root, visits=1, R2=0.635, Pearson=0.655, Mutation=replicate of Iter 132 (seed=77+sub_diff=7+k_floor=1.5+aug=5500)
+Node 134: UCB=1.926, parent=root, visits=1, R2=0.512, Pearson=0.628, Mutation=coeff_MLP_sub_diff: 7 -> 6 (test if k_floor=1.5 helps sub_diff=6)

@@ -49,8 +49,8 @@ training:
   n_runs: 1
   device: auto
   batch_size: 8
-  seed: 123
-  data_augmentation_loop: 3500
+  seed: 77
+  data_augmentation_loop: 5500
   learning_rate_start: 0.001
   learning_rate_k: 0.005
   learning_rate_node: 0.001
@@ -60,7 +60,7 @@ training:
   coeff_S_L1: 0.0
   coeff_S_integer: 0.0
   coeff_mass_conservation: 0.0
-  coeff_MLP_sub_diff: 7
+  coeff_MLP_sub_diff: 6
   coeff_MLP_node_L1: 1.0
   coeff_MLP_sub_norm: 1.0
   coeff_k_floor: 1.0

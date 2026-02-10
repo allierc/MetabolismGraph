@@ -897,6 +897,66 @@ def get_in_features_lin_edge(x, model, model_config, xnorm, n_metabolites, devic
     return in_features, in_features_next
 
 
+def compute_kinograph_metrics(gt, pred):
+    """Compare two kinograph matrices [n_metabolites, n_frames].
+    Returns dict: r2, ssim, mean_wasserstein.
+
+    r2: mean per-frame R² (consistent with data_test rollout R²).
+    Wasserstein: time-unaligned comparison of population activity modes.
+    Projects population snapshots (columns) onto top PCs via SVD, then
+    compares the marginal distributions along each PC axis using 1D
+    Wasserstein distance normalized by GT std (dimensionless) — averaged
+    across PCs. 0 = identical mode distributions, 1 = shift of one GT
+    standard deviation. Captures whether GT and GNN visit the same
+    collective modes regardless of timing.
+    """
+    from skimage.metrics import structural_similarity
+    from scipy.stats import wasserstein_distance
+
+    # Per-frame R²
+    n_frames = gt.shape[1]
+    r2_list = []
+    for t in range(n_frames):
+        gt_col = gt[:, t]
+        pred_col = pred[:, t]
+        ss_tot = np.sum((gt_col - np.mean(gt_col)) ** 2)
+        if ss_tot > 0:
+            ss_res = np.sum((gt_col - pred_col) ** 2)
+            r2_list.append(1 - ss_res / ss_tot)
+        else:
+            r2_list.append(0.0)
+    r2_mean = np.mean(r2_list)
+
+    data_range = max(np.abs(gt).max(), np.abs(pred).max()) * 2
+    if data_range == 0:
+        data_range = 1.0
+    ssim_val = structural_similarity(gt, pred, data_range=data_range)
+
+    # Time-unaligned mode Wasserstein via PCA projection
+    gt_T = gt.T  # [n_frames, n_metabolites]
+    pred_T = pred.T
+
+    gt_centered = gt_T - gt_T.mean(axis=0)
+    U, S, Vt = np.linalg.svd(gt_centered, full_matrices=False)
+
+    cumvar = np.cumsum(S ** 2) / np.sum(S ** 2)
+    n_pcs = max(1, int(np.searchsorted(cumvar, 0.99) + 1))
+    n_pcs = min(n_pcs, 20)
+
+    basis = Vt[:n_pcs]  # [n_pcs, n_metabolites]
+    gt_proj = (gt_T - gt_T.mean(axis=0)) @ basis.T
+    pred_proj = (pred_T - gt_T.mean(axis=0)) @ basis.T
+
+    wd_per_pc = []
+    for k in range(n_pcs):
+        wd = wasserstein_distance(gt_proj[:, k], pred_proj[:, k])
+        std_k = gt_proj[:, k].std()
+        wd_per_pc.append(wd / std_k if std_k > 0 else 0.0)
+    mean_wd = np.mean(wd_per_pc)
+
+    return {'r2': r2_mean, 'ssim': ssim_val, 'mean_wasserstein': mean_wd}
+
+
 def save_exploration_artifacts(root_dir, exploration_dir, config, config_file_, pre_folder, iteration,
                                iter_in_block=1, block_number=1):
     """
@@ -1003,6 +1063,11 @@ def save_exploration_artifacts(root_dir, exploration_dir, config, config_file_, 
     src_montage = f"{results_dir}/kinograph_montage.png"
     if os.path.exists(src_montage):
         shutil.copy2(src_montage, f"{kinograph_save_dir}/iter_{iteration:03d}.png")
+
+    # save derivative kinograph montage
+    src_deriv = f"{results_dir}/deriv_kinograph_montage.png"
+    if os.path.exists(src_deriv):
+        shutil.copy2(src_deriv, f"{kinograph_save_dir}/iter_{iteration:03d}_deriv.png")
 
     # save embedding plot (saved at log/{dataset}/embedding/, not tmp_training/embedding/)
     embedding_dir = f"{root_dir}/log/{pre_folder}{config_file_}/embedding"

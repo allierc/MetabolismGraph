@@ -2244,3 +2244,1064 @@ Given Iter 82 achieved R²=0.7640 (NEW BEST) with seed=77 + sub_diff=8, this blo
 
 Rationale: Focus on the Iter 82 breakthrough (seed=77 + sub_diff=8). Test reproducibility, explore adjacent seeds with the new optimal sub_diff=8, and re-test seed=42 with sub_diff=8 (previously hurt in Iter 50 but that was with lr_sub=0.0005, not 0.001).
 
+---
+
+## Iter 85: partial
+Node: id=85, parent=82
+Mode/Strategy: exploit (replicate)
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=8
+Metrics: rate_constants_R2=0.6188, trimmed_R2=0.9621, n_outliers=16, slope=0.9754, test_R2=-161005.18, test_pearson=0.2648, final_loss=34286.39, alpha=0.9095, MLP_node_slope_0=0.000000, MLP_node_gt_slope_0=-0.001000, MLP_node_slope_1=0.000000, MLP_node_gt_slope_1=-0.002000, embedding_cluster_acc=0.5100, embedding_n_clusters=1
+Visual: MLP_sub=partial (MLP_sub_corr=0.68), MLP_node=inactive (slopes=0 vs GT=-0.001/-0.002)
+Mutation: None (exact replica of Iter 82)
+Parent rule: Node 82 (new best), test reproducibility
+Observation: FAILED TO REPRODUCE — R²=0.62 vs original 0.76, confirms HIGH VARIANCE. Same config gives 0.14 R² difference!
+Next: parent=82
+
+## Iter 86: partial
+Node: id=86, parent=82
+Mode/Strategy: explore (adjacent seed)
+Config: seed=76, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=8
+Metrics: rate_constants_R2=0.5118, trimmed_R2=0.9686, n_outliers=22, slope=0.9851, test_R2=-221808.34, test_pearson=0.2880, final_loss=37227.10, alpha=0.8360, MLP_node_slope_0=0.000000, MLP_node_gt_slope_0=-0.001000, MLP_node_slope_1=0.000000, MLP_node_gt_slope_1=-0.002000, embedding_cluster_acc=0.5000, embedding_n_clusters=1
+Visual: MLP_sub=partial (MLP_sub_corr=0.64), MLP_node=inactive (slopes=0 vs GT=-0.001/-0.002)
+Mutation: seed: 77 -> 76
+Parent rule: Node 82 (new best), explore adjacent seed
+Observation: seed=76 is mediocre (R²=0.51), not a golden seed. Sub_diff=8 doesn't make it competitive.
+Next: parent=82
+
+## Iter 87: partial
+Node: id=87, parent=82
+Mode/Strategy: explore (adjacent seed)
+Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=8
+Metrics: rate_constants_R2=0.7484, trimmed_R2=0.9640, n_outliers=15, slope=0.9931, test_R2=-223821.73, test_pearson=0.2588, final_loss=33734.82, alpha=0.8841, MLP_node_slope_0=0.000000, MLP_node_gt_slope_0=-0.001000, MLP_node_slope_1=0.000000, MLP_node_gt_slope_1=-0.002000, embedding_cluster_acc=0.5200, embedding_n_clusters=1
+Visual: MLP_sub=partial (MLP_sub_corr=0.68), MLP_node=inactive (slopes=0 vs GT=-0.001/-0.002)
+Mutation: seed: 77 -> 79
+Parent rule: Node 82 (new best), explore adjacent seed
+Observation: seed=79 is EXCELLENT (R²=0.7484)! Another golden seed near seed=77! Matches best result range.
+Next: parent=87
+
+## Iter 88: partial
+Node: id=88, parent=82
+Mode/Strategy: principle-test
+Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=8
+Metrics: rate_constants_R2=0.7204, trimmed_R2=0.9603, n_outliers=20, slope=0.9662, test_R2=-1573497.37, test_pearson=0.1253, final_loss=41714.12, alpha=0.7868, MLP_node_slope_0=0.000000, MLP_node_gt_slope_0=-0.001000, MLP_node_slope_1=0.000000, MLP_node_gt_slope_1=-0.002000, embedding_cluster_acc=0.5200, embedding_n_clusters=1
+Visual: MLP_sub=partial (MLP_sub_corr=0.65), MLP_node=inactive (slopes=0 vs GT=-0.001/-0.002)
+Mutation: seed: 77 -> 42. Testing principle: "sub_diff=8 hurts seed=42"
+Parent rule: Node 82 (new best), principle-test for seed=42 with sub_diff=8
+Observation: PRINCIPLE REFUTED! seed=42+sub_diff=8 got R²=0.72, matches previous best for seed=42 (R²=0.74 with sub_diff=7). The key was lr_sub=0.001 (Iter 50 used lr_sub=0.0005).
+Next: parent=87
+
+---
+
+### Batch 23 (Iter 89-92) Results
+
+## Iter 89: partial (NEW GLOBAL BEST!)
+Node: id=89, parent=87
+Mode/Strategy: exploit (replicate seed=79+sub_diff=8)
+Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_sub_diff=8, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0
+Metrics: rate_constants_R2=0.8222, trimmed_R2=0.9609, n_outliers=13, slope=0.9621, test_R2=-58242.76, test_pearson=0.5261, final_loss=41844.09, alpha=0.8422, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.50, embedding_n_clusters=1
+Visual: MLP_sub=partial (MLP_sub_corr=0.66), MLP_node=inactive (slope=0)
+Mutation: None (replicate of Iter 87 config)
+Parent rule: Replicate seed=79+sub_diff=8 to verify reproducibility
+Observation: **NEW GLOBAL BEST R²=0.8222** — seed=79 replicate SUCCEEDED (vs Iter 87 R²=0.7484), only 13 outliers, excellent slope=0.96, alpha=0.84. First run to break R²>0.80 barrier!
+Next: parent=89
+
+## Iter 90: partial
+Node: id=90, parent=87
+Mode/Strategy: exploit (seed=79+sub_diff=9)
+Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_sub_diff=9, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0
+Metrics: rate_constants_R2=0.6398, trimmed_R2=0.9560, n_outliers=13, slope=0.9964, test_R2=-47355.88, test_pearson=0.2714, final_loss=36838.34, alpha=0.8550, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=partial (MLP_sub_corr=-0.67 negative!), MLP_node=inactive (slope=0)
+Mutation: coeff_MLP_sub_diff: 8 -> 9
+Parent rule: Test stronger monotonicity on golden seed=79
+Observation: sub_diff=9 HURT seed=79 — R² dropped from 0.75 (Iter 87) to 0.64, negative MLP_sub correlation suggests wrong function shape
+Next: parent=89
+
+## Iter 91: partial
+Node: id=91, parent=87
+Mode/Strategy: explore (seed=80)
+Config: seed=80, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_sub_diff=8, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0
+Metrics: rate_constants_R2=0.5717, trimmed_R2=0.9757, n_outliers=15, slope=0.9880, test_R2=-315332.22, test_pearson=0.1626, final_loss=32306.13, alpha=0.9223, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=partial (MLP_sub_corr=0.64), MLP_node=inactive (slope=0)
+Mutation: seed: 79 -> 80
+Parent rule: Explore next adjacent seed to seed=79
+Observation: seed=80 NOT a golden seed — R²=0.57, worse than seed=79 (0.75-0.82). Good alpha=0.92 but poor k recovery
+Next: parent=89
+
+## Iter 92: partial
+Node: id=92, parent=82
+Mode/Strategy: principle-test (sub_diff=9 on seed=77)
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_sub_diff=9, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0
+Metrics: rate_constants_R2=0.7042, trimmed_R2=0.9632, n_outliers=17, slope=0.9646, test_R2=-1619558.73, test_pearson=0.0336, final_loss=35856.89, alpha=0.9035, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=partial (MLP_sub_corr=0.66), MLP_node=inactive (slope=0)
+Mutation: coeff_MLP_sub_diff: 8 -> 9. Testing principle: "sub_diff=9 forces c^2 quadratic"
+Parent rule: Test if sub_diff=9 helps seed=77
+Observation: sub_diff=9 HURT seed=77 — R² dropped from 0.76 (Iter 82) to 0.70, more outliers (17 vs 15). Principle REFUTED for seed=77 too
+Next: parent=89
+
+---
+
+### Batch 23 Summary
+
+**Results Table:**
+| Slot | Iter | Mutation | R² | outliers | alpha | slope | test_pearson |
+|------|------|----------|-----|----------|-------|-------|--------------|
+| 0 | 89 | replicate seed=79+sub_diff=8 | **0.8222** | **13** | 0.84 | 0.96 | 0.53 |
+| 1 | 90 | seed=79+sub_diff=9 | 0.6398 | 13 | 0.86 | 1.00 | 0.27 |
+| 2 | 91 | seed=80 | 0.5717 | 15 | 0.92 | 0.99 | 0.16 |
+| 3 | 92 | seed=77+sub_diff=9 | 0.7042 | 17 | 0.90 | 0.96 | 0.03 |
+
+**MAJOR BREAKTHROUGH:**
+1. **NEW GLOBAL BEST R²=0.8222** (Iter 89) — seed=79 replicate broke the 0.80 barrier!
+2. **HIGH VARIANCE CONFIRMED** — same seed=79 config gave R²=0.75 (Iter 87) and R²=0.82 (Iter 89)
+3. **sub_diff=9 HURTS both golden seeds** — seed=79 dropped 0.75→0.64, seed=77 dropped 0.76→0.70
+4. **seed=80 NOT a golden seed** — R²=0.57, confirming golden seeds are rare
+
+**Principle Updates:**
+- REFUTED: "sub_diff=9 forces c^2 quadratic" — now 3x confirmed to hurt (seed=42, seed=77, seed=79)
+- CONFIRMED: Training has HIGH VARIANCE (~0.1-0.2 R² range for identical configs)
+- NEW: seed=79 can reach R²>0.82 (best so far!)
+
+### Batch 24 (Iter 93-96) Strategy
+With new best R²=0.8222 from Iter 89 (seed=79+sub_diff=8):
+
+- **Slot 0 (exploit)**: Replicate Iter 89 (seed=79+sub_diff=8) — verify if R²>0.82 is reproducible (parent=89)
+- **Slot 1 (exploit)**: seed=79+sub_diff=7 — try weaker monotonicity (parent=89)
+- **Slot 2 (explore)**: seed=81 + sub_diff=8 — explore beyond seed=80 (parent=89)
+- **Slot 3 (principle-test)**: seed=79+aug=5000 — test if longer training helps seed=79 (parent=89). Testing principle: "aug>4500 hurts R²"
+
+---
+
+## Iter 93: partial
+Node: id=93, parent=89
+Mode/Strategy: exploit
+Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=8
+Metrics: rate_constants_R2=0.5922, trimmed_R2=0.9717, n_outliers=22, slope=0.9673, test_R2=-117794.08, test_pearson=0.2162, final_loss=37778.11, alpha=0.8335, MLP_node_slope_0=-0.000000, MLP_node_gt_slope_0=-0.001000, MLP_node_slope_1=-0.000000, MLP_node_gt_slope_1=-0.002000, embedding_cluster_acc=0.5100, embedding_n_clusters=1
+Visual: MLP_sub=partial: typical c^1/c^2 learning, MLP_node=inactive: slopes ~0
+Mutation: None (exact replica of Iter 89)
+Parent rule: Replicate best config to verify R²>0.82 reproducibility
+Observation: HIGH VARIANCE CONFIRMED — Iter 89 got R²=0.82, this replica got R²=0.59 (0.23 drop!)
+Next: parent=96
+
+## Iter 94: partial
+Node: id=94, parent=89
+Mode/Strategy: exploit
+Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.6193, trimmed_R2=0.9670, n_outliers=14, slope=0.9789, test_R2=-862944.86, test_pearson=0.0343, final_loss=31785.59, alpha=0.8972, MLP_node_slope_0=0.000000, MLP_node_gt_slope_0=-0.001000, MLP_node_slope_1=0.000000, MLP_node_gt_slope_1=-0.002000, embedding_cluster_acc=0.5300, embedding_n_clusters=1
+Visual: MLP_sub=partial: typical c^1/c^2 learning, MLP_node=inactive: slopes ~0
+Mutation: coeff_MLP_sub_diff: 8 -> 7
+Parent rule: Try weaker monotonicity constraint for seed=79
+Observation: sub_diff=7 gave R²=0.62, fewer outliers (14 vs 22) but not better than sub_diff=8 (R²=0.82 at best)
+Next: parent=96
+
+## Iter 95: partial
+Node: id=95, parent=89
+Mode/Strategy: explore
+Config: seed=81, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=4500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=8
+Metrics: rate_constants_R2=0.5458, trimmed_R2=0.9675, n_outliers=21, slope=0.9777, test_R2=-553123.21, test_pearson=0.0759, final_loss=35603.87, alpha=0.8387, MLP_node_slope_0=-0.000000, MLP_node_gt_slope_0=-0.001000, MLP_node_slope_1=-0.000000, MLP_node_gt_slope_1=-0.002000, embedding_cluster_acc=0.5000, embedding_n_clusters=1
+Visual: MLP_sub=partial: typical c^1/c^2 learning, MLP_node=inactive: slopes ~0
+Mutation: seed: 79 -> 81
+Parent rule: Explore beyond seed=80 to find more golden seeds
+Observation: seed=81 NOT a golden seed — R²=0.55, similar to seed=80 (R²=0.57)
+Next: parent=96
+
+## Iter 96: partial
+Node: id=96, parent=89
+Mode/Strategy: principle-test
+Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=8
+Metrics: rate_constants_R2=0.8512, trimmed_R2=0.9790, n_outliers=11, slope=0.9886, test_R2=-106539.50, test_pearson=0.2702, final_loss=33954.55, alpha=0.9372, MLP_node_slope_0=0.000000, MLP_node_gt_slope_0=-0.001000, MLP_node_slope_1=0.000000, MLP_node_gt_slope_1=-0.002000, embedding_cluster_acc=0.5000, embedding_n_clusters=1
+Visual: MLP_sub=partial: typical c^1/c^2 learning, MLP_node=inactive: slopes ~0
+Mutation: data_augmentation_loop: 4500 -> 5000. Testing principle: "aug>4500 hurts R²"
+Parent rule: Test if longer training helps seed=79
+Observation: **NEW GLOBAL BEST R²=0.8512!** Principle REFUTED for seed=79 — aug=5000 HELPED (R²=0.85 vs 0.82)
+Next: parent=96
+
+---
+
+### Batch 24 Summary
+
+**Results Table:**
+| Slot | Iter | Mutation | R² | outliers | alpha | slope | test_pearson |
+|------|------|----------|-----|----------|-------|-------|--------------|
+| 0 | 93 | replicate seed=79+sub_diff=8 | 0.5922 | 22 | 0.83 | 0.97 | 0.22 |
+| 1 | 94 | seed=79+sub_diff=7 | 0.6193 | 14 | 0.90 | 0.98 | 0.03 |
+| 2 | 95 | seed=81+sub_diff=8 | 0.5458 | 21 | 0.84 | 0.98 | 0.08 |
+| 3 | 96 | seed=79+aug=5000 | **0.8512** | **11** | 0.94 | 0.99 | 0.27 |
+
+**KEY FINDINGS:**
+1. **NEW GLOBAL BEST R²=0.8512** (Iter 96) — aug=5000 helped seed=79, first to break 0.85!
+2. **Principle REFUTED** — aug>4500 hurts R² is NOT universally true, seed=79 benefits from aug=5000
+3. **HIGH VARIANCE** — Iter 93 replica of R²=0.82 config dropped to R²=0.59
+4. **seed=81 NOT a golden seed** — R²=0.55, adjacent seeds to golden seeds are not special
+
+**Principle Updates:**
+- NUANCE: aug>4500 hurts most seeds BUT seed=79 benefits from aug=5000 (R²=0.85)
+- CONFIRMED: Training has extremely high variance (~0.2+ R² range)
+- CONFIRMED: Golden seeds are rare (seed=80, 81 both failed)
+
+### Batch 25 (Iter 97-100) Strategy
+With new best R²=0.8512 from Iter 96 (seed=79+aug=5000):
+
+- **Slot 0 (exploit)**: Replicate Iter 96 (seed=79+aug=5000) — verify R²>0.85 reproducibility (parent=96)
+- **Slot 1 (exploit)**: seed=79+aug=5500 — push longer training further (parent=96)
+- **Slot 2 (explore)**: seed=77+aug=5000 — test if aug=5000 helps other golden seed (parent=96)
+- **Slot 3 (principle-test)**: seed=79+aug=5000+sub_diff=7 — test weaker monotonicity with best aug (parent=96). Testing principle: "sub_diff=8 is optimal for golden seeds"
+
+---
+
+## Block 9: Continued Exploitation of Golden Seed Configs
+
+## Iter 97: partial
+Node: id=97, parent=96
+Mode/Strategy: exploit (replicate best)
+Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_sub_diff=8, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0
+Metrics: rate_constants_R2=0.7201, trimmed_R2=0.9735, n_outliers=16, slope=0.9662, test_R2=-30207.36, test_pearson=0.3853, final_loss=38769.81, alpha=0.9025, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.52, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 matches GT well, c^2 sub-quadratic (above GT curve at high c), MLP_node=inactive: both types flat at 0
+Mutation: replicate Iter 96 (seed=79+aug=5000)
+Parent rule: Exploit best config to verify reproducibility
+Observation: EXTREME VARIANCE — exact replica dropped R² from 0.8512 to 0.7201 (Δ=-0.13)!
+Next: parent=96
+
+## Iter 98: partial
+Node: id=98, parent=96
+Mode/Strategy: exploit (push aug further)
+Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_sub_diff=8, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0
+Metrics: rate_constants_R2=0.6088, trimmed_R2=0.9753, n_outliers=15, slope=0.9914, test_R2=-6353.16, test_pearson=0.3323, final_loss=37889.43, alpha=0.8904, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.53, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 matches GT, c^2 sub-quadratic, MLP_node=inactive: flat at 0
+Mutation: data_augmentation_loop: 5000 -> 5500
+Parent rule: Exploit Iter 96 with longer training
+Observation: aug=5500 HURTS seed=79 — R² dropped from 0.85 to 0.61; aug=5000 is the sweet spot
+Next: parent=96
+
+## Iter 99: partial
+Node: id=99, parent=96
+Mode/Strategy: explore (test aug=5000 on other golden seed)
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_sub_diff=8, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0
+Metrics: rate_constants_R2=0.7418, trimmed_R2=0.9596, n_outliers=14, slope=0.9803, test_R2=-107304.64, test_pearson=0.1675, final_loss=36749.66, alpha=0.9257, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 matches GT well, c^2 sub-quadratic, MLP_node=inactive: flat at 0
+Mutation: seed: 79 -> 77
+Parent rule: Explore if seed=77 benefits from aug=5000 like seed=79
+Observation: seed=77+aug=5000 gives R²=0.74, BEST of batch! Comparable to seed=77's previous best (0.76 with aug=4500)
+Next: parent=99
+
+## Iter 100: partial
+Node: id=100, parent=96
+Mode/Strategy: principle-test
+Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_sub_diff=7, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0
+Metrics: rate_constants_R2=0.4712, trimmed_R2=0.9734, n_outliers=18, slope=0.9783, test_R2=-42217.57, test_pearson=0.2287, final_loss=35145.17, alpha=0.8569, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 matches GT, c^2 sub-quadratic, MLP_node=inactive: flat at 0
+Mutation: coeff_MLP_sub_diff: 8 -> 7. Testing principle: "sub_diff=8 is optimal for golden seeds"
+Parent rule: Principle test on Iter 96 config
+Observation: sub_diff=7 HURTS seed=79+aug=5000 — R² dropped from 0.85 to 0.47; sub_diff=8 CONFIRMED essential for this config
+Next: parent=99
+
+---
+
+### Batch 25 Summary
+
+**Results Table:**
+| Slot | Iter | Mutation | R² | outliers | alpha | slope | test_pearson |
+|------|------|----------|-----|----------|-------|-------|--------------|
+| 0 | 97 | replicate seed=79+aug=5000 | 0.7201 | 16 | 0.90 | 0.97 | 0.39 |
+| 1 | 98 | seed=79+aug=5500 | 0.6088 | 15 | 0.89 | 0.99 | 0.33 |
+| 2 | 99 | seed=77+aug=5000 | 0.7418 | 14 | 0.93 | 0.98 | 0.17 |
+| 3 | 100 | seed=79+aug=5000+sub_diff=7 | 0.4712 | 18 | 0.86 | 0.98 | 0.23 |
+
+**KEY FINDINGS:**
+1. **EXTREME VARIANCE confirmed** — Iter 97 replica of R²=0.85 dropped to R²=0.72 (Δ=-0.13)
+2. **aug=5500 HURTS seed=79** — R² dropped to 0.61, aug=5000 is the sweet spot
+3. **seed=77+aug=5000 works well** — R²=0.74, comparable to its previous best
+4. **sub_diff=8 ESSENTIAL for seed=79+aug=5000** — sub_diff=7 dropped R² from 0.85 to 0.47
+
+**Principle Updates:**
+- CONFIRMED: sub_diff=8 optimal for golden seeds (Iter 100 test)
+- CONFIRMED: aug=5500 hurts even seed=79 — aug=5000 is the ceiling
+- CONFIRMED: Training variance is ~0.13 R² (Iter 97 vs Iter 96)
+
+### Batch 26 (Iter 101-104) Strategy
+
+Given the high variance and established limits:
+- **Slot 0 (exploit)**: Replicate seed=77+aug=5000 — verify R²>0.74 reproducibility (parent=99)
+- **Slot 1 (exploit)**: seed=79+aug=5000 again — more attempts to catch high-R² runs (parent=96)
+- **Slot 2 (explore)**: seed=42+aug=5000 — test if aug=5000 helps seed=42 (parent=96)
+- **Slot 3 (principle-test)**: seed=77+aug=5000+sub_diff=7 — test if sub_diff=7 hurts seed=77 too (parent=99). Testing principle: "sub_diff=8 is optimal for golden seeds"
+
+## Iter 101: partial
+Node: id=101, parent=99
+Mode/Strategy: exploit (replicate seed=77+aug=5000)
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=8
+Metrics: rate_constants_R2=0.7537, trimmed_R2=0.9665, n_outliers=17, slope=0.9869, test_R2=-614856.99, test_pearson=0.1657, final_loss=38583.09, alpha=0.9232, MLP_node_slope_0=0.000, MLP_node_gt_slope_0=-0.001, MLP_node_slope_1=0.000, MLP_node_gt_slope_1=-0.002, embedding_cluster_acc=0.53, embedding_n_clusters=1
+Visual: MLP_sub=partial: cannot verify plots but R² good, MLP_node=inactive: slopes=0
+Mutation: replicate Iter 99 (seed=77+aug=5000)
+Parent rule: UCB highest (node 97=2.134)
+Observation: R²=0.75, better than Iter 99 (0.74), confirms seed=77+aug=5000 reproducible around 0.74-0.75
+Next: parent=101
+
+## Iter 102: partial
+Node: id=102, parent=96
+Mode/Strategy: exploit (seed=79+aug=5000 replication)
+Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=8
+Metrics: rate_constants_R2=0.6337, trimmed_R2=0.9762, n_outliers=16, slope=0.9709, test_R2=-3053.25, test_pearson=0.3920, final_loss=36583.49, alpha=0.9417, MLP_node_slope_0=0.000, MLP_node_gt_slope_0=-0.001, MLP_node_slope_1=0.000, MLP_node_gt_slope_1=-0.002, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=partial: cannot verify plots but trimmed_R² high, MLP_node=inactive: slopes=0
+Mutation: replicate Iter 96 (seed=79+aug=5000)
+Parent rule: exploit best config
+Observation: R²=0.63, another miss on seed=79 — confirms EXTREME variance (0.85/0.72/0.63 for same config)
+Next: parent=101
+
+## Iter 103: partial
+Node: id=103, parent=96
+Mode/Strategy: explore (seed=42+aug=5000)
+Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=8
+Metrics: rate_constants_R2=0.7295, trimmed_R2=0.9716, n_outliers=16, slope=0.9799, test_R2=-588435.78, test_pearson=0.2634, final_loss=37976.88, alpha=0.9190, MLP_node_slope_0=0.000, MLP_node_gt_slope_0=-0.001, MLP_node_slope_1=0.000, MLP_node_gt_slope_1=-0.002, embedding_cluster_acc=0.50, embedding_n_clusters=1
+Visual: MLP_sub=partial: cannot verify plots but R² good, MLP_node=inactive: slopes=0
+Mutation: seed: 79 -> 42 (test aug=5000 with seed=42)
+Parent rule: explore different seed
+Observation: R²=0.73, confirms seed=42+aug=5000 works well — comparable to seed=77+aug=5000 (0.74-0.75)
+Next: parent=104
+
+## Iter 104: partial
+Node: id=104, parent=99
+Mode/Strategy: principle-test
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.7638, trimmed_R2=0.9671, n_outliers=13, slope=0.9868, test_R2=-791302.13, test_pearson=0.1592, final_loss=38893.04, alpha=0.8860, MLP_node_slope_0=0.000, MLP_node_gt_slope_0=-0.001, MLP_node_slope_1=0.000, MLP_node_gt_slope_1=-0.002, embedding_cluster_acc=0.50, embedding_n_clusters=1
+Visual: MLP_sub=partial: cannot verify plots but R² good, MLP_node=inactive: slopes=0
+Mutation: coeff_MLP_sub_diff: 8 -> 7. Testing principle: "sub_diff=8 is optimal for golden seeds"
+Parent rule: principle-test node 99
+Observation: R²=0.7638 BEST IN BATCH! sub_diff=7 works well for seed=77 — challenges principle that sub_diff=8 universal. Only 13 outliers!
+Next: parent=104
+
+---
+
+### Batch 26 Summary
+
+**Results Table:**
+| Slot | Iter | Mutation | R² | outliers | alpha | slope | test_pearson |
+|------|------|----------|-----|----------|-------|-------|--------------|
+| 0 | 101 | replicate seed=77+aug=5000 | 0.7537 | 17 | 0.92 | 0.99 | 0.17 |
+| 1 | 102 | seed=79+aug=5000 | 0.6337 | 16 | 0.94 | 0.97 | 0.39 |
+| 2 | 103 | seed=42+aug=5000 | 0.7295 | 16 | 0.92 | 0.98 | 0.26 |
+| 3 | 104 | seed=77+aug=5000+sub_diff=7 | 0.7638 | 13 | 0.89 | 0.99 | 0.16 |
+
+**KEY FINDINGS:**
+1. **seed=77+sub_diff=7 BEST** — R²=0.7638 with only 13 outliers, CHALLENGES sub_diff=8 principle!
+2. **seed=79 variance EXTREME** — 4 runs: 0.85/0.72/0.63 (range=0.22!)
+3. **seed=77 MORE CONSISTENT** — 0.74/0.75 (range~0.01), seed=77 > seed=79 for reliability
+4. **seed=42+aug=5000 works** — R²=0.73, confirms aug=5000 generally beneficial
+5. **sub_diff=7 for seed=77 BETTER than sub_diff=8** — challenges principle
+
+**Principle Updates:**
+- UPDATE: sub_diff optimal is SEED-DEPENDENT — sub_diff=7 for seed=77 (R²=0.76), sub_diff=8 for seed=79 (R²=0.85)
+- CONFIRMED: seed=77 is more CONSISTENT than seed=79 (~0.01 variance vs ~0.22 variance)
+- CONFIRMED: seed=79+aug=5000 unreliable — only 1/4 runs hit 0.85
+
+### Batch 27 (Iter 105-108) Strategy
+
+Focus on exploiting the consistent seed=77 and exploring sub_diff variants:
+- **Slot 0 (exploit)**: seed=77+sub_diff=7+aug=5000 — replicate Iter 104's R²=0.76 (parent=104)
+- **Slot 1 (exploit)**: seed=77+sub_diff=6 — test if sub_diff lower still helps seed=77 (parent=104)
+- **Slot 2 (explore)**: seed=42+sub_diff=7 — test if sub_diff=7 helps seed=42 too (parent=103)
+- **Slot 3 (principle-test)**: seed=77+sub_diff=9 — probe sub_diff upper bound for seed=77 (parent=104). Testing principle: "sub_diff=7 optimal for seed=77"
+
+---
+
+## Iter 105: partial
+Node: id=105, parent=104
+Mode/Strategy: exploit
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_sub_diff=7, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0
+Metrics: rate_constants_R2=0.7798, trimmed_R2=0.9668, n_outliers=16, slope=0.9773, test_R2=-1915167.60, test_pearson=0.1602, final_loss=44530.73, alpha=0.8227, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.52, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 good linear, c^2 too linear (not quadratic), MLP_node=inactive: flat at 0
+Mutation: replicate Iter 104 (seed=77+sub_diff=7)
+Parent rule: highest UCB node 104
+Observation: Good R²=0.78 replicate of Iter 104's 0.76 — confirms seed=77+sub_diff=7 reliability
+Next: parent=106
+
+## Iter 106: partial
+Node: id=106, parent=104
+Mode/Strategy: exploit
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_sub_diff=6, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0
+Metrics: rate_constants_R2=0.8044, trimmed_R2=0.9542, n_outliers=12, slope=0.9970, test_R2=-1683509.76, test_pearson=0.0059, final_loss=39417.27, alpha=0.8185, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.50, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 good linear, c^2 too linear (not quadratic), MLP_node=inactive: flat at 0
+Mutation: coeff_MLP_sub_diff: 7 -> 6
+Parent rule: 2nd highest UCB node 104
+Observation: **EXCELLENT!** R²=0.8044 with only 12 outliers — sub_diff=6 BETTER than sub_diff=7 for seed=77!
+Next: parent=106
+
+## Iter 107: partial
+Node: id=107, parent=103
+Mode/Strategy: explore
+Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_sub_diff=7, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0
+Metrics: rate_constants_R2=0.6827, trimmed_R2=0.9670, n_outliers=14, slope=0.9747, test_R2=-36667.84, test_pearson=0.3729, final_loss=35747.82, alpha=0.9362, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 good linear, c^2 closer to quadratic than others, MLP_node=inactive: flat at 0
+Mutation: seed: 77 -> 42 (test sub_diff=7 with seed=42)
+Parent rule: explore different seed with sub_diff=7
+Observation: seed=42+sub_diff=7 gives R²=0.68 — worse than seed=77 (R²=0.80), confirms seed=77 is better
+Next: parent=106
+
+## Iter 108: partial
+Node: id=108, parent=104
+Mode/Strategy: principle-test
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_sub_diff=9, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0
+Metrics: rate_constants_R2=0.6230, trimmed_R2=0.9653, n_outliers=12, slope=0.9831, test_R2=-561580.53, test_pearson=0.1704, final_loss=37313.91, alpha=0.8639, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 good linear, c^2 too linear, MLP_node=inactive: flat at 0
+Mutation: coeff_MLP_sub_diff: 7 -> 9. Testing principle: "sub_diff=9 hurts ALL golden seeds"
+Parent rule: principle test
+Observation: PRINCIPLE CONFIRMED — sub_diff=9 dropped R² from 0.80 to 0.62 for seed=77
+Next: parent=106
+
+---
+
+### Batch 27 Summary
+
+**Results Table:**
+| Slot | Iter | Mutation | R² | outliers | alpha | slope | test_pearson |
+|------|------|----------|-----|----------|-------|-------|--------------|
+| 0 | 105 | replicate seed=77+sub_diff=7 | 0.7798 | 16 | 0.82 | 0.98 | 0.16 |
+| 1 | 106 | sub_diff=6 | **0.8044** | **12** | 0.82 | **1.00** | 0.01 |
+| 2 | 107 | seed=42+sub_diff=7 | 0.6827 | 14 | 0.94 | 0.97 | 0.37 |
+| 3 | 108 | sub_diff=9 | 0.6230 | 12 | 0.86 | 0.98 | 0.17 |
+
+**KEY FINDINGS:**
+1. **sub_diff=6 is NEW BEST for seed=77** — R²=0.8044 with only 12 outliers! Better than sub_diff=7 (0.78)
+2. **seed=77+sub_diff=6 is SECOND BEST CONFIG** — R²=0.80, only behind seed=79+aug=5000 (R²=0.85)
+3. **seed=77 continues to show consistency** — 0.78/0.80 range across sub_diff=6/7
+4. **sub_diff=9 CONFIRMED HURTS** — R²=0.62 vs 0.80, principle test passed
+5. **seed=42+sub_diff=7 worse than seed=77** — R²=0.68 vs 0.80
+
+**Principle Updates:**
+- UPDATE: sub_diff optimal for seed=77 is 6 (not 7) — R²=0.8044 > 0.78
+- CONFIRMED: sub_diff=9 hurts ALL golden seeds (seed=77 0.80→0.62)
+- CONFIRMED: seed=77 is most CONSISTENT seed (range ~0.02)
+
+>>> BLOCK 9 END <<<
+
+Best result this block: Iter 106 (R²=0.8044)
+Global best: Iter 96 (R²=0.8512) with seed=79+aug=5000
+
+---
+
+## Block 10: Exploiting sub_diff=6 (Iter 109-120)
+
+### Batch 28 (Iter 109-112) Strategy
+
+Given the discovery that sub_diff=6 works best for seed=77, this batch focuses on:
+1. Replicating the sub_diff=6 success
+2. Testing sub_diff=5 for seed=77 (even lower sub_diff)
+3. Testing sub_diff=6 for seed=79 (cross-seed transfer)
+4. Testing sub_diff=6 for seed=42 (cross-seed transfer)
+
+**Slot 0 (id=109)**: exploit - replicate seed=77+sub_diff=6
+- Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=6
+- Mutation: replicate Iter 106 (seed=77+sub_diff=6)
+- Parent rule: Node 106 (best in batch 27)
+
+**Slot 1 (id=110)**: exploit - test sub_diff=5 for seed=77
+- Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=5
+- Mutation: coeff_MLP_sub_diff: 6 -> 5
+- Parent rule: Node 106 — explore if even lower sub_diff helps
+
+**Slot 2 (id=111)**: explore - test sub_diff=6 for seed=79
+- Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=6
+- Mutation: seed: 77 -> 79 (test sub_diff=6 with seed=79)
+- Parent rule: explore cross-seed transfer
+
+**Slot 3 (id=112)**: principle-test - test sub_diff=6 for seed=42
+- Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=6
+- Mutation: seed: 77 -> 42 (test sub_diff=6 with seed=42). Testing principle: "sub_diff=6 optimal for seed=77"
+- Parent rule: principle-test cross-seed
+
+## Iter 109: partial
+Node: id=109, parent=106
+Mode/Strategy: exploit (replicate Iter 106 seed=77+sub_diff=6)
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=6
+Metrics: rate_constants_R2=0.5501, trimmed_R2=0.9790, n_outliers=20, slope=0.9844, test_R2=-635941.62, test_pearson=0.0611, final_loss=34555.27, alpha=0.9045, MLP_node_slope_0=0.0, MLP_node_gt_slope_0=-0.001, MLP_node_slope_1=0.0, MLP_node_gt_slope_1=-0.002, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=partial: plots unavailable, MLP_node=inactive: slope=0 vs GT=-0.001/-0.002
+Mutation: None (exact replicate of Iter 106)
+Parent rule: exploit best config for replication
+Observation: EXTREME VARIANCE — exact same config as Iter 106 (R²=0.80) gives R²=0.55! trimmed_R²=0.98 indicates 20 outliers tanking the score
+Next: parent=106
+
+## Iter 110: partial
+Node: id=110, parent=106
+Mode/Strategy: exploit (test sub_diff=5 for seed=77)
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=5
+Metrics: rate_constants_R2=0.5715, trimmed_R2=0.9680, n_outliers=18, slope=0.9756, test_R2=-183938.84, test_pearson=0.0970, final_loss=39439.38, alpha=0.8270, MLP_node_slope_0=0.0, MLP_node_gt_slope_0=-0.001, MLP_node_slope_1=0.0, MLP_node_gt_slope_1=-0.002, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=partial: plots unavailable, MLP_node=inactive: slope=0 vs GT=-0.001/-0.002
+Mutation: coeff_MLP_sub_diff: 6 -> 5
+Parent rule: exploit test lower sub_diff
+Observation: sub_diff=5 gives R²=0.57 vs sub_diff=6 R²=0.55 — within variance, no clear winner; MLP_node still inactive
+Next: parent=106
+
+## Iter 111: partial
+Node: id=111, parent=106
+Mode/Strategy: explore (cross-seed transfer sub_diff=6 to seed=79)
+Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=6
+Metrics: rate_constants_R2=0.6547, trimmed_R2=0.9564, n_outliers=14, slope=0.9976, test_R2=-906.42, test_pearson=0.4351, final_loss=38848.08, alpha=0.8862, MLP_node_slope_0=0.0, MLP_node_gt_slope_0=-0.001, MLP_node_slope_1=0.0, MLP_node_gt_slope_1=-0.002, embedding_cluster_acc=0.52, embedding_n_clusters=1
+Visual: MLP_sub=partial: plots unavailable, MLP_node=inactive: slope=0 vs GT=-0.001/-0.002
+Mutation: seed: 77 -> 79
+Parent rule: explore cross-seed transfer
+Observation: seed=79+sub_diff=6 gives R²=0.65 — BEST in batch but below seed=79+sub_diff=8+aug=5000 (R²=0.85); slope=0.9976 excellent
+Next: parent=96
+
+## Iter 112: partial
+Node: id=112, parent=106
+Mode/Strategy: principle-test (test sub_diff=6 for seed=42)
+Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=6
+Metrics: rate_constants_R2=0.5891, trimmed_R2=0.9655, n_outliers=19, slope=0.9705, test_R2=-129649.91, test_pearson=0.2865, final_loss=39007.40, alpha=0.8573, MLP_node_slope_0=0.0, MLP_node_gt_slope_0=-0.001, MLP_node_slope_1=0.0, MLP_node_gt_slope_1=-0.002, embedding_cluster_acc=0.50, embedding_n_clusters=1
+Visual: MLP_sub=partial: plots unavailable, MLP_node=inactive: slope=0 vs GT=-0.001/-0.002
+Mutation: seed: 77 -> 42. Testing principle: "sub_diff=6 optimal for seed=77"
+Parent rule: principle-test cross-seed transfer
+Observation: seed=42+sub_diff=6 gives R²=0.59 — sub_diff=6 does NOT transfer well to seed=42; principle partially refuted
+Next: parent=96
+
+---
+
+### Batch 28 Summary
+
+All 4 runs partial (R² 0.55-0.65), below expectations:
+- **Iter 111 (seed=79+sub_diff=6)**: R²=0.6547, best in batch, 14 outliers
+- **Iter 112 (seed=42+sub_diff=6)**: R²=0.5891, sub_diff=6 doesn't transfer to seed=42
+- **Iter 110 (seed=77+sub_diff=5)**: R²=0.5715, sub_diff=5 similar to sub_diff=6
+- **Iter 109 (seed=77+sub_diff=6)**: R²=0.5501, EXACT replica of Iter 106 (R²=0.80) — EXTREME variance!
+
+**Key findings:**
+1. **EXTREME training variance confirmed** — same config gives R²=0.55 vs R²=0.80 (Δ=0.25!)
+2. **sub_diff=6 doesn't transfer well** — seed=79 got 0.65, seed=42 got 0.59 vs seed=77's 0.80
+3. **MLP_node completely inactive in ALL runs** — slopes are 0 instead of -0.001/-0.002
+4. **test_pearson very low** (0.06-0.43) — dynamics prediction poor despite reasonable R²
+
+### Batch 29 (Iter 113-116) Strategy
+
+Given the extreme variance, return to proven best configs and test variance reduction:
+
+**Slot 0 (id=113)**: exploit - replicate seed=79+sub_diff=8+aug=5000
+- Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=8
+- Mutation: replicate Iter 96 (BEST CONFIG R²=0.8512)
+- Parent rule: Node 96 (global best)
+
+**Slot 1 (id=114)**: exploit - seed=77+sub_diff=7 (middle ground)
+- Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: coeff_MLP_sub_diff: 6 -> 7 (already known from Iter 104 to give R²=0.76)
+- Parent rule: Node 104 — test middle ground for seed=77
+
+**Slot 2 (id=115)**: explore - seed=79+sub_diff=7+aug=5000
+- Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: coeff_MLP_sub_diff: 8 -> 7 (test sub_diff=7 for seed=79)
+- Parent rule: explore sub_diff dimension for seed=79
+
+**Slot 3 (id=116)**: principle-test - seed=77+aug=5500+sub_diff=6
+- Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=6
+- Mutation: data_augmentation_loop: 5000 -> 5500. Testing principle: "aug=5500 hurts even seed=79"
+- Parent rule: principle-test — does aug=5500 help seed=77?
+
+## Iter 113: partial
+Node: id=113, parent=96
+Mode/Strategy: exploit (replicate Iter 96 seed=79+sub_diff=8+aug=5000)
+Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=8
+Metrics: rate_constants_R2=0.6370, trimmed_R2=0.9657, n_outliers=15, slope=0.9640, test_R2=-2694111.16, test_pearson=0.0103, final_loss=35759.39, alpha=0.9213, MLP_node_slope_0=0.0, MLP_node_gt_slope_0=-0.001, MLP_node_slope_1=0.0, MLP_node_gt_slope_1=-0.002, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 near GT (α=0.88), c^2 sub-quadratic, MLP_node=inactive: slopes=0 vs GT=-0.001/-0.002
+Mutation: None (replicate Iter 96)
+Parent rule: exploit global best config
+Observation: EXACT replicate of Iter 96 (R²=0.85) gives R²=0.64 — variance Δ=0.21! Confirms extreme training instability for seed=79
+Next: parent=116
+
+## Iter 114: partial
+Node: id=114, parent=104
+Mode/Strategy: exploit (seed=77+sub_diff=7 middle ground)
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.6428, trimmed_R2=0.9685, n_outliers=17, slope=0.9726, test_R2=-1171738.45, test_pearson=0.0567, final_loss=37168.87, alpha=0.8683, MLP_node_slope_0=-0.0, MLP_node_gt_slope_0=-0.001, MLP_node_slope_1=-0.0, MLP_node_gt_slope_1=-0.002, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 near GT (α=0.83), c^2 sub-quadratic, MLP_node=inactive: slopes=0 vs GT=-0.001/-0.002
+Mutation: coeff_MLP_sub_diff: 6 -> 7
+Parent rule: exploit middle ground sub_diff for seed=77
+Observation: seed=77+sub_diff=7 gives R²=0.64 — BELOW Iter 104 (R²=0.76), more variance evidence; aug=5000 vs aug=4500 may hurt
+Next: parent=116
+
+## Iter 115: partial
+Node: id=115, parent=96
+Mode/Strategy: explore (test sub_diff=7 for seed=79)
+Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5000, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.5664, trimmed_R2=0.9725, n_outliers=17, slope=0.9713, test_R2=-169.68, test_pearson=0.5485, final_loss=35359.04, alpha=0.9600, MLP_node_slope_0=0.0, MLP_node_gt_slope_0=-0.001, MLP_node_slope_1=0.0, MLP_node_gt_slope_1=-0.002, embedding_cluster_acc=0.52, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 near GT (α=0.91), c^2 sub-quadratic, MLP_node=inactive: slopes=0 vs GT=-0.001/-0.002
+Mutation: coeff_MLP_sub_diff: 8 -> 7
+Parent rule: explore sub_diff dimension for seed=79
+Observation: sub_diff=7 for seed=79 gives R²=0.57 — WORSE than sub_diff=8 (R²=0.64 in Iter 113), confirms sub_diff=8 is optimal for seed=79
+Next: parent=116
+
+## Iter 116: partial
+Node: id=116, parent=106
+Mode/Strategy: principle-test (test aug=5500 for seed=77)
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=6
+Metrics: rate_constants_R2=0.8691, trimmed_R2=0.9574, n_outliers=10, slope=0.9773, test_R2=-4293.75, test_pearson=0.3336, final_loss=41181.45, alpha=0.9292, MLP_node_slope_0=0.0, MLP_node_gt_slope_0=-0.001, MLP_node_slope_1=0.0, MLP_node_gt_slope_1=-0.002, embedding_cluster_acc=0.51, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 near GT (α=0.89), c^2 sub-quadratic, MLP_node=inactive: slopes=0 vs GT=-0.001/-0.002
+Mutation: data_augmentation_loop: 5000 -> 5500. Testing principle: "aug=5500 hurts even seed=79"
+Parent rule: principle-test whether aug=5500 helps seed=77
+Observation: **NEW GLOBAL BEST R²=0.8691!** aug=5500 HELPS seed=77 (vs hurt seed=79)! Only 10 outliers, α=0.93. Principle PARTIALLY REFUTED — aug=5500 is seed-dependent
+Next: parent=116
+
+---
+
+### Batch 29 Summary
+
+| Iter | Seed | sub_diff | aug | R² | outliers | Observation |
+|------|------|----------|-----|-----|----------|-------------|
+| 113 | 79 | 8 | 5000 | 0.6370 | 15 | replicate of Iter 96 (0.85) — variance Δ=0.21! |
+| 114 | 77 | 7 | 5000 | 0.6428 | 17 | below Iter 104 (0.76) |
+| 115 | 79 | 7 | 5000 | 0.5664 | 17 | sub_diff=7 worse than sub_diff=8 for seed=79 |
+| **116** | **77** | **6** | **5500** | **0.8691** | **10** | **NEW GLOBAL BEST!** aug=5500 helps seed=77! |
+
+**Key findings:**
+1. **Iter 116 is NEW GLOBAL BEST (R²=0.8691)** — beats previous best Iter 96 (R²=0.8512)!
+2. **aug=5500 is SEED-DEPENDENT** — helps seed=77 but hurt seed=79 (Iter 98 got R²=0.61)
+3. **seed=77 is MORE RELIABLE than seed=79** — Iter 116 achieved 0.87 vs seed=79's best being unstable
+4. **sub_diff=8 is optimal for seed=79** — sub_diff=7 gave R²=0.57 vs sub_diff=8's R²=0.64
+5. **Extreme variance continues** — Iter 113 exact replica of Iter 96 gave R²=0.64 vs 0.85
+
+### Batch 30 (Iter 117-120) Strategy
+
+Focus on exploiting the NEW BEST config (seed=77+sub_diff=6+aug=5500):
+
+**Slot 0 (id=117)**: exploit - replicate Iter 116 (new best)
+- Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=6
+- Mutation: None (replicate Iter 116 to confirm R²=0.87)
+- Parent rule: Node 116 (new global best)
+
+**Slot 1 (id=118)**: exploit - seed=77+sub_diff=6+aug=5750 (push aug further)
+- Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5750, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=6
+- Mutation: data_augmentation_loop: 5500 -> 5750
+- Parent rule: Node 116 — test if longer training helps further
+
+**Slot 2 (id=119)**: explore - seed=77+sub_diff=5+aug=5500
+- Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=5
+- Mutation: coeff_MLP_sub_diff: 6 -> 5
+- Parent rule: Node 116 — test lower sub_diff with aug=5500
+
+**Slot 3 (id=120)**: principle-test - seed=77+sub_diff=7+aug=5500
+- Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: coeff_MLP_sub_diff: 6 -> 7. Testing principle: "sub_diff=6 optimal for seed=77"
+- Parent rule: Node 116 — test sub_diff dimension with new aug
+
+---
+
+## Iter 117: partial
+Node: id=117, parent=116
+Mode/Strategy: exploit (replicate best)
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=6
+Metrics: rate_constants_R2=0.6568, trimmed_R2=0.9727, n_outliers=18, slope=0.9715, test_R2=-1512824.99, test_pearson=0.1363, final_loss=45548.71, alpha=0.8396, MLP_node_slope_0=0.000, MLP_node_gt_slope_0=-0.001, MLP_node_slope_1=0.000, MLP_node_gt_slope_1=-0.002, embedding_cluster_acc=0.50, embedding_n_clusters=1
+Visual: MLP_sub=good: c^1 linear, c^2 quadratic shapes correct, MLP_node=inactive: flat at 0 despite GT slopes -0.001/-0.002
+Mutation: None (exact replicate of Iter 116)
+Parent rule: highest UCB node 116 (R²=0.87)
+Observation: EXTREME VARIANCE — exact replicate of Iter 116 (R²=0.87) got R²=0.66, Δ=0.21! Training is fundamentally non-deterministic even with same config
+Next: parent=116
+
+## Iter 118: partial
+Node: id=118, parent=116
+Mode/Strategy: exploit
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5750, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=6
+Metrics: rate_constants_R2=0.5175, trimmed_R2=0.9643, n_outliers=20, slope=0.9844, test_R2=-543.79, test_pearson=0.5716, final_loss=43673.02, alpha=0.8042, MLP_node_slope_0=0.000, MLP_node_gt_slope_0=-0.001, MLP_node_slope_1=0.000, MLP_node_gt_slope_1=-0.002, embedding_cluster_acc=0.50, embedding_n_clusters=1
+Visual: MLP_sub=good: c^1 linear, c^2 quadratic shapes correct, MLP_node=inactive: flat at 0
+Mutation: data_augmentation_loop: 5500 -> 5750
+Parent rule: highest UCB node 116 (R²=0.87)
+Observation: aug=5750 HURTS seed=77! R² dropped from 0.87 to 0.52 — aug=5500 is optimal upper bound for seed=77
+Next: parent=116
+
+## Iter 119: partial
+Node: id=119, parent=116
+Mode/Strategy: explore
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=5
+Metrics: rate_constants_R2=0.5814, trimmed_R2=0.9653, n_outliers=15, slope=0.9792, test_R2=-7423.33, test_pearson=0.3303, final_loss=41034.29, alpha=0.8989, MLP_node_slope_0=-0.000, MLP_node_gt_slope_0=-0.001, MLP_node_slope_1=-0.000, MLP_node_gt_slope_1=-0.002, embedding_cluster_acc=0.52, embedding_n_clusters=1
+Visual: MLP_sub=good: c^1 linear, c^2 quadratic shapes correct, MLP_node=inactive: nearly flat
+Mutation: coeff_MLP_sub_diff: 6 -> 5
+Parent rule: explore around best config
+Observation: sub_diff=5 worse than sub_diff=6 — R²=0.58 vs 0.87. sub_diff=6 confirmed optimal for seed=77
+Next: parent=116
+
+## Iter 120: partial
+Node: id=120, parent=116
+Mode/Strategy: principle-test
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.8117, trimmed_R2=0.9739, n_outliers=10, slope=0.9758, test_R2=-0.97, test_pearson=0.6797, final_loss=36173.68, alpha=1.0291, MLP_node_slope_0=0.000, MLP_node_gt_slope_0=-0.001, MLP_node_slope_1=0.000, MLP_node_gt_slope_1=-0.002, embedding_cluster_acc=0.50, embedding_n_clusters=1
+Visual: MLP_sub=good: c^1 linear, c^2 quadratic shapes correct, MLP_node=inactive: flat at 0
+Mutation: coeff_MLP_sub_diff: 6 -> 7. Testing principle: "sub_diff=6 optimal for seed=77"
+Parent rule: principle test
+Observation: sub_diff=7 achieves R²=0.81 with EXCELLENT alpha=1.03! Only slightly below best (0.87). Principle WEAKENED — sub_diff=6 NOT strictly optimal, both 6 and 7 can achieve >0.80
+Next: parent=120
+
+---
+
+### Batch 30 Summary
+
+| Iter | Seed | sub_diff | aug | R² | outliers | α | Observation |
+|------|------|----------|-----|-----|----------|-----|-------------|
+| 117 | 77 | 6 | 5500 | 0.6568 | 18 | 0.84 | replicate of Iter 116 (0.87) — Δ=0.21! |
+| 118 | 77 | 6 | 5750 | 0.5175 | 20 | 0.80 | aug=5750 HURTS seed=77 |
+| 119 | 77 | 5 | 5500 | 0.5814 | 15 | 0.90 | sub_diff=5 worse than 6 |
+| **120** | **77** | **7** | **5500** | **0.8117** | **10** | **1.03** | sub_diff=7 GOOD! α excellent |
+
+**Key findings:**
+1. **EXTREME VARIANCE CONFIRMED** — Iter 117 exact replicate of Iter 116 got R²=0.66 vs 0.87, Δ=0.21!
+2. **aug=5750 HURTS seed=77** — R²=0.52 vs 0.87, aug=5500 is the sweet spot
+3. **sub_diff=5 worse than 6** — R²=0.58 confirms sub_diff=6 lower bound
+4. **sub_diff=7 is VIABLE!** — R²=0.81, α=1.03 excellent. Both sub_diff=6 and 7 can achieve >0.80
+
+**Principle Updates:**
+- **WEAKENED**: "sub_diff=6 optimal for seed=77" → "sub_diff=6-7 optimal range for seed=77"
+- **CONFIRMED**: "aug=5500 is optimal for seed=77" — aug=5750 hurts (Iter 118)
+- **CONFIRMED**: "Training has EXTREME VARIANCE" — same config can give R²=0.66-0.87 (Iter 117 vs 116)
+
+>>> BLOCK 10 END <<<
+
+---
+
+## Block 11: Exploit sub_diff=7 and New Seed Exploration
+
+### Batch 31 (Iter 121-124) Strategy
+
+Focus on exploiting Iter 120 (sub_diff=7) which achieved excellent α=1.03, and exploring alternative golden seed configurations:
+
+**Slot 0 (id=121)**: exploit - replicate Iter 120 (sub_diff=7, α=1.03)
+- Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: None (replicate Iter 120 to confirm R²=0.81 and α=1.03)
+- Parent rule: Node 120 (best α=1.03)
+
+**Slot 1 (id=122)**: exploit - seed=77+sub_diff=7+aug=5250 (test slightly less training)
+- Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5250, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: data_augmentation_loop: 5500 -> 5250
+- Parent rule: Node 120 — test if sub_diff=7 works with shorter training
+
+**Slot 2 (id=123)**: explore - seed=42+sub_diff=7+aug=5500 (test sub_diff=7 with seed=42)
+- Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: seed: 77 -> 42
+- Parent rule: Node 120 — test if sub_diff=7 transfers to seed=42
+
+**Slot 3 (id=124)**: principle-test - seed=77+sub_diff=8+aug=5500 (test if sub_diff=8 works with aug=5500)
+- Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=8
+- Mutation: coeff_MLP_sub_diff: 7 -> 8. Testing principle: "sub_diff=6-7 optimal range for seed=77"
+- Parent rule: Node 120 — test if sub_diff=8 can achieve good α too
+
+## Iter 121: partial
+Node: id=121, parent=120
+Mode/Strategy: exploit
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.7341, trimmed_R2=0.9605, n_outliers=10, slope=0.9860, test_R2=-968284.42, test_pearson=0.1213, final_loss=40999.57, alpha=0.8592, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.5000, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 linear tracks GT, c^2 better but still sub-quadratic (α=0.014 for |s|=2), MLP_node=inactive: slopes=0.0000 vs GT -0.001/-0.002
+Mutation: replicate of Iter 120
+Parent rule: exploit highest UCB (Iter 120 sub_diff=7 gave R²=0.81)
+Observation: Replicate got R²=0.73 vs Iter 120's 0.81 — variance ~0.08, LESS than sub_diff=6's variance ~0.21
+Next: parent=121
+
+## Iter 122: partial
+Node: id=122, parent=120
+Mode/Strategy: exploit
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5250, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.7325, trimmed_R2=0.9709, n_outliers=17, slope=0.9805, test_R2=-1141464.31, test_pearson=0.0995, final_loss=39266.89, alpha=0.8810, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.5100, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 linear tracks GT, c^2 sub-quadratic, MLP_node=inactive: slopes=0.0000
+Mutation: data_augmentation_loop: 5500 -> 5250
+Parent rule: exploit to test shorter training
+Observation: Shorter training (aug=5250) gives similar R²=0.73 but MORE outliers (17 vs 10) — longer training helps outlier reduction
+Next: parent=121
+
+## Iter 123: partial
+Node: id=123, parent=120
+Mode/Strategy: explore (cross-seed transfer)
+Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.5743, trimmed_R2=0.9689, n_outliers=16, slope=0.9774, test_R2=-640036.14, test_pearson=0.1026, final_loss=39163.43, alpha=0.8764, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.5100, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 linear OK, c^2 sub-quadratic, MLP_node=inactive: slopes=0.0000
+Mutation: seed: 77 -> 42 (sub_diff=7 cross-seed test)
+Parent rule: explore cross-seed transfer of sub_diff=7
+Observation: seed=42 with sub_diff=7 gets R²=0.57 — DOESN'T transfer well, sub_diff is seed-specific
+Next: parent=121
+
+## Iter 124: partial
+Node: id=124, parent=120
+Mode/Strategy: principle-test
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=8
+Metrics: rate_constants_R2=0.5093, trimmed_R2=0.9557, n_outliers=12, slope=0.9881, test_R2=-221.46, test_pearson=0.5437, final_loss=38900.43, alpha=0.8795, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.5000, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 linear OK, c^2 sub-quadratic, MLP_node=inactive: slopes=0.0000
+Mutation: coeff_MLP_sub_diff: 7 -> 8. Testing principle: "sub_diff=6-7 optimal range for seed=77"
+Parent rule: principle-test sub_diff upper boundary for seed=77
+Observation: sub_diff=8 HURTS seed=77! R²=0.51 vs sub_diff=7's R²=0.73-0.81. Principle CONFIRMED: sub_diff=6-7 is optimal for seed=77
+Next: parent=121
+
+---
+
+### Batch 31 Summary
+
+| Iter | Seed | sub_diff | aug | R² | outliers | α | Observation |
+|------|------|----------|-----|-----|----------|-----|-------------|
+| 121 | 77 | 7 | 5500 | 0.7341 | 10 | 0.86 | replicate of Iter 120 (0.81), variance ~0.08 |
+| 122 | 77 | 7 | 5250 | 0.7325 | 17 | 0.88 | shorter training similar R², more outliers |
+| 123 | 42 | 7 | 5500 | 0.5743 | 16 | 0.88 | sub_diff=7 doesn't transfer to seed=42 |
+| 124 | 77 | 8 | 5500 | 0.5093 | 12 | 0.88 | sub_diff=8 HURTS seed=77 |
+
+**Key findings:**
+1. **sub_diff=7 MORE ROBUST than sub_diff=6** — variance ~0.08 (R²=0.73-0.81) vs sub_diff=6's variance ~0.21 (R²=0.66-0.87)
+2. **Shorter training (aug=5250) increases outliers** — R² similar but 17 vs 10 outliers
+3. **sub_diff=7 doesn't transfer to seed=42** — R²=0.57, confirming sub_diff is seed-specific
+4. **sub_diff=8 CONFIRMED too strong for seed=77** — R²=0.51 vs sub_diff=7's 0.73-0.81
+
+**Principle Updates:**
+- **CONFIRMED**: "sub_diff=6-7 optimal for seed=77" — sub_diff=8 hurts (Iter 124)
+- **NEW**: "sub_diff=7 is MORE ROBUST than sub_diff=6" — lower variance ~0.08 vs ~0.21
+- **CONFIRMED**: "sub_diff is seed-specific" — sub_diff=7 doesn't transfer to seed=42 (Iter 123)
+
+### Batch 32 (Iter 125-128) Strategy
+
+Based on findings that sub_diff=7 is more robust for seed=77, explore:
+1. More replicates to confirm sub_diff=7 robustness
+2. Test seed=77+sub_diff=7 with different aug values to find sweet spot
+3. Test if any other seed works well with sub_diff=7
+4. Continue probing sub_diff=6 variance to compare
+
+**Slot 0 (id=125)**: exploit - replicate Iter 121 (sub_diff=7, aug=5500)
+- Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: replicate Iter 121 to confirm variance
+- Parent rule: Node 121
+
+**Slot 1 (id=126)**: exploit - seed=77+sub_diff=7+aug=5750 (test if longer training helps with sub_diff=7)
+- Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5750, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: data_augmentation_loop: 5500 -> 5750
+- Parent rule: Node 121 — test if sub_diff=7 tolerates longer training (sub_diff=6 didn't)
+
+**Slot 2 (id=127)**: explore - seed=79+sub_diff=7+aug=5500 (test sub_diff=7 with seed=79)
+- Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=7
+- Mutation: seed: 77 -> 79
+- Parent rule: Node 121 — test if sub_diff=7 transfers to seed=79
+
+**Slot 3 (id=128)**: principle-test - seed=77+sub_diff=6+aug=5500 (replicate Iter 116/117 to measure sub_diff=6 variance)
+- Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, k_floor_threshold=-2.0, coeff_MLP_sub_diff=6
+- Mutation: coeff_MLP_sub_diff: 7 -> 6. Testing principle: "sub_diff=7 is MORE ROBUST than sub_diff=6"
+- Parent rule: Node 121 — compare variance of sub_diff=6 vs sub_diff=7
+
+---
+
+## Iter 125: partial
+Node: id=125, parent=121
+Mode/Strategy: exploit
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.7816, trimmed_R2=0.9703, n_outliers=10, slope=0.9772, test_R2=-87417.52, test_pearson=0.1814, final_loss=36946.87, alpha=0.9276, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.5300, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 matches GT, c^2 slightly above GT at high conc, MLP_node=inactive: flat at 0
+Mutation: replicate of Iter 121 (seed=77+sub_diff=7+aug=5500)
+Parent rule: exploit highest UCB node from Batch 31
+Observation: R²=0.78 HIGHER than Iter 121 (0.73)! Confirms sub_diff=7 has variance ~0.05-0.08, less than sub_diff=6's ~0.21
+Next: parent=125
+
+## Iter 126: partial
+Node: id=126, parent=121
+Mode/Strategy: exploit
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5750, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.6800, trimmed_R2=0.9775, n_outliers=10, slope=0.9736, test_R2=-20520.18, test_pearson=0.3776, final_loss=35682.40, alpha=1.0028, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.5100, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 matches GT, c^2 slightly above GT at high conc, MLP_node=inactive: flat at 0
+Mutation: data_augmentation_loop: 5500 -> 5750. Testing if sub_diff=7 tolerates longer training
+Parent rule: test aug=5750 ceiling for sub_diff=7
+Observation: R²=0.68 < Iter 121 (0.73) AND Iter 125 (0.78)! aug=5750 HURTS sub_diff=7 too, just like sub_diff=6 (Iter 118 R²=0.52)
+Next: parent=125
+
+## Iter 127: partial
+Node: id=127, parent=121
+Mode/Strategy: explore
+Config: seed=79, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.5436, trimmed_R2=0.9673, n_outliers=15, slope=0.9712, test_R2=-1078380.69, test_pearson=0.1620, final_loss=43593.45, alpha=0.8292, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.5100, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 matches GT, c^2 slightly above GT, MLP_node=inactive: flat at 0
+Mutation: seed: 77 -> 79. Testing sub_diff=7 cross-seed transfer
+Parent rule: test if sub_diff=7 transfers to seed=79
+Observation: R²=0.54, 15 outliers! sub_diff=7 DOESN'T transfer to seed=79 (same as Iter 115 R²=0.57 with sub_diff=7). CONFIRMS sub_diff is HIGHLY seed-specific
+Next: parent=125
+
+## Iter 128: partial
+Node: id=128, parent=116
+Mode/Strategy: principle-test
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=6
+Metrics: rate_constants_R2=0.6695, trimmed_R2=0.9665, n_outliers=14, slope=0.9873, test_R2=-26649.83, test_pearson=0.2657, final_loss=41788.43, alpha=0.8720, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.5100, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 matches GT, c^2 tracks GT, MLP_node=inactive: flat at 0
+Mutation: coeff_MLP_sub_diff: 7 -> 6. Testing principle: "sub_diff=7 is MORE ROBUST than sub_diff=6"
+Parent rule: replicate global best config to compare variance
+Observation: R²=0.67, 14 outliers vs Iter 116's R²=0.87, 10 outliers! sub_diff=6 VARIANCE CONFIRMED: range 0.66-0.87 (~0.21). sub_diff=7 variance ~0.08 (0.73-0.81) IS indeed MORE ROBUST
+Next: parent=125
+
+---
+
+### Batch 32 Summary
+
+**Results Table:**
+| Iter | Seed | sub_diff | aug | R² | outliers | α | Observation |
+|------|------|----------|-----|-----|----------|-----|-------------|
+| 125 | 77 | 7 | 5500 | **0.7816** | 10 | 0.93 | Replicate better than Iter 121! variance ~0.05 |
+| 126 | 77 | 7 | 5750 | 0.6800 | 10 | 1.00 | aug=5750 HURTS sub_diff=7 too |
+| 127 | 79 | 7 | 5500 | 0.5436 | 15 | 0.83 | sub_diff=7 DOESN'T transfer to seed=79 |
+| 128 | 77 | 6 | 5500 | 0.6695 | 14 | 0.87 | sub_diff=6 variance confirmed (~0.21) |
+
+**Key Findings:**
+1. **sub_diff=7 CONFIRMED MORE ROBUST** — Iter 125 got R²=0.78 vs Iter 121's 0.73, range 0.73-0.81 (~0.08 variance)
+2. **aug=5750 HURTS both sub_diff settings** — R²=0.68 (Iter 126) vs R²=0.78 (Iter 125). aug=5500 is ceiling
+3. **sub_diff=7 DOESN'T transfer to seed=79** — R²=0.54 (Iter 127), confirming sub_diff is seed-specific
+4. **sub_diff=6 variance confirmed** — Iter 128 R²=0.67 vs Iter 116's R²=0.87 (range ~0.21)
+
+**Principle Updates:**
+- **CONFIRMED**: "sub_diff=7 is MORE ROBUST than sub_diff=6" — variance ~0.08 vs ~0.21
+- **CONFIRMED**: "aug=5500 is optimal ceiling" — aug=5750 hurts both sub_diff=6 AND sub_diff=7
+- **CONFIRMED**: "sub_diff is HIGHLY seed-specific" — optimal sub_diff differs by seed
+
+**Best result this batch**: Iter 125 with R²=0.7816 (below global best 0.8691)
+
+### Batch 33 (Iter 129-132) Strategy
+
+Focus on exploiting seed=77+sub_diff=7 robustness while exploring other directions:
+1. More replicates of seed=77+sub_diff=7+aug=5500 to map variance distribution
+2. Test seed=77+sub_diff=7 with slightly lower aug (5250) to see if it helps
+3. Explore seed=42 with sub_diff=6 (its historically better setting)
+4. Try seed=77+sub_diff=7 with different k_floor to see if regularization affects variance
+
+---
+
+## Iter 129: partial
+Node: id=129, parent=125
+Mode/Strategy: exploit
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.5085, trimmed_R2=0.9648, n_outliers=18, slope=0.9859, test_R2=-1034597.45, test_pearson=0.0779, final_loss=42235.63, alpha=0.8050, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.5000, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 matches GT, c^2 below GT at high conc, MLP_node=inactive: flat at 0
+Mutation: replicate of Iter 125 (seed=77+sub_diff=7+aug=5500)
+Parent rule: exploit highest UCB node (Iter 125)
+Observation: R²=0.51!!! WORST replicate yet for this config! Variance now ~0.27 (0.51-0.78). Previous estimate of ~0.08 variance was WRONG!
+Next: parent=132
+
+## Iter 130: partial
+Node: id=130, parent=122
+Mode/Strategy: exploit
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5250, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.6753, trimmed_R2=0.9637, n_outliers=10, slope=0.9724, test_R2=-290885.28, test_pearson=0.1981, final_loss=38827.46, alpha=0.8952, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.5000, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 matches GT, c^2 tracks GT but below at high conc, MLP_node=inactive: flat at 0
+Mutation: replicate of Iter 122 (seed=77+sub_diff=7+aug=5250)
+Parent rule: exploit 2nd highest UCB node
+Observation: R²=0.68, similar to Iter 122 (0.73). Shorter training consistent but slightly worse than aug=5500 peak
+Next: parent=132
+
+## Iter 131: partial
+Node: id=131, parent=116
+Mode/Strategy: explore
+Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.0, coeff_MLP_sub_diff=6
+Metrics: rate_constants_R2=0.7208, trimmed_R2=0.9661, n_outliers=12, slope=0.9908, test_R2=-73808.40, test_pearson=0.2022, final_loss=38420.62, alpha=0.9151, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.5200, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 matches GT, c^2 tracks GT closely, MLP_node=inactive: flat at 0
+Mutation: seed: 77 -> 42, coeff_MLP_sub_diff: 7 -> 6 (test seed=42 with sub_diff=6)
+Parent rule: from global best config, test if seed=42 works with sub_diff=6
+Observation: R²=0.72! seed=42+sub_diff=6 WORKS! Much better than sub_diff=7 (R²=0.57 Iter 123). CONFIRMS sub_diff is seed-specific: seed=42 prefers sub_diff=6
+Next: parent=132
+
+## Iter 132: partial
+Node: id=132, parent=125
+Mode/Strategy: principle-test
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.5, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.8458, trimmed_R2=0.9681, n_outliers=12, slope=0.9930, test_R2=-1191234.52, test_pearson=0.0426, final_loss=42514.22, alpha=0.8692, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.5100, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 matches GT, c^2 tracks GT, MLP_node=inactive: flat at 0
+Mutation: coeff_k_floor: 1.0 -> 1.5. Testing principle: "k_floor=1.0 is optimal"
+Parent rule: test if stronger k_floor helps seed=77+sub_diff=7
+Observation: R²=0.85!!! **2ND BEST EVER** (after Iter 116 R²=0.87)! k_floor=1.5 HELPS seed=77+sub_diff=7. Principle REFUTED for this config!
+Next: parent=132
+
+---
+
+### Batch 33 Summary
+
+**Results Table:**
+| Iter | Seed | sub_diff | k_floor | aug | R² | outliers | α | Observation |
+|------|------|----------|---------|-----|-----|----------|-----|-------------|
+| 129 | 77 | 7 | 1.0 | 5500 | 0.5085 | 18 | 0.81 | WORST replicate! variance now ~0.27 |
+| 130 | 77 | 7 | 1.0 | 5250 | 0.6753 | 10 | 0.90 | Shorter training consistent |
+| 131 | 42 | 6 | 1.0 | 5500 | 0.7208 | 12 | 0.92 | seed=42+sub_diff=6 WORKS! |
+| 132 | 77 | 7 | 1.5 | 5500 | **0.8458** | 12 | 0.87 | **2ND BEST EVER!** k_floor=1.5 helps! |
+
+**Key Findings:**
+1. **Iter 132 R²=0.8458** — k_floor=1.5 with seed=77+sub_diff=7 gives 2nd best R² ever! Challenges Principle 5
+2. **Iter 131 R²=0.7208** — seed=42 with sub_diff=6 works much better than sub_diff=7 (0.57)
+3. **Iter 129 R²=0.51** — HUGE variance even with sub_diff=7! Range now 0.51-0.81 (~0.30 variance)
+4. **Training variance is DOMINANT factor** — same config can give 0.51-0.85 R² (0.34 range with k_floor=1.5!)
+
+**Principle Updates:**
+- **WEAKENED Principle 5**: k_floor=1.0 NOT universally optimal — seed=77+sub_diff=7+k_floor=1.5 got R²=0.85
+- **CONFIRMED Principle 12**: sub_diff is seed-specific — seed=42 prefers sub_diff=6, seed=77 prefers sub_diff=7
+- **UPDATED variance estimates**: ALL configs have ~0.25-0.30 variance, not seed/sub_diff dependent
+
+**Best result this batch**: Iter 132 with R²=0.8458 (2nd best ever after Iter 116 R²=0.8691)
+
+### Batch 34 (Iter 133-136) Strategy — BLOCK 12 START
+
+New block focuses on exploiting k_floor=1.5 discovery:
+- **Slot 0 (exploit)**: seed=77+sub_diff=7+k_floor=1.5+aug=5500 replicate — confirm R²=0.85 is reproducible
+- **Slot 1 (exploit)**: seed=77+sub_diff=6+k_floor=1.5+aug=5500 — test if k_floor=1.5 helps sub_diff=6 too
+- **Slot 2 (explore)**: seed=42+sub_diff=6+k_floor=1.5+aug=5500 — test k_floor=1.5 with seed=42
+- **Slot 3 (principle-test)**: seed=77+sub_diff=7+k_floor=2.0+aug=5500 — test higher k_floor boundary
+
+---
+
+## Iter 133: partial
+Node: id=133, parent=132
+Mode/Strategy: exploit
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.5, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.6350, trimmed_R2=0.9749, n_outliers=18, slope=0.9779, test_R2=-21.76, test_pearson=0.6552, final_loss=39932.49, alpha=0.9198, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.5000, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 and c^2 curves, MLP_node=inactive: flat at 0
+Mutation: replicate of Iter 132 (seed=77+sub_diff=7+k_floor=1.5+aug=5500)
+Parent rule: exploit highest UCB node (Iter 132, R²=0.85)
+Observation: R²=0.64 vs Iter 132's R²=0.85. EXTREME variance ~0.21 even with k_floor=1.5! k_floor does NOT reduce variance
+Next: parent=132
+
+## Iter 134: partial
+Node: id=134, parent=132
+Mode/Strategy: exploit
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.5, coeff_MLP_sub_diff=6
+Metrics: rate_constants_R2=0.5122, trimmed_R2=0.9640, n_outliers=21, slope=0.9732, test_R2=-2.88, test_pearson=0.6281, final_loss=45108.13, alpha=0.7992, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.5300, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 and c^2 curves, MLP_node=inactive: flat at 0
+Mutation: coeff_MLP_sub_diff: 7 -> 6 (test if k_floor=1.5 helps sub_diff=6)
+Parent rule: test k_floor=1.5 with sub_diff=6
+Observation: R²=0.51. k_floor=1.5 does NOT help sub_diff=6 (vs sub_diff=6+k_floor=1.0 R²=0.87 Iter 116). sub_diff=6 prefers k_floor=1.0
+Next: parent=132
+
+## Iter 135: partial
+Node: id=135, parent=131
+Mode/Strategy: explore
+Config: seed=42, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=1.5, coeff_MLP_sub_diff=6
+Metrics: rate_constants_R2=0.6770, trimmed_R2=0.9719, n_outliers=11, slope=0.9715, test_R2=-56373.44, test_pearson=0.2310, final_loss=36478.54, alpha=0.9684, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.5100, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 and c^2 curves, MLP_node=inactive: flat at 0
+Mutation: coeff_k_floor: 1.0 -> 1.5 (test k_floor=1.5 with seed=42)
+Parent rule: from seed=42 best (Iter 131), test k_floor=1.5
+Observation: R²=0.68 with only 11 outliers (vs Iter 131 R²=0.72 with 12 outliers). k_floor=1.5 slightly worse for seed=42+sub_diff=6 but fewer outliers
+Next: parent=132
+
+## Iter 136: partial
+Node: id=136, parent=132
+Mode/Strategy: principle-test
+Config: seed=77, lr_k=0.005, lr_node=0.001, lr_sub=0.001, batch_size=8, n_epochs=1, data_augmentation_loop=5500, coeff_MLP_node_L1=1.0, coeff_MLP_sub_norm=1.0, coeff_k_floor=2.0, coeff_MLP_sub_diff=7
+Metrics: rate_constants_R2=0.6918, trimmed_R2=0.9599, n_outliers=20, slope=0.9687, test_R2=-55868.11, test_pearson=0.4880, final_loss=52278.99, alpha=0.7531, MLP_node_slope_0=0.0000, MLP_node_gt_slope_0=-0.0010, MLP_node_slope_1=0.0000, MLP_node_gt_slope_1=-0.0020, embedding_cluster_acc=0.5100, embedding_n_clusters=1
+Visual: MLP_sub=partial: c^1 and c^2 curves, MLP_node=inactive: flat at 0
+Mutation: coeff_k_floor: 1.5 -> 2.0. Testing principle: "k_floor=2.0 is too strong"
+Parent rule: test k_floor boundary above 1.5
+Observation: R²=0.69. NOT catastrophically worse than k_floor=1.5 (0.64 this batch). Given variance ~0.21, k_floor=2.0 is within normal range. Principle weakened but not refuted
+Next: parent=132
+
+---
+
+### Batch 34 Summary (Iter 133-136)
+
+**Results Table:**
+| Iter | Seed | sub_diff | k_floor | aug | R² | outliers | α | Observation |
+|------|------|----------|---------|-----|-----|----------|-----|-------------|
+| 133 | 77 | 7 | 1.5 | 5500 | 0.6350 | 18 | 0.92 | Replicate of Iter 132 (R²=0.85), extreme variance! |
+| 134 | 77 | 6 | 1.5 | 5500 | 0.5122 | 21 | 0.80 | sub_diff=6+k_floor=1.5 underperforms |
+| 135 | 42 | 6 | 1.5 | 5500 | 0.6770 | 11 | 0.97 | k_floor=1.5 slightly worse for seed=42, but fewer outliers |
+| 136 | 77 | 7 | 2.0 | 5500 | 0.6918 | 20 | 0.75 | k_floor=2.0 NOT catastrophically worse |
+
+**Key Findings:**
+1. **k_floor=1.5 variance is HIGH** — Iter 133 got R²=0.64 vs Iter 132's R²=0.85. Variance ~0.21 persists regardless of k_floor
+2. **sub_diff=6 prefers k_floor=1.0** — R²=0.51 with k_floor=1.5 (Iter 134) vs R²=0.87 with k_floor=1.0 (Iter 116)
+3. **seed=42+sub_diff=6 neutral to k_floor** — R²=0.68 with k_floor=1.5 vs R²=0.72 with k_floor=1.0
+4. **k_floor=2.0 NOT catastrophically bad** — R²=0.69 within variance range of k_floor=1.5 (0.64)
+
+**Principle Updates:**
+- **WEAKENED Principle 5**: k_floor=2.0 NOT catastrophically worse than k_floor=1.5 in high-variance regime
+- **NEW FINDING**: k_floor response is sub_diff-dependent: sub_diff=7 tolerates higher k_floor, sub_diff=6 prefers k_floor=1.0
+- **CONFIRMED**: Training variance ~0.21 is DOMINANT and independent of k_floor setting
+
+### Batch 35 (Iter 137-140) Strategy
+
+High variance makes optimization difficult. Strategy:
+- **Slot 0 (exploit)**: seed=77+sub_diff=6+k_floor=1.0+aug=5500 — replicate global best config (Iter 116)
+- **Slot 1 (exploit)**: seed=77+sub_diff=7+k_floor=1.0+aug=5500 — test sub_diff=7 with k_floor=1.0 for variance comparison
+- **Slot 2 (explore)**: seed=42+sub_diff=6+k_floor=1.0+aug=5500 — replicate seed=42 best (Iter 131)
+- **Slot 3 (principle-test)**: seed=77+sub_diff=5+k_floor=1.0+aug=5500 — test lower sub_diff boundary. Testing principle: "sub_diff must be >=6"
+

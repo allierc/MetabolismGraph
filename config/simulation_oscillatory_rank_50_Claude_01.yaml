@@ -49,8 +49,8 @@ training:
   n_runs: 1
   device: auto
   batch_size: 8
-  seed: 99
-  data_augmentation_loop: 4500
+  seed: 77
+  data_augmentation_loop: 5500
   learning_rate_start: 0.001
   learning_rate_k: 0.005
   learning_rate_node: 0.001

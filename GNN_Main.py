@@ -37,7 +37,10 @@ if __name__ == "__main__":
                 # Multiple space-separated configs, last one might be best_model
                 potential_configs = args.option[1:]
                 # If last arg looks like a model name (not a config), treat it as best_model
-                if len(potential_configs) > 1 and potential_configs[-1] in ['best', 'last']:
+                # Recognized patterns: 'best', 'last', 'phase2', or numeric like '1_342000'
+                def _is_model_name(s):
+                    return s in ['best', 'last', 'phase2'] or s.replace('_', '').isdigit()
+                if len(potential_configs) > 1 and _is_model_name(potential_configs[-1]):
                     config_list = potential_configs[:-1]
                     best_model = potential_configs[-1]
                 else:
@@ -47,13 +50,11 @@ if __name__ == "__main__":
             config_list = ['metabolism_1']
             best_model = None
     else:
-        best_model = ''
-        task = 'generate'
+        best_model = '1_342000'
+        task = 'train'
         # Default: generate simulation configs
         config_list = [
-            'simulation_pure',
-            'simulation_homeostatic',
-            'simulation_oscillatory'
+            'iter_096'
         ]
 
     print(f"Task: {task}")
@@ -83,7 +84,7 @@ if __name__ == "__main__":
         if "train" in task:
             data_train(
                 config=config,
-                erase=True,
+                erase=False,
                 best_model=best_model,
                 device=device,
             )

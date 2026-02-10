@@ -52,7 +52,7 @@ def data_train(config, erase, best_model, device, log_file=None, style='color'):
     return data_train_metabolism(config, erase, best_model, device, log_file=log_file, style=style)
 
 
-def data_test(config, best_model=20, n_rollout_frames=300, device=None, log_file=None,
+def data_test(config, best_model=20, n_rollout_frames=2000, device=None, log_file=None,
               visualize=False, verbose=False, run=0):
     """dispatcher that calls data_test_metabolism() directly."""
     return data_test_metabolism(config, best_model=best_model,
@@ -85,6 +85,11 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     time_step = train_config.time_step
     recurrent_training = train_config.recurrent_training
     noise_recurrent_level = train_config.noise_recurrent_level
+    homeostasis_training = getattr(train_config, 'homeostasis_training', False)
+    skip_phase1 = getattr(train_config, 'skip_phase1', False)
+    homeostasis_time_step = getattr(train_config, 'homeostasis_time_step', 32)
+    lr_node_homeo = getattr(train_config, 'learning_rate_node_homeostasis', 0.0)
+    lr_embedding_homeo = getattr(train_config, 'learning_rate_embedding_homeostasis', 0.0)
 
     external_input_type = simulation_config.external_input_type
     learn_external_input = train_config.learn_external_input
@@ -238,8 +243,35 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
         print(f'loading state_dict from {net} ...')
         state_dict = torch.load(net, map_location=device)
         model.load_state_dict(state_dict['model_state_dict'])
-        start_epoch = int(best_model.split('_')[0])
+        try:
+            start_epoch = int(best_model.split('_')[0])
+        except ValueError:
+            start_epoch = n_epochs  # non-numeric (e.g. 'phase2'): skip Phase 1
         print(f'state_dict loaded, start_epoch={start_epoch}')
+
+    # --- skip Phase 1 if configured ---
+    if skip_phase1:
+        start_epoch = n_epochs
+        print('skip_phase1: skipping Phase 1 training')
+
+    # --- debug: simple k plot after load ---
+    if gt_model is not None:
+        import matplotlib.pyplot as plt
+        with torch.no_grad():
+            gt_k = to_numpy(gt_model.log_k.cpu())
+            learned_k = to_numpy(model.log_k.cpu())
+        fig, ax = plt.subplots(figsize=(6, 6))
+        ax.scatter(gt_k, learned_k, s=10, alpha=0.5)
+        lo = min(gt_k.min(), learned_k.min()) - 0.1
+        hi = max(gt_k.max(), learned_k.max()) + 0.1
+        ax.plot([lo, hi], [lo, hi], 'r--', alpha=0.5)
+        ax.set_xlabel('true log_k')
+        ax.set_ylabel('learned log_k')
+        ax.set_title('k after load (no correction)')
+        plt.tight_layout()
+        plt.savefig('debug_k_after_load.png', dpi=100)
+        plt.close()
+        print(f'debug: saved debug_k_after_load.png')
 
     # --- optimizer (custom param groups for metabolism) ---
     lr = train_config.learning_rate_start
@@ -248,6 +280,10 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     lr_k = getattr(train_config, 'learning_rate_k', lr)
     lr_node = getattr(train_config, 'learning_rate_node', lr)
     lr_sub = getattr(train_config, 'learning_rate_sub', lr)
+    if lr_node_homeo == 0.0:
+        lr_node_homeo = lr_node
+    if lr_embedding_homeo == 0.0:
+        lr_embedding_homeo = lr_node_homeo
 
     # separate parameters into groups: k, MLP_node, MLP_sub, stoichiometry
     k_params = []       # log_k (rate constants)
@@ -634,6 +670,165 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
             ),
         )
 
+    # ===== Phase 2: Homeostasis training (recurrent) =====
+    if homeostasis_training:
+        print(f'\n===== Phase 2: homeostasis training (recurrent, {homeostasis_time_step} steps, lr_node={lr_node_homeo}, lr_emb={lr_embedding_homeo}) =====')
+        logger.info(f'Phase 2: homeostasis training (recurrent, {homeostasis_time_step} steps, lr_node={lr_node_homeo}, lr_emb={lr_embedding_homeo})')
+
+        # Freeze reaction params
+        for p in k_params:
+            p.requires_grad = False
+        for p in sub_params:
+            p.requires_grad = False
+        if hasattr(model, 'sto_all'):
+            model.sto_all.requires_grad = False
+
+        # Ensure node params trainable (respect training_single_type for embeddings)
+        for name, p in model.named_parameters():
+            if 'node_func' in name:
+                p.requires_grad = True
+            elif name == 'a' and not training_single_type:
+                p.requires_grad = True
+
+        # Fresh optimizer for Phase 2 with separate lr for embeddings
+        node_func_params = []
+        embedding_params = []
+        for name, p in model.named_parameters():
+            if not p.requires_grad:
+                continue
+            if name == 'a':
+                embedding_params.append(p)
+            else:
+                node_func_params.append(p)
+        optimizer_p2 = torch.optim.Adam([
+            {'params': node_func_params, 'lr': lr_node_homeo},
+            {'params': embedding_params, 'lr': lr_embedding_homeo},
+        ])
+        n_p2_params = sum(p.numel() for p in node_func_params) + sum(p.numel() for p in embedding_params)
+        print(f'  Phase 2 trainable params: {n_p2_params:,}')
+
+        Niter_p2 = int(n_frames * data_augmentation_loop // batch_size * 0.2) // homeostasis_time_step
+        plot_frequency_p2 = max(1, Niter_p2 // 20)
+        print(f'  {Niter_p2} iterations, plot/save every {plot_frequency_p2} iterations')
+        total_loss_p2 = 0
+        p2_label = f'p2_{n_epochs - 1}'
+        pbar = trange(Niter_p2, ncols=100, desc='phase2')
+
+        for N in pbar:
+            optimizer_p2.zero_grad()
+            loss = torch.zeros(1, device=device)
+            run = np.random.randint(n_runs)
+
+            for batch in range(batch_size):
+                k = np.random.randint(n_frames - 4 - homeostasis_time_step)
+                x = x_list[run][k].clone()
+
+                # inject external input from SIREN (same as Phase 1)
+                if has_visual_field and hasattr(model, 'NNR_f'):
+                    visual_input = model.forward_visual(x, k)
+                    x[:n_input_metabolites, 4:5] = visual_input
+                    x[n_input_metabolites:, 4:5] = 0
+                elif model_f is not None:
+                    if external_input_type == 'visual':
+                        x[:n_input_metabolites, 4:5] = model_f(
+                            time=k / n_frames
+                        ) ** 2
+                        x[n_input_metabolites:, 4:5] = 1
+                    else:
+                        inr_type = model_config.inr_type
+                        nnr_f_T_period = model_config.nnr_f_T_period
+                        if inr_type == 'siren_t':
+                            t_norm = torch.tensor(
+                                [[k / nnr_f_T_period]],
+                                dtype=torch.float32, device=device,
+                            )
+                            x[:, 4] = model_f(t_norm).squeeze()
+                        elif inr_type == 'lowrank':
+                            t_idx = torch.tensor(
+                                [k], dtype=torch.long, device=device
+                            )
+                            x[:, 4] = model_f(t_idx).squeeze()
+                        elif inr_type in ('ngp', 'siren_id', 'siren_x'):
+                            t_norm = torch.tensor(
+                                [[k / nnr_f_T_period]],
+                                dtype=torch.float32, device=device,
+                            )
+                            x[:, 4] = model_f(t_norm).squeeze()
+
+                if torch.isnan(x).any():
+                    continue
+
+                # target: concentration at frame k + homeostasis_time_step
+                y_target = x_list[run][k + homeostasis_time_step, :, 3]
+
+                # recurrent rollout: Euler integration for homeostasis_time_step steps
+                pred_c = x[:, 3].clone()
+                for step in range(homeostasis_time_step):
+                    dataset = pyg_Data(x=x.clone(), pos=x[:, 1:3])
+                    pred = model(dataset)
+                    pred_c = pred_c + delta_t * pred.squeeze()
+                    x = x.clone()
+                    x[:, 3] = pred_c
+
+                # loss on final concentration vs ground truth (normalized to derivative scale)
+                loss = loss + ((pred_c - y_target) / (delta_t * homeostasis_time_step)).norm(2)
+
+            # NO regularization in Phase 2 (critically: no MLP_node L1)
+
+            loss.backward()
+            optimizer_p2.step()
+            total_loss_p2 += loss.item()
+
+            # --- Phase 2 periodic plots + checkpoint ---
+            if N % plot_frequency_p2 == 0 or N == 0:
+                with torch.no_grad():
+                    # rate constant comparison (should be stable — k frozen)
+                    if freeze_stoichiometry and gt_model is not None:
+                        p2_r2, _, _, _ = _plot_rate_constants_comparison(
+                            model, gt_model, log_dir, p2_label, N,
+                            device=device,
+                        )
+                    # MLP functions (MLP_sub frozen, MLP_node evolving)
+                    plot_x = x_list[0][0]
+                    _plot_metabolism_mlp_functions(
+                        model, plot_x, xnorm, log_dir, p2_label, N,
+                        device, gt_model=gt_model,
+                    )
+                # save checkpoint
+                torch.save(
+                    {'model_state_dict': model.state_dict()},
+                    os.path.join(
+                        log_dir, 'models',
+                        f'best_model_with_{n_runs - 1}_graphs_{p2_label}_{N}.pt',
+                    ),
+                )
+                # progress bar
+                if freeze_stoichiometry and gt_model is not None:
+                    pbar.set_postfix_str(f'R2={p2_r2:.3f} loss={loss.item()/n_metabolites:.4f}')
+                else:
+                    pbar.set_postfix_str(f'loss={loss.item()/n_metabolites:.4f}')
+
+        # Phase 2 summary
+        p2_loss = total_loss_p2 / n_metabolites
+        with torch.no_grad():
+            sample_x = x_list[0][0]
+            node_in = torch.cat([sample_x[:, 3:4], model.a], dim=-1)
+            node_mag = model.node_func(node_in).squeeze(-1).abs().mean().item()
+        print(f'  phase2: loss={p2_loss:.6f}, MLP_node_mag={node_mag:.6f}')
+        logger.info(f'Phase2: loss={p2_loss:.6f}, MLP_node_mag={node_mag:.6f}')
+
+        # Unfreeze all for downstream analysis (_compare_functions, data_test)
+        for p in k_params:
+            p.requires_grad = True
+        for p in sub_params:
+            p.requires_grad = True
+        if not freeze_stoichiometry and hasattr(model, 'sto_all'):
+            model.sto_all.requires_grad = True
+
+        if log_file is not None:
+            log_file.write(f"phase2_loss: {p2_loss:.6f}\n")
+            log_file.write(f"phase2_node_magnitude: {node_mag:.6f}\n")
+
     # --- final analysis: compute R2 and write to log ---
     final_trimmed_r2 = 0.0
     final_n_outliers = 0
@@ -715,7 +910,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                 log_file.write(f"embedding_silhouette: {func_metrics['embedding_silhouette']:.4f}\n")
 
 
-def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=None, log_file=None):
+def data_test_metabolism(config, best_model=20, n_rollout_frames=2000, device=None, log_file=None):
     """test a trained metabolism model: rollout + stoichiometry comparison.
 
     loads the trained Metabolism_Propagation model, runs a rollout over
@@ -999,6 +1194,106 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
     plt.savefig(os.path.join(results_dir, 'kinograph_montage.png'), dpi=150, bbox_inches='tight')
     plt.close()
 
+    # --- one-step derivative kinograph: feed true state at each timestep ---
+    print('one-step derivative kinograph ...')
+    deriv_gt_arr = np.zeros((n_metabolites, n_test_frames))
+    deriv_pred_arr = np.zeros((n_metabolites, n_test_frames))
+
+    run = 0
+    with torch.no_grad():
+        for t in trange(n_test_frames, desc='one-step', ncols=100):
+            frame_idx = start_frame + t
+            if frame_idx >= n_frames - 2:
+                break
+
+            # true state and true derivative at this frame
+            x = torch.tensor(x_list[run][frame_idx], dtype=torch.float32, device=device)
+            y_gt = torch.tensor(y_list[run][frame_idx], dtype=torch.float32, device=device)
+
+            # inject external input from SIREN if available
+            if model_f is not None:
+                external_input_type = simulation_config.external_input_type
+                n_input_met = simulation_config.n_input_metabolites
+                inr_type = model_config.inr_type
+                nnr_f_T_period = model_config.nnr_f_T_period
+
+                if external_input_type == 'visual':
+                    if hasattr(model, 'NNR_f'):
+                        x[:n_input_met, 4:5] = model.forward_visual(x, frame_idx)
+                    else:
+                        x[:n_input_met, 4:5] = model_f(
+                            time=frame_idx / n_frames
+                        ) ** 2
+                        x[n_input_met:, 4:5] = 1
+                elif inr_type == 'siren_t':
+                    t_norm = torch.tensor(
+                        [[frame_idx / nnr_f_T_period]],
+                        dtype=torch.float32, device=device,
+                    )
+                    x[:, 4] = model_f(t_norm).squeeze()
+
+            # model prediction: dc/dt
+            dataset = pyg_Data(x=x, pos=x[:, 1:3])
+            pred = model(dataset)
+
+            deriv_gt_arr[:, t] = to_numpy(y_gt[:n_metabolites].squeeze())
+            deriv_pred_arr[:, t] = to_numpy(pred[:n_metabolites].squeeze())
+
+    # save derivative kinograph matrices
+    np.save(os.path.join(results_dir, 'deriv_kinograph_gt.npy'), deriv_gt_arr)
+    np.save(os.path.join(results_dir, 'deriv_kinograph_pred.npy'), deriv_pred_arr)
+
+    # compute derivative metrics
+    from MetabolismGraph.models.utils import compute_kinograph_metrics
+    deriv_metrics = compute_kinograph_metrics(deriv_gt_arr, deriv_pred_arr)
+    print(f"deriv R²={deriv_metrics['r2']:.4f}, SSIM={deriv_metrics['ssim']:.4f}, WD={deriv_metrics['mean_wasserstein']:.4f}")
+
+    # 2x2 derivative kinograph montage
+    vmax_deriv = max(np.abs(deriv_gt_arr).max(), np.abs(deriv_pred_arr).max())
+    deriv_residual = deriv_gt_arr - deriv_pred_arr
+    vmax_deriv_res = np.abs(deriv_residual).max()
+
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    ax_gt_d, ax_pred_d, ax_res_d, ax_scat_d = axes[0, 0], axes[0, 1], axes[1, 0], axes[1, 1]
+
+    im_gt_d = ax_gt_d.imshow(deriv_gt_arr, aspect='auto', cmap='viridis', vmin=-vmax_deriv, vmax=vmax_deriv, origin='lower', interpolation='nearest')
+    ax_gt_d.set_ylabel('metabolites', fontsize=14)
+    ax_gt_d.set_xticks([0, n_test_frames - 1]); ax_gt_d.set_xticklabels([0, n_test_frames], fontsize=12)
+    ax_gt_d.set_yticks([0, n_metabolites - 1]); ax_gt_d.set_yticklabels([1, n_metabolites], fontsize=12)
+    ax_gt_d.text(0.02, 0.97, 'true dc/dt', transform=ax_gt_d.transAxes, fontsize=9,
+                 color='white', va='top', ha='left')
+    fig.colorbar(im_gt_d, ax=ax_gt_d, fraction=0.046, pad=0.04).ax.tick_params(labelsize=12)
+
+    im_pred_d = ax_pred_d.imshow(deriv_pred_arr, aspect='auto', cmap='viridis', vmin=-vmax_deriv, vmax=vmax_deriv, origin='lower', interpolation='nearest')
+    ax_pred_d.set_xticks([0, n_test_frames - 1]); ax_pred_d.set_xticklabels([0, n_test_frames], fontsize=12)
+    ax_pred_d.set_yticks([0, n_metabolites - 1]); ax_pred_d.set_yticklabels([1, n_metabolites], fontsize=12)
+    ax_pred_d.text(0.02, 0.97, 'GNN one-step dc/dt', transform=ax_pred_d.transAxes, fontsize=9,
+                   color='white', va='top', ha='left')
+    fig.colorbar(im_pred_d, ax=ax_pred_d, fraction=0.046, pad=0.04).ax.tick_params(labelsize=12)
+
+    im_res_d = ax_res_d.imshow(deriv_residual, aspect='auto', cmap='RdBu_r', vmin=-vmax_deriv_res, vmax=vmax_deriv_res, origin='lower', interpolation='nearest')
+    ax_res_d.set_ylabel('metabolites', fontsize=14)
+    ax_res_d.set_xlabel('time', fontsize=14)
+    ax_res_d.set_xticks([0, n_test_frames - 1]); ax_res_d.set_xticklabels([0, n_test_frames], fontsize=12)
+    ax_res_d.set_yticks([0, n_metabolites - 1]); ax_res_d.set_yticklabels([1, n_metabolites], fontsize=12)
+    fig.colorbar(im_res_d, ax=ax_res_d, fraction=0.046, pad=0.04).ax.tick_params(labelsize=12)
+
+    gt_deriv_flat = deriv_gt_arr.flatten()
+    pred_deriv_flat = deriv_pred_arr.flatten()
+    ax_scat_d.scatter(gt_deriv_flat, pred_deriv_flat, s=1, alpha=0.1, c='k', rasterized=True, edgecolors=None)
+    lim_d = [min(gt_deriv_flat.min(), pred_deriv_flat.min()), max(gt_deriv_flat.max(), pred_deriv_flat.max())]
+    ax_scat_d.plot(lim_d, lim_d, 'r--', linewidth=2)
+    ax_scat_d.set_xlim(lim_d); ax_scat_d.set_ylim(lim_d)
+    ax_scat_d.set_xlabel('true dc/dt', fontsize=14)
+    ax_scat_d.set_ylabel('predicted dc/dt', fontsize=14)
+    ax_scat_d.tick_params(labelsize=12)
+    ax_scat_d.text(0.05, 0.95, f'R²={deriv_metrics["r2"]:.3f}\nSSIM={deriv_metrics["ssim"]:.3f}\nWD={deriv_metrics["mean_wasserstein"]:.3f}',
+                   transform=ax_scat_d.transAxes, fontsize=12, va='top')
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, 'deriv_kinograph_montage.png'), dpi=150, bbox_inches='tight')
+    plt.close()
+
     # --- concentration traces plot (like concentrations.png but with GT overlay) ---
     n_traces = min(20, n_metabolites)
     trace_ids = np.linspace(0, n_metabolites - 1, n_traces, dtype=int)
@@ -1056,6 +1351,114 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
     plt.savefig(os.path.join(results_dir, 'concentrations.png'), dpi=150)
     plt.close()
 
+    # --- derivative traces plot: true dc/dt vs GNN one-step dc/dt ---
+    deriv_r2_per_trace = []
+    for idx in trace_ids:
+        gt_d = deriv_gt_arr[idx]
+        pred_d = deriv_pred_arr[idx]
+        ss_res = np.sum((gt_d - pred_d) ** 2)
+        ss_tot = np.sum((gt_d - np.mean(gt_d)) ** 2)
+        deriv_r2_per_trace.append(1 - (ss_res / ss_tot) if ss_tot > 0 else 0)
+
+    fig, ax = plt.subplots(1, 1, figsize=(16, 10))
+
+    offset_d = np.abs(deriv_gt_arr[trace_ids]).max() * 1.5
+    if offset_d == 0:
+        offset_d = 1.0
+
+    for j, n_idx in enumerate(trace_ids):
+        y0 = j * offset_d
+        baseline_d = np.mean(deriv_gt_arr[n_idx])
+        ax.plot(deriv_gt_arr[n_idx] - baseline_d + y0, color='green', lw=3.0, alpha=0.9)
+        ax.plot(deriv_pred_arr[n_idx] - baseline_d + y0, color='red', lw=1.0, alpha=0.9)
+
+        ax.text(-n_test_frames * 0.02, y0, str(n_idx), fontsize=10, va='center', ha='right')
+
+        r2_val = deriv_r2_per_trace[j]
+        r2_color = 'red' if r2_val < 0.5 else ('orange' if r2_val < 0.8 else 'green')
+        ax.text(n_test_frames * 1.02, y0, f'R²:{r2_val:.2f}', fontsize=9, va='center', ha='left', color=r2_color)
+
+    ax.set_xlim([-n_test_frames * 0.05, n_test_frames * 1.1])
+    ax.set_ylim([-offset_d, n_traces * offset_d])
+    ax.set_xlabel('frame', fontsize=14)
+    ax.set_ylabel('metabolite', fontsize=14)
+    ax.spines['left'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_bounds(0, n_test_frames)
+    ax.set_yticks([])
+
+    from matplotlib.lines import Line2D
+    legend_d = [Line2D([0], [0], color='green', lw=3, label='true dc/dt'),
+                Line2D([0], [0], color='red', lw=1, label='GNN one-step dc/dt')]
+    ax.legend(handles=legend_d, loc='upper right', fontsize=10)
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, 'deriv_traces.png'), dpi=150)
+    plt.close()
+
+    # --- derivative residual traces plot: (GNN one-step dc/dt) - (true dc/dt) ---
+    residual_arr = deriv_pred_arr - deriv_gt_arr  # (n_metabolites, n_frames)
+
+    # compute GT homeostasis baseline: λ_type(i) * (c_i(t) - c_base_type(i))
+    # residual should equal +λ(c - c_base) since pred - true = -homeostasis = +λ(c - c_base)
+    lambda_per_type = getattr(simulation_config, 'homeostatic_lambda_per_type', None)
+    baseline_per_type = getattr(simulation_config, 'homeostatic_baseline_per_type', None)
+    gt_homeostasis_arr = None
+    if lambda_per_type is not None and baseline_per_type is not None:
+        gt_homeostasis_arr = np.zeros((n_metabolites, n_test_frames))
+        metabolite_types = x_list[0][0][:n_metabolites, 6].astype(int)
+        for t in range(n_test_frames):
+            frame_idx = start_frame + t
+            if frame_idx >= n_frames - 2:
+                break
+            conc = x_list[0][frame_idx][:n_metabolites, 3]
+            for i in range(n_metabolites):
+                mt = metabolite_types[i]
+                gt_homeostasis_arr[i, t] = lambda_per_type[mt] * (conc[i] - baseline_per_type[mt])
+
+    n_plot_frames = min(600, n_test_frames)  # show 600 frames like kinograph
+    fig, ax = plt.subplots(1, 1, figsize=(16, 10))
+
+    # scale traces: use median of per-trace max amplitudes for tighter spacing
+    trace_amps = [np.abs(residual_arr[n_idx, :n_plot_frames]).max() for n_idx in trace_ids]
+    median_amp = np.median(trace_amps) if np.median(trace_amps) > 0 else 1.0
+    scale = 0.8 / median_amp  # normalize so median trace fills ~80% of spacing
+    offset_r = 1.0  # fixed unit spacing between traces
+
+    for j, n_idx in enumerate(trace_ids):
+        y0 = j * offset_r
+        ax.axhline(y=y0, color='gray', lw=0.3, alpha=0.5)
+        ax.plot(residual_arr[n_idx, :n_plot_frames] * scale + y0, color='#e74c3c', lw=1.0, alpha=0.9)
+        if gt_homeostasis_arr is not None:
+            ax.plot(gt_homeostasis_arr[n_idx, :n_plot_frames] * scale + y0, color='#2ecc71', lw=1.5, alpha=0.8)
+
+        ax.text(-n_plot_frames * 0.02, y0, str(n_idx), fontsize=10, va='center', ha='right')
+
+        mae_val = np.mean(np.abs(residual_arr[n_idx, :n_plot_frames]))
+        ax.text(n_plot_frames * 1.02, y0, f'MAE:{mae_val:.3f}', fontsize=9, va='center', ha='left', color='#e74c3c')
+
+    ax.set_xlim([-n_plot_frames * 0.05, n_plot_frames * 1.1])
+    ax.set_ylim([-offset_r, n_traces * offset_r])
+    ax.set_xlabel('frame', fontsize=14)
+    ax.set_ylabel('metabolite', fontsize=14)
+    ax.set_title('Derivative residuals: GNN one-step dc/dt − true dc/dt', fontsize=14)
+    ax.spines['left'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_bounds(0, n_plot_frames)
+    ax.set_yticks([])
+
+    from matplotlib.lines import Line2D
+    legend_r = [Line2D([0], [0], color='#e74c3c', lw=1, label='pred − true dc/dt'),
+                Line2D([0], [0], color='#2ecc71', lw=1.5, label='GT: λ(c − c_base)'),
+                Line2D([0], [0], color='gray', lw=0.3, label='zero baseline')]
+    ax.legend(handles=legend_r, loc='upper right', fontsize=10)
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, 'deriv_residual_traces.png'), dpi=150)
+    plt.close()
+
     # --- compute alpha (MLP_sub scale factor) ---
     freeze_stoichiometry = getattr(train_config, 'freeze_stoichiometry', False)
     alpha_val = None
@@ -1072,6 +1475,9 @@ def data_test_metabolism(config, best_model=20, n_rollout_frames=600, device=Non
         log_file.write(f"test_pearson: {test_pearson:.4f}\n")
         if alpha_val is not None:
             log_file.write(f"alpha: {alpha_val:.4f}\n")
+        log_file.write(f"deriv_kinograph_R2: {deriv_metrics['r2']:.4f}\n")
+        log_file.write(f"deriv_kinograph_SSIM: {deriv_metrics['ssim']:.4f}\n")
+        log_file.write(f"deriv_kinograph_Wasserstein: {deriv_metrics['mean_wasserstein']:.4f}\n")
 
 
 def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
@@ -1083,12 +1489,12 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
     embeddings: scatter plot of learned metabolite embeddings a_i colored by type.
     if gt_model is provided, overlay ground-truth curves as dashed lines.
 
-    saves to tmp_training/function/ and embedding/.
+    saves to tmp_training/function/ and tmp_training/embedding/.
     """
     func_dir = f"./{log_dir}/tmp_training/function"
-    sub_dir = f"{func_dir}/substrate_func"
-    rate_dir = f"{func_dir}/rate_func"
-    emb_dir = f"./{log_dir}/embedding"
+    sub_dir = f"{func_dir}/MLP_sub"
+    rate_dir = f"{func_dir}/MLP_node"
+    emb_dir = f"./{log_dir}/tmp_training/embedding"
     os.makedirs(sub_dir, exist_ok=True)
     os.makedirs(rate_dir, exist_ok=True)
     os.makedirs(emb_dir, exist_ok=True)

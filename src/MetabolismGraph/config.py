@@ -193,6 +193,13 @@ class TrainingConfig(BaseModel):
 
     data_augmentation_loop: int = 40
 
+    # Phase 2: homeostasis training (recurrent, reaction frozen)
+    homeostasis_training: bool = False
+    skip_phase1: bool = False  # if True, skip Phase 1 and go straight to Phase 2
+    homeostasis_time_step: int = 32  # recurrent rollout steps for Phase 2
+    learning_rate_node_homeostasis: float = 0.0  # 0 = use learning_rate_node
+    learning_rate_embedding_homeostasis: float = 0.0  # 0 = use learning_rate_node_homeostasis
+
 
 class MetabolismGraphConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")

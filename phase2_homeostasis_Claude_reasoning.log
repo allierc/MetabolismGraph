@@ -1,0 +1,22 @@
+
+============================================================
+=== BATCH 0 (start call) ===
+============================================================
+Phase 2 config initialization complete. Here's a summary of what I've done:
+
+**Initialized all 4 Phase 2 config files with identical baseline parameters:**
+
+| Slot | Config File | time_step (fixed) | lr_node_homeo | lr_emb_homeo | data_aug_loop | batch_size |
+|------|-------------|-------------------|---------------|--------------|---------------|------------|
+| 0    | `_00.yaml`  | 4                 | 0.01          | 0.001        | 1000          | 8          |
+| 1    | `_01.yaml`  | 16                | 0.01          | 0.001        | 1000          | 8          |
+| 2    | `_02.yaml`  | 32                | 0.01          | 0.001        | 1000          | 8          |
+| 3    | `_03.yaml`  | 64                | 0.01          | 0.001        | 1000          | 8          |
+
+**Rationale:**
+- `lr_node_homeo=0.01` is 10x higher than the original default (0.001) because the instruction notes that MLP_node starts at zero with near-zero gradients; standard LRs may be insufficient to escape the flat region
+- `lr_emb_homeo=0.001` is kept lower because MLP_node must move first before embeddings can separate (key interaction noted in instructions)
+- Using identical params across all 4 slots isolates the effect of rollout length (time_step) as the sole variable for this baseline batch
+
+**Working memory updated** with initial config, rationale, and open questions for this batch.
+

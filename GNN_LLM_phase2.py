@@ -345,35 +345,36 @@ def compute_phase2_score(log_path):
 
 
 def setup_phase2_data(phase1_dataset_dir, slot_dataset_names, root_dir):
-    """create symlinks so Phase 2 slots can find Phase 1 data."""
+    """copy Phase 1 data into each Phase 2 slot directory."""
     graphs_dir = os.path.join(root_dir, 'graphs_data')
-    # use relative target so symlinks work across environments
-    rel_target = os.path.basename(phase1_dataset_dir)
+    source_dir = os.path.join(graphs_dir, os.path.basename(phase1_dataset_dir))
     for slot_name in slot_dataset_names:
-        link_path = os.path.join(graphs_dir, slot_name)
-        # always recreate to ensure correct target
-        if os.path.islink(link_path):
-            os.unlink(link_path)
-        elif os.path.exists(link_path):
-            continue  # real directory, don't touch
-        os.symlink(rel_target, link_path)
-        print(f"\033[90m  symlink: {slot_name} -> {rel_target}\033[0m")
+        dest_dir = os.path.join(graphs_dir, slot_name)
+        # remove symlink if present
+        if os.path.islink(dest_dir):
+            os.unlink(dest_dir)
+        if os.path.isdir(dest_dir):
+            print(f"\033[90m  data dir already exists: {slot_name}\033[0m")
+            continue
+        shutil.copytree(source_dir, dest_dir)
+        print(f"\033[90m  copied data: {os.path.basename(source_dir)} -> {slot_name}\033[0m")
 
 
-def setup_cluster_data_symlinks(phase1_dataset, slot_dataset_names):
-    """create symlinks on the cluster for Phase 2 data directories."""
+def setup_cluster_data_copy(phase1_dataset, slot_dataset_names):
+    """copy Phase 1 data into each Phase 2 slot directory on the cluster."""
     for slot_name in slot_dataset_names:
-        cluster_link = f"{CLUSTER_ROOT_DIR}/graphs_data/{slot_name}"
-        cluster_target = f"{CLUSTER_ROOT_DIR}/graphs_data/{phase1_dataset}"
+        cluster_dest = f"{CLUSTER_ROOT_DIR}/graphs_data/{slot_name}"
+        cluster_source = f"{CLUSTER_ROOT_DIR}/graphs_data/{phase1_dataset}"
         ssh_cmd = (
             f"ssh allierc@login1 "
-            f"\"ln -sf '{cluster_target}' '{cluster_link}'\""
+            f"\"if [ -L '{cluster_dest}' ]; then rm '{cluster_dest}'; fi && "
+            f"if [ ! -d '{cluster_dest}' ]; then cp -r '{cluster_source}' '{cluster_dest}'; fi\""
         )
         result = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
         if result.returncode == 0:
-            print(f"\033[90m  cluster symlink: {slot_name} -> {phase1_dataset}\033[0m")
+            print(f"\033[90m  cluster data copy: {phase1_dataset} -> {slot_name}\033[0m")
         else:
-            print(f"\033[91m  cluster symlink failed for {slot_name}: {result.stderr.strip()}\033[0m")
+            print(f"\033[91m  cluster data copy failed for {slot_name}: {result.stderr.strip()}\033[0m")
 
 
 def setup_cluster_checkpoint(phase1_model_path, slot_config_file, root_dir):
@@ -688,11 +689,11 @@ if __name__ == "__main__":
     print(f"\033[93mPhase 2 PARALLEL (N={N_PARALLEL}, {n_iterations} iterations, starting at {start_iteration})\033[0m")
 
     # -----------------------------------------------------------------------
-    # setup Phase 2 data symlinks and checkpoints
+    # setup Phase 2 data directories and checkpoints
     # -----------------------------------------------------------------------
     print(f"\n\033[93mSetting up Phase 2 data and checkpoints\033[0m")
 
-    # local data symlinks
+    # local data directories
     slot_dataset_full = [slot_names[s] for s in range(N_PARALLEL)]
     phase1_dataset_dir = os.path.join(root_dir, 'graphs_data', phase1_dataset)
     if os.path.isdir(phase1_dataset_dir):
@@ -701,9 +702,9 @@ if __name__ == "__main__":
         print(f"\033[93m  Phase 1 data dir not found locally: {phase1_dataset_dir}\033[0m")
         print(f"\033[93m  (will rely on cluster-side data)\033[0m")
 
-    # cluster data symlinks
+    # cluster data copy
     if cluster_enabled:
-        setup_cluster_data_symlinks(phase1_dataset, slot_dataset_full)
+        setup_cluster_data_copy(phase1_dataset, slot_dataset_full)
 
     # setup Phase 1 checkpoints for each slot (local + cluster)
     best_model_labels = {}

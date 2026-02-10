@@ -97,7 +97,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
 
     has_visual_field = 'visual' in field_type
 
-    log_dir, logger = create_log_dir(config, erase)
+    log_dir, logger = create_log_dir(config, erase, keep_model=best_model)
 
     # --- load data and move to GPU ---
     x_list = []

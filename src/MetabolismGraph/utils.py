@@ -78,7 +78,7 @@ def set_device(device: str = 'auto'):
     return device
 
 
-def create_log_dir(config=[], erase=True):
+def create_log_dir(config=[], erase=True, keep_model=''):
     log_dir = os.path.join('.', 'log', config.config_file)
     print('log_dir: {}'.format(log_dir))
 
@@ -95,6 +95,8 @@ def create_log_dir(config=[], erase=True):
     if erase:
         files = glob.glob(f"{log_dir}/models/*")
         for f in files:
+            if keep_model and keep_model in os.path.basename(f):
+                continue
             os.remove(f)
         results_dir = os.path.join(log_dir, 'results')
         if os.path.exists(results_dir):

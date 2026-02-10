@@ -347,14 +347,17 @@ def compute_phase2_score(log_path):
 def setup_phase2_data(phase1_dataset_dir, slot_dataset_names, root_dir):
     """create symlinks so Phase 2 slots can find Phase 1 data."""
     graphs_dir = os.path.join(root_dir, 'graphs_data')
+    # use relative target so symlinks work across environments
+    rel_target = os.path.basename(phase1_dataset_dir)
     for slot_name in slot_dataset_names:
         link_path = os.path.join(graphs_dir, slot_name)
-        if os.path.exists(link_path):
-            continue
+        # always recreate to ensure correct target
         if os.path.islink(link_path):
             os.unlink(link_path)
-        os.symlink(phase1_dataset_dir, link_path)
-        print(f"\033[90m  symlink: {link_path} -> {phase1_dataset_dir}\033[0m")
+        elif os.path.exists(link_path):
+            continue  # real directory, don't touch
+        os.symlink(rel_target, link_path)
+        print(f"\033[90m  symlink: {slot_name} -> {rel_target}\033[0m")
 
 
 def setup_cluster_data_symlinks(phase1_dataset, slot_dataset_names):

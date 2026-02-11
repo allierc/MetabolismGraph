@@ -1,55 +1,39 @@
 # Phase 2 Working Memory: phase2_homeostasis
 
-## Knowledge Base
+## Fresh Start — Block 1
 
-### Time Step Comparison
-| Block | ts=4 score | ts=16 score | ts=32 score | ts=64 score | Best strategy | Key finding |
-| ----- | ---------- | ----------- | ----------- | ----------- | ------------- | ----------- |
-| 1 (Batch 1) | pending | pending | pending | pending | baseline | Initial baseline comparison |
+### Context
+Previous exploration (13 blocks, 104 iterations) used a **supervised contrastive loss** that read ground-truth metabolite type labels (`x[:, 6]`) during training. This constituted label leakage: embeddings separated because they were told the correct types, not because MLP_node discovered type-dependent regulation. The supervised contrastive loss has been removed from the code.
+
+### What was learned (retaining legitimate findings only)
+
+**Signal characteristics:**
+- Homeostatic signal is ~1000x weaker than reaction dynamics
+- MLP_node starts at zero with near-zero gradients; standard LRs (1E-3) insufficient
+- lr_node_homeo must be higher than lr_emb_homeo (MLP_node must learn first)
+
+**Time step behavior (WITHOUT contrastive loss — from Blocks 1-2 before contrastive was added):**
+- time_step=4: too short for homeostatic signal to accumulate
+- time_step=16: marginal signal
+- time_step=32: best balance of signal accumulation vs gradient noise (Block 1: 0.38)
+- time_step=64: strongest signal but noisier gradients, highly stochastic
+
+**Training strategies (legitimate):**
+- Signal amplification (10x): makes homeostatic gradient comparable to reaction gradient
+- Offset penalty: suppresses constant-output solutions, forces slope learning
+- Gradient accumulation (4x): reduces variance from single-rollout BPTT
+- Gradient clipping: stabilizes long-rollout BPTT
+- Kaiming re-initialization of hidden layers: enables gradient flow through Tanh
+
+**Key open problem:**
+- Without supervised contrastive loss, embedding separation depends entirely on MLP_node producing type-differentiated outputs. If MLP_node learns a single average slope for all metabolites, there is no gradient signal to push embeddings apart. This chicken-and-egg problem is the core challenge.
 
 ### Established Principles
-- MLP_node starts at zero with near-zero gradients; standard LRs (1E-3) may be insufficient
-- lr_node_homeo should be higher than lr_emb_homeo (MLP_node must learn first)
-- Longer rollouts accumulate more homeostatic signal but have noisier gradients
-- homeostatic signal is ~1000x weaker than reaction dynamics
+- DO NOT use ground-truth labels (`x[:, 6]`) during training — label leakage
+- Embeddings must self-organize from learned MLP_node behavioral differences only
+- The previous "best results" (80-92% avg_slope_ratio) were achieved with supervised contrastive loss and are not valid baselines
 
-### Open Questions
-- Which time_step (4, 16, 32, 64) works best for Phase 2?
-- Is lr_node_homeo=0.01 sufficient to escape zero initialization?
-- How many iterations (data_augmentation_loop) needed for convergence?
-
----
-
-## Previous Block Summary
-(None - this is the first block)
-
----
-
-## Current Block (Block 1)
-
-### Block Info
-- Block: 1, Batch: 1
-- Iterations: 1-4 (first batch)
-- Goal: Establish baseline comparison across time_steps
-
-### Strategy Under Test
-**Baseline Configuration** - Same parameters across all 4 slots to isolate the effect of time_step
-
-### Batch 1 Configuration (Iterations 1-4)
-| Slot | time_step | lr_node_homeo | lr_emb_homeo | data_aug_loop | batch_size |
-| ---- | --------- | ------------- | ------------ | ------------- | ---------- |
-| 0 | 4 | 0.01 | 0.001 | 1000 | 8 |
-| 1 | 16 | 0.01 | 0.001 | 1000 | 8 |
-| 2 | 32 | 0.01 | 0.001 | 1000 | 8 |
-| 3 | 64 | 0.01 | 0.001 | 1000 | 8 |
-
-### Rationale
-- lr_node_homeo=0.01: 10x higher than default to escape zero initialization trap
-- lr_emb_homeo=0.001: Lower than node LR since embeddings should follow MLP_node learning
-- data_augmentation_loop=1000: Standard duration for initial test
-- Identical params across slots to isolate time_step effect
-
-### Iterations This Block
-
-### Emerging Observations
-(Will be updated after Batch 1 results)
+### Block 1 Plan
+- Start with legitimate strategies only: amplification + offset penalty + gradient accumulation + gradient clipping
+- Sweep lr_node_homeo across slots at different time_steps
+- Establish unsupervised baselines before attempting any auxiliary losses

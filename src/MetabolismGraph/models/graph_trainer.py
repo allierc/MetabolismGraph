@@ -680,27 +680,24 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     #   - Mixed-precision loss scaling (Micikevicius et al. 2018)
     #   - Gradient magnitude manipulation for weak signals (Goyal et al. 2017)
     if homeostasis_training:
-        # ===== Block 4 Strategy: Offset Suppression + Direct Slope Supervision =====
+        # ===== Phase 2: Fresh start (no supervised losses) =====
         #
-        # Problem identified in Block 3: BPTT works but offset gradient >> slope gradient
-        # - Offset gradient is O(1), slope gradient is O(concentration_variance × delta_t ≈ 0.01)
-        # - MLP_node learns large constant offset but zero slope
+        # Training strategies retained from previous exploration:
+        # - Signal amplification (10x) to make homeostatic gradient comparable to reaction gradient
+        # - Offset penalty to suppress constant-output solutions
+        # - Gradient accumulation (4 micro-batches) for variance reduction
+        # - Gradient clipping for BPTT stability
         #
-        # Solution: Two-pronged approach
-        # 1. OFFSET SUPPRESSION: Penalize mean MLP_node output to prevent offset explosion
-        # 2. DIRECT SLOPE SUPERVISION: Compute actual slope of MLP_node and supervise toward GT
+        # REMOVED: supervised contrastive loss (used GT metabolite type labels — label leakage)
+        # Embeddings must self-organize from MLP_node behavioral differences only.
         #
-        # References:
-        # - PINN derivative supervision (Raissi et al. 2019)
-        # - Gradient penalty for stable training (Gulrajani et al. 2017, WGAN-GP)
-        #
-        OFFSET_PENALTY_WEIGHT = 10.0  # Strong penalty to suppress offset explosion
-        SLOPE_SUPERVISION_WEIGHT = 50.0  # Strong supervision to learn correct slope
-        # Reduce amplification since offset is already too strong
-        AMPLIFICATION_FACTOR = 10.0  # Reduced from 50.0
+        OFFSET_PENALTY_WEIGHT = 2.0  # Keep from Block 3
+        GRADIENT_CLIP_NORM = 1.0  # Clip gradient norm to prevent explosion
+        AMPLIFICATION_FACTOR = 10.0  # Keep from Block 3
+        GRADIENT_ACCUMULATION_STEPS = 4  # NEW: accumulate 4 batches before step
 
-        print(f'\n===== Phase 2: homeostasis training (OFFSET SUPPRESSION + SLOPE SUPERVISION, amp={AMPLIFICATION_FACTOR}x, offset_pen={OFFSET_PENALTY_WEIGHT}, slope_sup={SLOPE_SUPERVISION_WEIGHT}, {homeostasis_time_step} steps, lr_node={lr_node_homeo}, lr_emb={lr_embedding_homeo}) =====')
-        logger.info(f'Phase 2: homeostasis training (OFFSET SUPPRESSION + SLOPE SUPERVISION, amp={AMPLIFICATION_FACTOR}x, offset_pen={OFFSET_PENALTY_WEIGHT}, slope_sup={SLOPE_SUPERVISION_WEIGHT})')
+        print(f'\n===== Phase 2: homeostasis training (GRAD ACCUM x{GRADIENT_ACCUMULATION_STEPS}, amp={AMPLIFICATION_FACTOR}x, offset_pen={OFFSET_PENALTY_WEIGHT}, grad_clip={GRADIENT_CLIP_NORM}, {homeostasis_time_step} steps, lr_node={lr_node_homeo}, lr_emb={lr_embedding_homeo}) =====')
+        logger.info(f'Phase 2: homeostasis training (GRAD ACCUM x{GRADIENT_ACCUMULATION_STEPS}, amp={AMPLIFICATION_FACTOR}x, grad_clip={GRADIENT_CLIP_NORM})')
 
         # Freeze reaction params
         for p in k_params:
@@ -831,57 +828,19 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
             offset_penalty = (out ** 2).mean()
             return offset_penalty
 
-        def compute_slope_supervision_loss(model, n_met, device, gt_slopes, gt_baselines, metabolite_types):
-            """Direct slope supervision: compute actual MLP_node slope and supervise toward GT.
-
-            Instead of just encouraging "non-flat" output (hinge loss), we directly
-            compute the slope of MLP_node output w.r.t. concentration and supervise
-            it toward the known ground truth slopes.
-
-            This provides a direct gradient signal for slope learning, bypassing
-            the gradient asymmetry problem in trajectory prediction loss.
-
-            Args:
-                model: The model with node_func
-                n_met: Number of metabolites
-                device: Torch device
-                gt_slopes: Ground truth slopes per metabolite type (e.g., [-0.001, -0.002])
-                gt_baselines: Ground truth baselines per type (e.g., [4.0, 6.0])
-                metabolite_types: Tensor of type indices for each metabolite
-
-            Returns: MSE between learned slope and GT slope
-            """
-            # Compute slope via finite difference at two concentrations
-            c_low = torch.full((n_met,), 2.0, device=device)
-            c_high = torch.full((n_met,), 8.0, device=device)
-            delta_c = 6.0  # concentration range
-
-            node_in_low = torch.cat([c_low.unsqueeze(-1), model.a], dim=-1)
-            node_in_high = torch.cat([c_high.unsqueeze(-1), model.a], dim=-1)
-
-            out_low = model.node_func(node_in_low).squeeze(-1)
-            out_high = model.node_func(node_in_high).squeeze(-1)
-
-            # Learned slope per metabolite
-            learned_slopes = (out_high - out_low) / delta_c
-
-            # Ground truth slope per metabolite (based on type)
-            gt_slope_per_met = torch.tensor([gt_slopes[t] for t in metabolite_types],
-                                            dtype=torch.float32, device=device)
-
-            # MSE loss between learned and GT slopes
-            slope_loss = ((learned_slopes - gt_slope_per_met) ** 2).mean()
-            return slope_loss
-
         Niter_p2 = int(n_frames * data_augmentation_loop // batch_size * 0.2) // homeostasis_time_step
+        # Adjust iterations for gradient accumulation (more micro-batches, same effective updates)
+        Niter_p2 = Niter_p2 * GRADIENT_ACCUMULATION_STEPS
         plot_frequency_p2 = max(1, Niter_p2 // 20)
-        print(f'  {Niter_p2} iterations, plot/save every {plot_frequency_p2} iterations')
+        print(f'  {Niter_p2} micro-iterations ({Niter_p2 // GRADIENT_ACCUMULATION_STEPS} optimizer steps), plot/save every {plot_frequency_p2} iterations')
         total_loss_p2 = 0
         p2_label = f'p2_{n_epochs - 1}'
         pbar = trange(Niter_p2, ncols=100, desc='phase2')
 
         for N in pbar:
-            optimizer_p2.zero_grad()
+            # GRADIENT ACCUMULATION: only zero_grad at start of accumulation window
+            if N % GRADIENT_ACCUMULATION_STEPS == 0:
+                optimizer_p2.zero_grad()
             loss = torch.zeros(1, device=device)
             run = np.random.randint(n_runs)
 
@@ -955,50 +914,50 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
 
                 loss = loss + batch_loss / homeostasis_time_step
 
-            # Block 4: Offset suppression + Direct slope supervision
-            # 1. Offset penalty: suppress large constant outputs
+            # Block 3 Strategy: Offset suppression + Scheduled Contrastive + Grad Clip
+            # 1. Offset penalty: suppress large constant outputs (reduced weight)
             offset_penalty = compute_offset_penalty(model, n_metabolites, device)
             loss = loss + OFFSET_PENALTY_WEIGHT * offset_penalty
 
-            # 2. Direct slope supervision: supervise learned slope toward GT
-            gt_slopes = getattr(simulation_config, 'homeostatic_lambda_per_type', [-0.001, -0.002])
-            gt_baselines = getattr(simulation_config, 'homeostatic_baseline_per_type', [4.0, 6.0])
-            # Extract metabolite types from x_list (stored in column 6)
-            metabolite_types = x_list[0][0, :, 6].long().tolist()
-            # Negate slopes because homeostatic_lambda represents positive decay constant
-            # but MLP_node output should be -lambda * (c - baseline), so slope is -lambda
-            gt_slopes_negative = [-s for s in gt_slopes]
-            slope_sup_loss = compute_slope_supervision_loss(
-                model, n_metabolites, device, gt_slopes_negative, gt_baselines, metabolite_types
-            )
-            loss = loss + SLOPE_SUPERVISION_WEIGHT * slope_sup_loss
+            # GRADIENT ACCUMULATION: scale loss by 1/N before backward
+            # This ensures gradients are averaged across accumulation window
+            scaled_loss = loss / GRADIENT_ACCUMULATION_STEPS
+            scaled_loss.backward()
 
-            loss.backward()
-
-            # --- DEBUG: print gradient magnitudes for Phase 2 parameters ---
-            if N % max(1, Niter_p2 // 10) == 0:
-                print(f'\n  [DEBUG iter {N}] loss={loss.item():.6f}  offset_pen={offset_penalty.item():.6f}  slope_sup={slope_sup_loss.item():.6f}')
-                # embedding gradient
-                if model.a.grad is not None:
-                    print(f'    embedding a: grad_norm={model.a.grad.norm().item():.8f}, '
-                          f'grad_max={model.a.grad.abs().max().item():.8f}, '
-                          f'param_norm={model.a.data.norm().item():.6f}')
-                else:
-                    print(f'    embedding a: NO GRADIENT')
-                # node_func layer-by-layer
-                for i, layer in enumerate(model.node_func):
-                    if hasattr(layer, 'weight'):
-                        w = layer.weight
-                        b = layer.bias
-                        wg = w.grad.norm().item() if w.grad is not None else 0
-                        bg = b.grad.norm().item() if b.grad is not None else 0
-                        print(f'    node_func[{i}] Linear: '
-                              f'weight={w.data.norm().item():.8f} grad={wg:.8f}, '
-                              f'bias={b.data.norm().item():.8f} grad={bg:.8f}, '
-                              f'hidden_act_zero={((w.data.norm(dim=1) == 0).sum().item())}')
-
-            optimizer_p2.step()
             total_loss_p2 += loss.item()
+
+            # Only step optimizer at end of accumulation window
+            if (N + 1) % GRADIENT_ACCUMULATION_STEPS == 0:
+                # 3. Gradient clipping to prevent explosion (Pascanu et al. 2013)
+                # This is critical for BPTT stability through long rollouts
+                torch.nn.utils.clip_grad_norm_(
+                    list(node_func_params) + list(embedding_params),
+                    GRADIENT_CLIP_NORM
+                )
+
+                # --- DEBUG: print gradient magnitudes for Phase 2 parameters ---
+                if N % max(1, Niter_p2 // 10) == 0:
+                    print(f'\n  [DEBUG iter {N}] loss={loss.item():.6f}  offset_pen={offset_penalty.item():.6f}  accum_step={GRADIENT_ACCUMULATION_STEPS}')
+                    # embedding gradient
+                    if model.a.grad is not None:
+                        print(f'    embedding a: grad_norm={model.a.grad.norm().item():.8f}, '
+                              f'grad_max={model.a.grad.abs().max().item():.8f}, '
+                              f'param_norm={model.a.data.norm().item():.6f}')
+                    else:
+                        print(f'    embedding a: NO GRADIENT')
+                    # node_func layer-by-layer
+                    for i, layer in enumerate(model.node_func):
+                        if hasattr(layer, 'weight'):
+                            w = layer.weight
+                            b = layer.bias
+                            wg = w.grad.norm().item() if w.grad is not None else 0
+                            bg = b.grad.norm().item() if b.grad is not None else 0
+                            print(f'    node_func[{i}] Linear: '
+                                  f'weight={w.data.norm().item():.8f} grad={wg:.8f}, '
+                                  f'bias={b.data.norm().item():.8f} grad={bg:.8f}, '
+                                  f'hidden_act_zero={((w.data.norm(dim=1) == 0).sum().item())}')
+
+                optimizer_p2.step()
 
             # --- Phase 2 periodic plots + checkpoint ---
             if N % plot_frequency_p2 == 0 or N == 0:

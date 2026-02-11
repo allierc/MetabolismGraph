@@ -153,20 +153,23 @@ This makes the homeostatic contribution comparable in magnitude to reaction term
 
 **References**: Curriculum learning (Bengio et al. 2009), loss scaling in mixed-precision training.
 
-### Strategy 3: Auxiliary Contrastive Loss for Embeddings
+### Strategy 3: Unsupervised Auxiliary Loss for Embeddings
 
-Add an auxiliary loss that directly pushes embeddings apart based on metabolite type information from MLP_node output patterns:
+Add an auxiliary loss that encourages embedding separation based on **learned MLP_node behavior** (NOT ground-truth labels):
 
 ```python
-# Metabolites with similar MLP_node response should have similar embeddings
-# Metabolites with different MLP_node response should have different embeddings
-loss_contrastive = contrastive_loss(embeddings, groups_from_node_output)
+# Evaluate MLP_node at a grid of concentrations for each metabolite
+# Group metabolites by similarity of their MLP_node response curves
+response_similarity = pairwise_cosine(mlp_node_responses)  # from learned behavior
+loss_contrastive = contrastive_loss(embeddings, response_similarity)
 loss_total = loss_main + lambda_contrastive * loss_contrastive
 ```
 
-This decouples embedding learning from the weak homeostatic gradient, providing a direct signal to separate embeddings by functional type.
+This decouples embedding learning from the weak homeostatic gradient, providing a direct signal to separate embeddings by **functional behavior**. Metabolites whose MLP_node produces similar output curves should cluster together; those with different curves should separate.
 
-**References**: Contrastive learning (Chen et al. 2020), triplet loss (Schroff et al. 2015).
+**WARNING**: Do NOT use ground-truth metabolite type labels (`x[:, 6]`) for contrastive grouping — this is label leakage. The groups must come from learned model outputs only.
+
+**References**: Self-supervised contrastive learning (Chen et al. 2020), SimCLR, BYOL.
 
 ### Strategy 4: Curriculum on Time Steps
 
@@ -323,7 +326,7 @@ Next: parent=P
 |-----------|----------|--------|
 | Default | **exploit** | Highest UCB node, conservative parameter mutation |
 | avg_slope_ratio stuck near 0 for 3+ iters | **strategy-switch** | Try a different literature strategy (code change) |
-| slope_ratios moving but embeddings stuck | **embedding-focus** | Increase lr_emb_homeo, add contrastive loss |
+| slope_ratios moving but embeddings stuck | **embedding-focus** | Increase lr_emb_homeo, add unsupervised contrastive loss (Strategy 3) |
 | Embeddings separated but slope_ratios wrong | **slope-focus** | Increase lr_node_homeo, try residual supervision |
 | avg_slope_ratio 0.5-1.5 for 3+ iters | **exploit** | Fine-tune LRs and training duration |
 | All failed for 4+ iters | **explore** | Try a fundamentally different approach (code change) |
@@ -374,6 +377,7 @@ When the prompt includes `>>> BLOCK END + CODE REVIEW <<<`:
 - Data generation or loading code
 - Checkpoint format or saving logic
 - Metric computation in the analysis section (must remain comparable across runs)
+- **CRITICAL: NO SUPERVISED LOSSES USING GROUND-TRUTH LABELS.** The metabolite type labels stored in `x[:, 6]` are ground-truth annotations. Any loss that reads these labels during training (e.g., supervised contrastive loss, classification loss, type-aware grouping) constitutes label leakage and is **strictly forbidden**. Embeddings must self-organize from learned MLP_node behavioral differences only — not from GT type supervision. The only legitimate use of `x[:, 6]` is in the **analysis/evaluation** section (after training) for computing metrics like `embedding_cluster_acc`.
 
 ## Visual Analysis
 

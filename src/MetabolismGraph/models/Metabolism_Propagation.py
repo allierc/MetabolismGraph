@@ -82,12 +82,17 @@ class Metabolism_Propagation(nn.Module):
         self.a = nn.Parameter(torch.randn(n_met, embedding_dim) * 0.1)
 
         # MLP_node: (c_i, a_i) -> homeostasis term (learns -λ_i(c_i - c_baseline))
-        # initialized to zero output so homeostasis starts inactive
+        # Hidden layers keep default (Kaiming) init for gradient flow;
+        # only the output layer is zeroed so homeostasis starts inactive.
         node_sizes = [1 + embedding_dim] + [hidden_node] * (n_layers_node - 1) + [1]
         self.node_func = mlp(node_sizes, activation=nn.Tanh)
         with torch.no_grad():
-            for p in self.node_func.parameters():
-                p.zero_()
+            # Zero only the last Linear layer (output layer)
+            for module in reversed(list(self.node_func.modules())):
+                if isinstance(module, nn.Linear):
+                    module.weight.zero_()
+                    module.bias.zero_()
+                    break
 
         # MLP_sub: (c_k, |s_kj|) -> substrate contribution (learns c^s)
         sub_sizes = [2] + [hidden_sub] * (n_layers_sub - 1) + [1]

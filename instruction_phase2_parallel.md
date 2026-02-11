@@ -60,7 +60,7 @@ When the prompt says `PARALLEL START`:
 
 ## Logging Format
 
-Write 4 entries per batch. Same as base instructions but include slot/time_step info, `phase2_score` as primary metric, and the strategy tested.
+Write 4 entries per batch. Same as base instructions but include slot/time_step info, `avg_slope_ratio` as primary metric, and the strategy tested.
 
 ```
 ## Iter N: [converged/partial/failed]
@@ -68,8 +68,8 @@ Node: id=N, parent=P
 Mode/Strategy: [exploit/explore/strategy_name]
 Slot: slot_S (time_step=T)
 Config: lr_node_homeo=X, lr_emb_homeo=Y, data_augmentation_loop=A, batch_size=B
-Metrics: phase2_score=P, slope_accuracy=SA, MLP_node_slope_0=X, MLP_node_gt_slope_0=Y, MLP_node_slope_1=X, MLP_node_gt_slope_1=Y, embedding_cluster_acc=A, embedding_n_clusters=N, rate_constants_R2=R
-Visual: MLP_node=[active/inactive: slope comparison], Embeddings=[separated/clustered/collapsed]
+Metrics: avg_slope_ratio=S, slope_ratio_0=X, offset_ratio_0=Y, slope_ratio_1=X, offset_ratio_1=Y, embedding_cluster_acc=A, embedding_n_clusters=N, rate_constants_R2=R
+Visual: MLP_node=[active/inactive: slope_ratio comparison], Embeddings=[separated/clustered/collapsed]
 Mutation: [param]: [old] -> [new]
 Strategy: [literature strategy tested, e.g. "residual direct supervision", "signal amplification"]
 Observation: [one line — how does time_step=T compare to other slots?]
@@ -94,7 +94,7 @@ If a slot is marked `[FAILED]` in the prompt:
 
 At `>>> BLOCK END + CODE REVIEW <<<`:
 
-1. Summarize phase2_score for all 8 runs in a table (4 time_steps x 2 batches)
+1. Summarize avg_slope_ratio for all 8 runs in a table (4 time_steps x 2 batches)
 2. Identify the best-performing time_step and config
 3. Diagnose: is the bottleneck in config params or in the Phase 2 code logic?
 4. If code change needed: edit `graph_trainer.py`, explain rationale

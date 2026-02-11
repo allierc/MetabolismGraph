@@ -13,18 +13,20 @@ The Phase 1 model has already captured the reaction dynamics. Phase 2 isolates t
 
 Find training hyperparameters and code strategies that recover **homeostatic regulation slopes** and **metabolite type embeddings** from Phase 1 residuals.
 
-**Primary optimization target**: `phase2_score` — a composite metric defined as:
+**Primary optimization target**: `avg_slope_ratio` — the mean of `slope_learned / slope_gt` across all metabolite types.
 
-```
-slope_accuracy = 1 - mean(|learned_slope_t - gt_slope_t| / |gt_slope_t|)   clamped to [0, 1]
-phase2_score = 0.5 * slope_accuracy + 0.4 * embedding_cluster_acc + 0.1 * (rate_constants_R2 > 0.5)
-```
+- **Best value = 1.0** (learned slope matches ground truth exactly)
+- **< 1** means slope too small (e.g. 0.1 = slope is 10x too weak)
+- **> 1** means slope too large (e.g. 10 = slope is 10x too strong)
+- **0** means MLP_node is flat (no homeostasis learned)
 
 **Three sub-goals:**
 
-1. **MLP_node_slope_0 -> -0.001** (ground truth): Type 0 metabolites should exhibit homeostatic decay with slope -0.001
-2. **MLP_node_slope_1 -> -0.002** (ground truth): Type 1 metabolites should exhibit homeostatic decay with slope -0.002
+1. **slope_ratio_0 -> 1.0**: Type 0 learned slope should match GT slope (-0.001)
+2. **slope_ratio_1 -> 1.0**: Type 1 learned slope should match GT slope (-0.002)
 3. **embedding_cluster_acc -> 1.0**: Learned embeddings a_i should cleanly separate the two metabolite types into distinct clusters
+
+Per-type metrics reported: `slope_ratio_t = learned_slope / gt_slope`, `offset_ratio_t = learned_offset / gt_offset`
 
 ## The Challenge
 
@@ -87,15 +89,17 @@ The following metrics are written to `analysis.log` at the end of training:
 |--------|-------------|------------|
 | `phase2_loss` | Phase 2 training loss (MSE on concentration trajectory) | Lower is better |
 | `phase2_node_magnitude` | Mean absolute MLP_node output across all metabolites | > 0 (non-zero means learning) |
-| `MLP_node_slope_0` | Learned slope of MLP_node for type 0 metabolites (linear fit over concentration sweep) | ~ -0.001 |
-| `MLP_node_slope_1` | Learned slope of MLP_node for type 1 metabolites (linear fit over concentration sweep) | ~ -0.002 |
-| `MLP_node_gt_slope_0` | Ground-truth slope for type 0 metabolites | -0.001 (reference) |
-| `MLP_node_gt_slope_1` | Ground-truth slope for type 1 metabolites | -0.002 (reference) |
+| `MLP_node_slope_ratio_t` | Ratio `learned_slope / gt_slope` for type t. Best = 1.0 | 1.0 |
+| `MLP_node_offset_ratio_t` | Ratio `learned_offset / gt_offset` for type t. Best = 1.0 | 1.0 |
+| `MLP_node_slope_t` | Learned slope of MLP_node for type t (linear fit y=ax+b over concentration sweep) | ~ gt_slope |
+| `MLP_node_gt_slope_t` | Ground-truth slope for type t | -0.001 (type 0), -0.002 (type 1) |
+| `MLP_node_offset_t` | Learned offset (intercept) of MLP_node for type t | ~ gt_offset |
+| `MLP_node_gt_offset_t` | Ground-truth offset for type t | lambda_t * c_baseline_t |
 | `embedding_cluster_acc` | DBSCAN cluster accuracy of learned embeddings vs GT metabolite types (Hungarian optimal mapping) | 1.0 |
 | `embedding_n_clusters` | Number of clusters found by DBSCAN in embedding space | 2 |
 | `embedding_silhouette` | Silhouette score of embedding clustering (cluster tightness and separation) | > 0.5 |
 | `rate_constants_R2` | Phase 1 sanity check — R-squared of learned vs true rate constants | > 0.5 (must stay high) |
-| `phase2_score` | Composite metric: 0.5 * slope_accuracy + 0.4 * cluster_acc + 0.1 * (R2 > 0.5) | > 0.7 |
+| `avg_slope_ratio` | Primary metric: mean(slope_ratio) across types. Best = 1.0, <1 too weak, >1 too strong | 1.0 |
 
 ### Interpretation
 
@@ -107,7 +111,7 @@ The following metrics are written to `analysis.log` at the end of training:
 
 - **rate_constants_R2 dropped significantly (below 0.5)**: PROBLEM. Phase 1 parameters have been corrupted. Check that all Phase 1 parameters are properly frozen (`skip_phase1=true`, `freeze_stoichiometry=true`). This should not happen if freezing is correct.
 
-- **phase2_score stuck near 0.1**: Only the R2 > 0.5 baseline term is contributing. Both slopes and embeddings are failing. Consider a code-level strategy change (see Literature-Informed Strategies).
+- **avg_slope_ratio near 0**: MLP_node is flat at zero. Both slopes and embeddings are failing. Consider a code-level strategy change (see Literature-Informed Strategies).
 
 ## Literature-Informed Strategies
 
@@ -252,20 +256,19 @@ Read `{config}_memory.md` to recall:
 ### Step 2: Analyze Current Results
 
 **Metrics from `analysis.log`:**
-- `phase2_score`: Primary composite metric
-- `MLP_node_slope_0` vs `MLP_node_gt_slope_0`: How close is type 0 homeostasis?
-- `MLP_node_slope_1` vs `MLP_node_gt_slope_1`: How close is type 1 homeostasis?
+- `avg_slope_ratio`: Primary metric — mean(learned_slope/gt_slope) across types. Best=1.0
+- `MLP_node_slope_ratio_t`, `MLP_node_offset_ratio_t`: Per-type ratios (best=1.0)
 - `embedding_cluster_acc`: Are embeddings separating?
 - `phase2_node_magnitude`: Is MLP_node producing any output at all?
 - `rate_constants_R2`: Sanity check — Phase 1 parameters intact?
 
 **Classification:**
 
-| phase2_score | Classification |
-|:------------:|:--------------:|
-| > 0.7 | converged |
-| 0.3 - 0.7 | partial |
-| < 0.3 | failed |
+| avg_slope_ratio | Classification |
+|:---------------:|:--------------:|
+| 0.8 - 1.2 | converged (within 20% of GT) |
+| 0.3 - 0.8 or 1.2 - 3.0 | partial (correct direction) |
+| < 0.3 or > 3.0 or ~0 | failed |
 
 **Visual Analysis:**
 
@@ -290,7 +293,7 @@ Node: id=N, parent=P
 Mode/Strategy: [exploit/explore/strategy_name]
 Slot: slot_S (time_step=T)
 Config: lr_node_homeo=X, lr_emb_homeo=Y, data_augmentation_loop=A, batch_size=B
-Metrics: phase2_score=S, slope_accuracy=SA, MLP_node_slope_0=X, MLP_node_gt_slope_0=Y, MLP_node_slope_1=X, MLP_node_gt_slope_1=Y, embedding_cluster_acc=A, embedding_n_clusters=N, rate_constants_R2=R
+Metrics: avg_slope_ratio=S, slope_ratio_0=X, offset_ratio_0=Y, slope_ratio_1=X, offset_ratio_1=Y, embedding_cluster_acc=A, embedding_n_clusters=N, rate_constants_R2=R
 Visual: MLP_node=[active/inactive: slope comparison], Embeddings=[separated/clustered/collapsed]
 Mutation: [param]: [old] -> [new]
 Strategy: [which literature strategy was attempted]
@@ -319,10 +322,10 @@ Next: parent=P
 | Condition | Strategy | Action |
 |-----------|----------|--------|
 | Default | **exploit** | Highest UCB node, conservative parameter mutation |
-| phase2_score stuck < 0.3 for 3+ iters | **strategy-switch** | Try a different literature strategy (code change) |
-| Slopes moving but embeddings stuck | **embedding-focus** | Increase lr_emb_homeo, add contrastive loss |
-| Embeddings separated but slopes wrong | **slope-focus** | Increase lr_node_homeo, try residual supervision |
-| phase2_score > 0.5 for 3+ iters | **exploit** | Fine-tune LRs and training duration |
+| avg_slope_ratio stuck near 0 for 3+ iters | **strategy-switch** | Try a different literature strategy (code change) |
+| slope_ratios moving but embeddings stuck | **embedding-focus** | Increase lr_emb_homeo, add contrastive loss |
+| Embeddings separated but slope_ratios wrong | **slope-focus** | Increase lr_node_homeo, try residual supervision |
+| avg_slope_ratio 0.5-1.5 for 3+ iters | **exploit** | Fine-tune LRs and training duration |
 | All failed for 4+ iters | **explore** | Try a fundamentally different approach (code change) |
 
 **Parameter exploration order:**
@@ -354,7 +357,7 @@ When the prompt includes `>>> BLOCK END + CODE REVIEW <<<`:
 - Only modify code between `# ===== Phase 2: Homeostasis training (recurrent) =====` and the next section marker `# --- final analysis`
 - **DO NOT** modify Phase 1 code, model architecture, or data generation
 - **DO NOT** change the function signature or checkpoint saving format
-- **Ensure** `analysis.log` still receives all metrics (`phase2_loss`, `phase2_node_magnitude`, `MLP_node_slope_0`, `MLP_node_slope_1`, `embedding_cluster_acc`, `phase2_score`, etc.)
+- **Ensure** `analysis.log` still receives all metrics (`phase2_loss`, `phase2_node_magnitude`, `MLP_node_slope_ratio_0`, `MLP_node_offset_ratio_0`, `MLP_node_slope_ratio_1`, `MLP_node_offset_ratio_1`, `embedding_cluster_acc`, etc.)
 - **Explain** your code changes with literature rationale (reference the strategy number)
 - Changes will be synced to the cluster automatically
 
@@ -421,7 +424,7 @@ You maintain **TWO** files:
 
 ### Key questions to resolve
 
-- **Which rollout length works best?** Longer rollouts accumulate more homeostatic signal but have noisier gradients. Compare phase2_score across slots.
+- **Which rollout length works best?** Longer rollouts accumulate more homeostatic signal but have noisier gradients. Compare avg_slope_ratio across slots.
 - **LR magnitude**: Does MLP_node need 1E-1 to escape zero, or is 1E-2 sufficient?
 - **Training duration**: How many iterations before slopes converge? Is 1000 enough or do we need 5000?
 - **Code strategy**: If hyperparameter-only exploration fails across all slots, which literature strategy (1-8) breaks the deadlock?

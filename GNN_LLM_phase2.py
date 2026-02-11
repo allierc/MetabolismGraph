@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import time
+import numpy as np
 import yaml
 
 # redirect PyTorch JIT cache to /scratch instead of /tmp (per IT request)
@@ -291,30 +292,31 @@ def run_claude_cli(prompt, root_dir, max_turns=500, allow_code_edit=False):
 # ---------------------------------------------------------------------------
 
 def compute_phase2_score(log_path):
-    """compute composite Phase 2 score from analysis.log.
+    """compute Phase 2 score from analysis.log.
 
-    Returns dict with:
-      - phase2_score: composite metric in [0, 1]
-      - slope_accuracy: 1 - mean(|learned - gt| / |gt|) clamped to [0, 1]
-      - embedding_cluster_acc: from analysis.log
-      - rate_constants_R2: from analysis.log (sanity check)
+    Primary metric: avg_slope_ratio = mean(slope_learned / slope_gt) across types.
+    Best value is 1.0 (perfect match).  <1 means slope too small, >1 means too large.
+
+    Returns dict with per-type slope_ratio, offset_ratio, and the avg_slope_ratio.
     """
+    empty = {'avg_slope_ratio': 0.0,
+             'embedding_cluster_acc': 0.0, 'rate_constants_R2': 0.0}
     if not os.path.exists(log_path):
-        return {'phase2_score': 0.0, 'slope_accuracy': 0.0,
-                'embedding_cluster_acc': 0.0, 'rate_constants_R2': 0.0}
+        return empty
 
     with open(log_path, 'r') as f:
         content = f.read()
 
-    # parse slopes
-    slopes = {}
-    gt_slopes = {}
+    # parse slope_ratio and offset_ratio (written directly by graph_trainer)
+    slope_ratios = {}
+    offset_ratios = {}
     for t in range(10):  # up to 10 types
-        m = re.search(rf'MLP_node_slope_{t}:\s*([-\d.eE+]+)', content)
-        g = re.search(rf'MLP_node_gt_slope_{t}:\s*([-\d.eE+]+)', content)
-        if m and g:
-            slopes[t] = float(m.group(1))
-            gt_slopes[t] = float(g.group(1))
+        sr = re.search(rf'MLP_node_slope_ratio_{t}:\s*([-\d.eE+]+)', content)
+        orr = re.search(rf'MLP_node_offset_ratio_{t}:\s*([-\d.eE+]+)', content)
+        if sr:
+            slope_ratios[t] = float(sr.group(1))
+        if orr:
+            offset_ratios[t] = float(orr.group(1))
 
     cluster_m = re.search(r'embedding_cluster_acc:\s*([\d.]+)', content)
     cluster_acc = float(cluster_m.group(1)) if cluster_m else 0.0
@@ -322,26 +324,19 @@ def compute_phase2_score(log_path):
     r2_m = re.search(r'rate_constants_R2:\s*([\d.]+)', content)
     r2 = float(r2_m.group(1)) if r2_m else 0.0
 
-    # compute slope accuracy
-    if slopes and gt_slopes:
-        errors = []
-        for t in slopes:
-            if t in gt_slopes and abs(gt_slopes[t]) > 1e-8:
-                errors.append(abs(slopes[t] - gt_slopes[t]) / abs(gt_slopes[t]))
-        slope_accuracy = max(0.0, min(1.0, 1.0 - (sum(errors) / len(errors)))) if errors else 0.0
-    else:
-        slope_accuracy = 0.0
+    # primary score: avg slope_ratio (best=1.0)
+    avg_slope_ratio = float(np.mean(list(slope_ratios.values()))) if slope_ratios else 0.0
 
-    r2_preserved = 1.0 if r2 > 0.5 else 0.0
-
-    phase2_score = 0.5 * slope_accuracy + 0.4 * cluster_acc + 0.1 * r2_preserved
-
-    return {
-        'phase2_score': phase2_score,
-        'slope_accuracy': slope_accuracy,
+    result = {
+        'avg_slope_ratio': avg_slope_ratio,
         'embedding_cluster_acc': cluster_acc,
         'rate_constants_R2': r2,
     }
+    for t in slope_ratios:
+        result[f'slope_ratio_{t}'] = slope_ratios[t]
+    for t in offset_ratios:
+        result[f'offset_ratio_{t}'] = offset_ratios[t]
+    return result
 
 
 def setup_phase2_data(phase1_dataset_dir, slot_dataset_names, root_dir):
@@ -1095,13 +1090,15 @@ Fix the bug in the Phase 2 training code. Do NOT make other changes."""
                 continue
             scores = compute_phase2_score(analysis_log_paths[slot_idx])
             phase2_scores[slot_idx] = scores
+            sr_parts = [f"t{t}={scores.get(f'slope_ratio_{t}', 0):.4f}" for t in range(10) if f'slope_ratio_{t}' in scores]
+            or_parts = [f"t{t}={scores.get(f'offset_ratio_{t}', 0):.4f}" for t in range(10) if f'offset_ratio_{t}' in scores]
             print(f"  slot {slot_idx} (ts={FIXED_TIME_STEPS[slot_idx]}): "
-                  f"phase2_score={scores['phase2_score']:.4f} "
-                  f"(slope_acc={scores['slope_accuracy']:.4f}, "
+                  f"avg_slope_ratio={scores['avg_slope_ratio']:.4f} "
+                  f"(slope_ratio=[{', '.join(sr_parts)}], offset_ratio=[{', '.join(or_parts)}], "
                   f"cluster={scores['embedding_cluster_acc']:.4f}, "
                   f"R2={scores['rate_constants_R2']:.4f})")
 
-        # UCB scoring with phase2_score as primary metric
+        # UCB scoring with avg_slope_ratio as primary metric
         ucb_c = claude_ucb_c
         existing_content = ""
         if os.path.exists(analysis_path):
@@ -1113,12 +1110,12 @@ Fix the bug in the Phase 2 training code. Do NOT make other changes."""
             if not job_results.get(slot_idx, False):
                 continue
             scores = phase2_scores.get(slot_idx, {})
-            p2_score = scores.get('phase2_score', 0.0)
+            p2_score = scores.get('avg_slope_ratio', 0.0)
             if f'## Iter {iteration}:' not in existing_content:
                 stub_entries += (
                     f"\n## Iter {iteration}: pending\n"
                     f"Node: id={iteration}, parent=root\n"
-                    f"Metrics: phase2_score={p2_score:.4f}\n"
+                    f"Metrics: avg_slope_ratio={p2_score:.4f}\n"
                 )
 
         tmp_analysis = analysis_path + '.tmp_ucb'
@@ -1131,7 +1128,7 @@ Fix the bug in the Phase 2 training code. Do NOT make other changes."""
             current_iteration=batch_last,
             block_size=n_iter_block,
             config_file=config_file,
-            primary_metric='phase2_score'
+            primary_metric='avg_slope_ratio'
         )
         os.remove(tmp_analysis)
         print(f"\033[92mUCB scores computed: {ucb_path}\033[0m")
@@ -1147,12 +1144,17 @@ Fix the bug in the Phase 2 training code. Do NOT make other changes."""
             status = "COMPLETED" if job_results.get(slot, False) else "FAILED"
             act_path = activity_paths.get(slot, "N/A")
             scores = phase2_scores.get(slot, {})
-            score_str = (
-                f"phase2_score={scores.get('phase2_score', 0):.4f}, "
-                f"slope_acc={scores.get('slope_accuracy', 0):.4f}, "
-                f"cluster_acc={scores.get('embedding_cluster_acc', 0):.4f}, "
-                f"R2={scores.get('rate_constants_R2', 0):.4f}"
-            ) if scores else "N/A"
+            if scores:
+                sr_strs = [f"slope_ratio_t{t}={scores.get(f'slope_ratio_{t}', 0):.4f}" for t in range(10) if f'slope_ratio_{t}' in scores]
+                or_strs = [f"offset_ratio_t{t}={scores.get(f'offset_ratio_{t}', 0):.4f}" for t in range(10) if f'offset_ratio_{t}' in scores]
+                score_str = (
+                    f"avg_slope_ratio={scores.get('avg_slope_ratio', 0):.4f} (best=1.0), "
+                    f"{', '.join(sr_strs)}, {', '.join(or_strs)}, "
+                    f"cluster_acc={scores.get('embedding_cluster_acc', 0):.4f}, "
+                    f"R2={scores.get('rate_constants_R2', 0):.4f}"
+                )
+            else:
+                score_str = "N/A"
             slot_info_lines.append(
                 f"Slot {slot} (iteration {iteration}, time_step={FIXED_TIME_STEPS[slot]}) [{status}]:\n"
                 f"  Phase 2 scores: {score_str}\n"
@@ -1212,7 +1214,7 @@ IMPORTANT:
                            current_iteration=batch_last,
                            block_size=n_iter_block,
                            config_file=config_file,
-                           primary_metric='phase2_score')
+                           primary_metric='avg_slope_ratio')
 
         # UCB tree visualization
         should_save_tree = is_block_start or is_block_end

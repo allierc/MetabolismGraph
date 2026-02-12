@@ -55,12 +55,12 @@ class PDE_M1(nn.Module):
 
         n_met = config.simulation.n_metabolites
         n_rxn = config.simulation.n_reactions
-        msg_dim = config.graph_model.output_size
+        msg_dim = getattr(config.graph_model, 'output_size_sub', getattr(config.graph_model, 'output_size', 1))
 
         # per-MLP architecture from config (with fallbacks)
-        hidden_sub = getattr(config.graph_model, 'hidden_dim_sub', config.graph_model.hidden_dim)
+        hidden_sub = getattr(config.graph_model, 'hidden_dim_sub', 64)
         n_layers_sub = getattr(config.graph_model, 'n_layers_sub', 2)
-        hidden_node = getattr(config.graph_model, 'hidden_dim_node', config.graph_model.hidden_dim)
+        hidden_node = getattr(config.graph_model, 'hidden_dim_node', 64)
         n_layers_node = getattr(config.graph_model, 'n_layers_node', 2)
 
         self.n_met = n_met

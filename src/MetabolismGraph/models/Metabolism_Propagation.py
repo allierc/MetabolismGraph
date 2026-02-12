@@ -56,7 +56,7 @@ class Metabolism_Propagation(nn.Module):
 
         n_met = simulation_config.n_metabolites
         n_rxn = simulation_config.n_reactions
-        msg_dim = model_config.output_size
+        msg_dim = getattr(model_config, 'output_size_sub', getattr(model_config, 'output_size', 1))
 
         # per-MLP architecture from config (with fallbacks)
         hidden_sub = getattr(model_config, 'hidden_dim_sub', 64)

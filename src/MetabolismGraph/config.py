@@ -88,12 +88,8 @@ class GraphModelConfig(BaseModel):
 
     field_type: str = ""
 
-    input_size: int = 2
-    output_size: int = 16
-    hidden_dim: int = 32
-    n_layers: int = 3
-
     # MLP_sub (substrate_func): (c_k, |s_kj|) -> substrate contribution
+    output_size_sub: int = 1
     hidden_dim_sub: int = 64
     n_layers_sub: int = 3
 
@@ -158,6 +154,12 @@ class TrainingConfig(BaseModel):
     learning_rate_embedding_start: float = 0.001
     training_single_type: bool = False  # if True, fix embeddings to single type (no a_i learning)
     learning_rate_NNR_f: float = 0.0001
+
+    # per-component learning rates (0 = use learning_rate_start)
+    learning_rate_k: float = 0.0
+    learning_rate_node: float = 0.0
+    learning_rate_sub: float = 0.0
+    learning_rate_embedding: float = 0.0
 
     # stoichiometry learning rate and regularization
     learning_rate_S_start: float = 0.0

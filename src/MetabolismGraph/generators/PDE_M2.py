@@ -49,8 +49,8 @@ class PDE_M2(nn.Module):
 
         n_met = config.simulation.n_metabolites
         n_rxn = config.simulation.n_reactions
-        hidden = config.graph_model.hidden_dim
-        msg_dim = config.graph_model.output_size
+        hidden = getattr(config.graph_model, 'hidden_dim_sub', getattr(config.graph_model, 'hidden_dim', 64))
+        msg_dim = getattr(config.graph_model, 'output_size_sub', getattr(config.graph_model, 'output_size', 1))
 
         self.n_met = n_met
         self.n_rxn = n_rxn

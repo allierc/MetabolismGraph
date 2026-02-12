@@ -258,20 +258,22 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     lr = train_config.learning_rate_start
     lr_S = train_config.learning_rate_S_start
     # separate learning rates for model components (fall back to lr if not specified)
-    lr_k = getattr(train_config, 'learning_rate_k', lr)
-    lr_node = getattr(train_config, 'learning_rate_node', lr)
-    lr_sub = getattr(train_config, 'learning_rate_sub', lr)
+    lr_k = train_config.learning_rate_k or lr
+    lr_node = train_config.learning_rate_node or lr
+    lr_sub = train_config.learning_rate_sub or lr
+    lr_embedding = train_config.learning_rate_embedding or lr_node
     if lr_node_homeo == 0.0:
         lr_node_homeo = lr_node
     if lr_embedding_homeo == 0.0:
         lr_embedding_homeo = lr_node_homeo
 
-    # separate parameters into groups: k, MLP_node, MLP_sub, stoichiometry
-    k_params = []       # log_k (rate constants)
-    node_params = []    # MLP_node (node_func + embeddings a)
-    sub_params = []     # MLP_sub (substrate_func)
-    stoich_params = []  # sto_all (stoichiometry)
-    other_params = []   # anything else
+    # separate parameters into groups: k, MLP_node, embedding, MLP_sub, stoichiometry
+    k_params = []         # log_k (rate constants)
+    node_params = []      # MLP_node (node_func)
+    embedding_params = [] # embeddings a
+    sub_params = []       # MLP_sub (substrate_func)
+    stoich_params = []    # sto_all (stoichiometry)
+    other_params = []     # anything else
 
     for name, p in model.named_parameters():
         if 'sto_' in name:
@@ -281,7 +283,9 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
             continue  # handled by optimizer_f
         elif 'log_k' in name:
             k_params.append(p)
-        elif 'node_func' in name or name == 'a':
+        elif name == 'a':
+            embedding_params.append(p)
+        elif 'node_func' in name:
             node_params.append(p)
         elif 'substrate_func' in name:
             sub_params.append(p)
@@ -293,6 +297,8 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
         param_groups.append({'params': k_params, 'lr': lr_k, 'name': 'k'})
     if node_params:
         param_groups.append({'params': node_params, 'lr': lr_node, 'name': 'MLP_node'})
+    if embedding_params:
+        param_groups.append({'params': embedding_params, 'lr': lr_embedding, 'name': 'embedding'})
     if sub_params:
         param_groups.append({'params': sub_params, 'lr': lr_sub, 'name': 'MLP_sub'})
     if other_params:
@@ -651,6 +657,14 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
             ),
         )
 
+        recurrent_training = True
+        if epoch == 0:
+            time_step = 2
+        else:
+            time_step = min(time_step * 2, 64)
+        print(f'{recurrent_training} time_step: {time_step}')
+
+
     # ===== Phase 2: Homeostasis training (recurrent) =====
     # Strategy 2: Signal Amplification + Slope-Weighted Loss (Bengio et al. 2009, Goyal et al. 2017)
     #
@@ -679,7 +693,8 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     #   - Curriculum learning / loss scaling (Bengio et al. 2009)
     #   - Mixed-precision loss scaling (Micikevicius et al. 2018)
     #   - Gradient magnitude manipulation for weak signals (Goyal et al. 2017)
-    if homeostasis_training:
+
+    if False: # homeostasis_training:
         # ===== Phase 2: Fresh start (no supervised losses) =====
         #
         # Training strategies retained from previous exploration:

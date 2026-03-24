@@ -168,7 +168,19 @@ class Metabolism_Propagation(nn.Module):
         n_prod_per_rxn.clamp_(min=1.0)
         self.register_buffer('n_prod_per_rxn', n_prod_per_rxn)
 
-    def forward(self, data=None, has_field=False, frame=None):
+        # stimulus substrate edges (external sources driving reactions)
+        stimulus_sub = stoich_graph.get('stimulus_sub', None)
+        if stimulus_sub is not None:
+            (stim_idx, stim_rxn, stim_sto) = stimulus_sub
+            self.register_buffer('stim_idx', stim_idx)
+            self.register_buffer('stim_rxn', stim_rxn)
+            self.register_buffer('stim_sto', stim_sto)
+            self.n_stimulus = int(stim_idx.max().item()) + 1
+        else:
+            self.register_buffer('stim_idx', None)
+            self.n_stimulus = 0
+
+    def forward(self, data=None, has_field=False, frame=None, stimulus=None):
         """Compute dx/dt for all metabolites.
 
         GNN parameterization from documentation:
@@ -208,6 +220,20 @@ class Metabolism_Propagation(nn.Module):
             # additive: Σ MLP_sub
             agg = torch.zeros(self.n_rxn, dtype=msg.dtype, device=msg.device)
             agg.index_add_(0, self.rxn_sub, msg.squeeze(-1))
+
+        # ===== Stimulus contribution (external sources driving reactions) =====
+        if self.stim_idx is not None and stimulus is not None:
+            eps = 1e-8
+            c_stim = stimulus[self.stim_idx].clamp(min=eps)
+            # MLP_sub processes stimulus concentrations the same way as metabolites
+            stim_msg_in = torch.cat([c_stim.unsqueeze(-1), self.stim_sto.unsqueeze(-1)], dim=-1)
+            stim_msg = self.substrate_func(stim_msg_in)
+            if self.aggr_type == 'mul':
+                log_stim = torch.log(stim_msg.abs().clamp(min=eps))
+                log_agg.index_add_(0, self.stim_rxn, log_stim.squeeze(-1))
+                agg = torch.exp(log_agg)
+            else:
+                agg.index_add_(0, self.stim_rxn, stim_msg.squeeze(-1))
 
         # ===== Reaction rates: v = k * aggr =====
         k = torch.pow(10.0, self.log_k)

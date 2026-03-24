@@ -65,6 +65,18 @@ class SimulationConfig(BaseModel):
 
     node_value_map: Optional[str] = None
 
+    # SBML model import: generate data from an external SBML file instead of synthetic
+    sbml_file: Optional[str] = None  # path to SBML .xml file (relative to repo root)
+    sbml_t_end: float = 100.0  # simulation end time (SBML time units)
+
+    # Michaelis-Menten kinetics: v = Vmax * Π [c/(Km+c)]^|s|
+    log_km_min: float = -1.0  # Km_min = 0.1 mM
+    log_km_max: float = 1.0   # Km_max = 10 mM
+
+    # External sources (stimuli): fixed-concentration external sources/sinks
+    stimulus_concentrations: Optional[List[float]] = None  # [c_boundary_0, c_boundary_1, ...]
+    stimulus_names: Optional[List[str]] = None  # species names for reference
+
 
 class ClaudeConfig(BaseModel):
     """configuration for Claude-driven exploration experiments."""

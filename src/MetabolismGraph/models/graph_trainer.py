@@ -153,6 +153,16 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     print(f'stoichiometric matrix: {gt_S.shape}')
     logger.info(f'stoichiometric matrix: {gt_S.shape}')
 
+    # --- load stimulus (external sources) if available ---
+    stimulus_data = None
+    stimulus_path = f'graphs_data/{dataset_name}/stimulus.npy'
+    if os.path.exists(stimulus_path):
+        stimulus_data = torch.tensor(
+            np.load(stimulus_path), dtype=torch.float32, device=device
+        )
+        print(f'stimulus loaded: {stimulus_data.shape} (given, not learned)')
+        logger.info(f'stimulus: {stimulus_data.shape}')
+
     # --- load ground-truth generator model (for MLP comparison plots) ---
     gt_model = None
     gt_model_path = f'graphs_data/{dataset_name}/gt_model.pt'
@@ -167,13 +177,16 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
         if 'rate_func.0.weight' in gt_state:
             gt_config.graph_model.hidden_dim_node = gt_state['rate_func.0.weight'].shape[0]
         gt_config.graph_model.n_layers_node = sum(1 for k in gt_state if k.startswith('rate_func.') and k.endswith('.weight'))
-        if "PDE_M2" in config.graph_model.model_name:
+        if "PDE_MichaelisMenten" in config.graph_model.model_name:
+            from MetabolismGraph.generators.PDE_MichaelisMenten import PDE_MichaelisMenten
+            gt_model = PDE_MichaelisMenten(config=gt_config, stoich_graph=stoich_graph, device=device)
+        elif "PDE_M2" in config.graph_model.model_name:
             from MetabolismGraph.generators.PDE_M2 import PDE_M2
             gt_model = PDE_M2(config=gt_config, stoich_graph=stoich_graph, device=device)
         else:
             from MetabolismGraph.generators.PDE_M1 import PDE_M1
             gt_model = PDE_M1(config=gt_config, stoich_graph=stoich_graph, device=device)
-        gt_model.load_state_dict(gt_state)
+        gt_model.load_state_dict(gt_state, strict=False)
         gt_model.to(device)
         gt_model.eval()
 
@@ -424,6 +437,9 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                 if torch.isnan(x).any():
                     continue
 
+                # get stimulus for this frame (if available)
+                stim_k = stimulus_data[k] if stimulus_data is not None else None
+
                 if recurrent_training and time_step > 1:
                     # multi-step rollout: predict and feed back for time_step iterations
                     # target: concentration at frame k + time_step
@@ -433,9 +449,10 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                     pred_c = x[:, 3].clone()
 
                     for step in range(time_step):
+                        stim_step = stimulus_data[k + step] if stimulus_data is not None else None
                         # forward pass
                         dataset = pyg_Data(x=x.clone(), pos=x[:, 1:3])
-                        pred = model(dataset)
+                        pred = model(dataset, stimulus=stim_step)
 
                         # update concentration: c_new = c_old + delta_t * dx/dt + noise
                         pred_c = pred_c + delta_t * pred.squeeze()
@@ -456,7 +473,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
 
                     # forward pass (bipartite graph is internal to model)
                     dataset = pyg_Data(x=x, pos=x[:, 1:3])
-                    pred = model(dataset)
+                    pred = model(dataset, stimulus=stim_k)
 
                     # prediction loss
                     loss = loss + (pred.squeeze() - y.squeeze()).norm(2)
@@ -695,7 +712,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     #   - Gradient magnitude manipulation for weak signals (Goyal et al. 2017)
 
     if False: # homeostasis_training:
-        # ===== Phase 2: Fresh start (no supervised losses) =====
+        # ===== Phase 2: fresh start (no supervised losses) =====
         #
         # Training strategies retained from previous exploration:
         # - Signal amplification (10x) to make homeostatic gradient comparable to reaction gradient

@@ -26,12 +26,20 @@ def data_generate(
     device=None,
     bSave=True,
 ):
-    """generate synthetic metabolic dynamics data.
+    """generate metabolic dynamics data.
 
-    builds a random stoichiometric matrix S, initialises metabolite
-    concentrations, and integrates the PDE_M1 ODE forward in time using
-    Euler steps.  saves x_list, y_list, and stoichiometric data.
+    If config.simulation.sbml_file is set, uses libroadrunner to simulate
+    an external SBML kinetic model.  Otherwise builds a random stoichiometric
+    matrix S and integrates the PDE_M1 ODE forward in time using Euler steps.
+
+    saves x_list, y_list, and stoichiometric data.
     """
+
+    # dispatch to SBML generator if an SBML file is specified
+    sbml_file = getattr(config.simulation, 'sbml_file', None)
+    if sbml_file is not None:
+        from MetabolismGraph.generators.sbml_data_generator import sbml_data_generate
+        return sbml_data_generate(config, visualize=visualize, device=device, bSave=bSave)
 
     simulation_config = config.simulation
     training_config = config.training
@@ -72,7 +80,10 @@ def data_generate(
     pos = torch.tensor(np.stack((xc, yc), axis=1), dtype=torch.float32, device=device) / 2
 
     # --- build model ---
-    if "PDE_M2" in model_config.model_name:
+    if "PDE_MichaelisMenten" in model_config.model_name:
+        from MetabolismGraph.generators.PDE_MichaelisMenten import PDE_MichaelisMenten
+        model = PDE_MichaelisMenten(config=config, stoich_graph=stoich_graph, device=device)
+    elif "PDE_M2" in model_config.model_name:
         from MetabolismGraph.generators.PDE_M2 import PDE_M2
         model = PDE_M2(config=config, stoich_graph=stoich_graph, device=device)
     else:

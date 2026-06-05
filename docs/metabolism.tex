@@ -223,10 +223,12 @@ It is worth stating plainly where the method stands, because the gap
 between the synthetic proof-of-concept and real data is large and mostly
 unbridged. To date there is exactly \emph{one} validated, leak-free working
 point: recovery of the $256$ rate constants $k_j$ on the synthetic
-oscillatory regime with the stoichiometry $\mathbf{S}$ given, reaching
-$R^2 \approx 0.87$ in $\log_{10} k$ (slope $\approx 1$, ${\sim}10/256$
-outliers). This is an honest result --- the loss reads only the
-concentration dynamics, never any ground-truth label.
+oscillatory regime with the stoichiometry $\mathbf{S}$ given. The best single
+run reaches $R^2 \approx 0.87$ in $\log_{10} k$ (slope $\approx 1$,
+${\sim}10/256$ outliers), but a cross-seed reproduction puts the honest
+working point lower, at $R^2 = 0.75 \pm 0.04$ (\cref{sec:cv}). This is a
+genuine result --- the loss reads only the concentration dynamics, never any
+ground-truth label.
 
 Two caveats bound even this point. First, an earlier and more favourable
 ``homeostasis recovery'' result was \emph{discarded}: it relied on a
@@ -241,6 +243,52 @@ the working point is a \emph{distribution}, not a fixed number, and
 reducing that variance is open. Everything beyond rate-constant recovery on
 synthetic data --- homeostasis, stoichiometry learning, and every real-data
 rung below --- remains to be done.
+
+\section{Reproduction and cross-seed robustness}
+\label{sec:cv}
+
+The single validated point (\cref{sec:status}) was reproduced from scratch on
+a fresh data generation, then cross-validated across training seeds to ask how
+much of the headline $R^2 \approx 0.87$ is reproducible versus a favourable
+draw. All runs use the identical leak-free configuration
+(\texttt{k\_recovery\_winner}: rank-50 oscillatory, $\mathbf{S}$ given,
+$\mathrm{aggr}=\mathrm{mul}$, $k$-floor and $\mathrm{MLP_{sub}}$-norm priors),
+varying only the optimisation seed. \Cref{tab:cv} reports the recovered
+rate-constant $R^2$.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{l c c}
+\toprule
+Seed & training completed & $k$ recovery $R^2$ \\
+\midrule
+77 (published winner) & 100\% & 0.742 \\
+42 & 100\% & 0.705 \\
+79 & 90\% & 0.808 \\
+7  & 90\% & 0.738 \\
+\midrule
+\multicolumn{2}{l}{\emph{mean $\pm$ s.d.\ (4 mature seeds)}} & $\mathbf{0.748 \pm 0.037}$ \\
+\midrule
+123 & 30\% (stopped) & 0.722 (rising) \\
+\bottomrule
+\end{tabular}
+\caption{Cross-seed reproduction of the leak-free $k_j$-recovery working
+point. Four seeds run to (near-)completion cluster tightly at
+$R^2 = 0.75 \pm 0.04$; seed 123 was stopped early (to free GPUs for the
+real-data rungs) at $0.72$ and still climbing. The runs were deliberately
+halted once the cross-seed picture was clear.}
+\label{tab:cv}
+\end{table}
+
+\noindent\textbf{Read.} The working point reproduces \emph{robustly} --- the
+cross-seed spread is small ($\pm 0.04$), not the $\pm 0.2$ that single-run
+exploration logs had suggested --- but it reproduces at $R^2 \approx 0.75$,
+not $0.87$. The published $0.87$ was the best of many draws; the honest,
+reproducible recovery of the $256$ rate constants is $0.75 \pm 0.04$. This is
+the number to carry into the real-data comparisons: a method that recovers
+three-quarters of the rate-constant variance on a fully controlled synthetic
+problem, consistently across seeds.
 
 \section{Toward real metabolomics}
 \label{sec:realdata}
@@ -417,10 +465,10 @@ Date & Hypothesis & Experiment & Verdict \\
 \midrule
 2026-06-05 & H1: winner reproduces $k$ R$^2{\approx}0.87$
   & seed 77, leak-free, S given
-  & in progress (0.73 @ 79\%) \\
+  & \emph{partly}: 0.74, not 0.87 \\
 2026-06-05 & H2: $k$ R$^2$ robust across seeds
-  & CV seeds 42/79/7/123
-  & in progress (77:.74, 42:.71) \\
+  & CV 4 seeds, S given
+  & \emph{validated} ($0.75{\pm}0.04$) \\
 2026-06-05 & single-step rollout fits glycolysis
   & glycolysis\_yeast, $t{\to}t{+}1$
   & \textbf{\textsc{falsified}} ($R^2{=}{-}390$) \\

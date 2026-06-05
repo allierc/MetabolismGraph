@@ -104,16 +104,12 @@ def main():
     ax.legend(loc="lower right", frameon=False)
     panel_label(ax, "a")
 
-    badge = "PASS" if passed else "FAIL"
-    bc = "#27ae60" if passed else "#e74c3c"
     txt = (f"raw $R^2$ = {raw_r2:.3f}\n"
            f"trimmed $R^2$ = {trimmed_r2:.3f}\n"
            f"outliers = {n_out}/{n_rxn} = {pct:.1f}%\n"
            f"slope = {slope:.2f}")
     ax.text(0.035, 0.86, txt, transform=ax.transAxes, va="top", ha="left",
             fontsize=13, bbox=dict(boxstyle="round,pad=0.4", fc="white", ec="0.7"))
-    ax.text(0.035, 0.60, f"$\\leq${HARD_RULE_PCT:.0f}% rule: {badge}", transform=ax.transAxes,
-            va="top", ha="left", fontsize=14, fontweight="bold", color=bc)
 
     out = os.path.join(ROOT, "figures/metabolism/k_recovery.png")
     fig.tight_layout(); fig.savefig(out, dpi=140); plt.close(fig)

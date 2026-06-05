@@ -305,8 +305,8 @@ the real-data comparisons.
   $\mathrm{MLP_{sub}}$ scalar ($\alpha$) correction; dashed line is identity.
   Inliers (black) lie on the diagonal at slope $1.00$; the $11$ red points
   ($4.3\%$) exceed the $0.3$-dex outlier threshold. Raw $R^2 = 0.74$ over all
-  reactions, trimmed $R^2 = 0.98$ excluding outliers. The $\le 10\%$-outlier
-  quality gate passes. Reproduced by \texttt{figures/k\_recovery.py}.}
+  reactions, trimmed $R^2 = 0.98$ excluding outliers, within the $10\%$-outlier
+  gate. Reproduced by \texttt{figures/k\_recovery.py}.}
   \label{fig:k_recovery}
 \end{figure}
 
@@ -471,29 +471,19 @@ mechanism recovery across the whole noisy measurement.
 
 \begin{figure}[H]
   \centering
-  \begin{subfigure}{0.49\textwidth}
-    \includegraphics[width=\textwidth]{\figdir/amenability_ecoli.png}
-    \caption{\emph{E.\ coli}}
-  \end{subfigure}\hfill
-  \begin{subfigure}{0.49\textwidth}
-    \includegraphics[width=\textwidth]{\figdir/amenability_bsubt.png}
-    \caption{\emph{B.\ subtilis}}
-  \end{subfigure}
-
-  \begin{subfigure}{0.49\textwidth}
-    \includegraphics[width=\textwidth]{\figdir/amenability_ylipo.png}
-    \caption{\emph{Y.\ lipolytica}}
-  \end{subfigure}\hfill
-  \begin{subfigure}{0.49\textwidth}
-    \includegraphics[width=\textwidth]{\figdir/amenability_hybr.png}
-    \caption{Hybrid}
-  \end{subfigure}
+  \includegraphics[width=0.49\textwidth]{\figdir/amenability_ecoli.png}\hfill
+  \includegraphics[width=0.49\textwidth]{\figdir/amenability_bsubt.png}\\[2pt]
+  \includegraphics[width=0.49\textwidth]{\figdir/amenability_ylipo.png}\hfill
+  \includegraphics[width=0.49\textwidth]{\figdir/amenability_hybr.png}
   \caption{\textbf{Identical amenability probes across the four measured
-  datasets} (each panel: (a) SVD low-rank, (b) lag-1 autocorrelation,
-  (c) highest-variance traces, (d) iJO1366 coverage). Low-rank structure and
-  network coverage recur everywhere; only \emph{Y.\ lipolytica} (c) shows
-  smooth, slowly varying traces and a right-shifted autocorrelation
-  distribution. Reproduced by \texttt{figures/amenability.py}.}
+  datasets:} \textbf{(a)} \emph{E.\ coli}, \textbf{(b)} \emph{B.\ subtilis},
+  \textbf{(c)} \emph{Y.\ lipolytica}, \textbf{(d)} hybrid. Within each panel,
+  top-left: SVD cumulative variance (low-rank); top-right: per-ion lag-1
+  autocorrelation; bottom-left: six highest-variance traces ($z$-scored);
+  bottom-right: KEGG coverage against \texttt{iJO1366}. Low-rank structure and
+  network coverage recur in all four; only \emph{Y.\ lipolytica} shows smooth,
+  slowly varying traces and a right-shifted autocorrelation distribution.
+  Reproduced by \texttt{figures/amenability.py}.}
   \label{fig:amenability_grid}
 \end{figure}
 

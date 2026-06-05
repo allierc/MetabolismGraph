@@ -32,16 +32,17 @@ XLSX = os.path.join(ROOT, "papers/nmeth3584/41592_2015_BFnmeth3584_MOESM197_ESM.
 OUTDIR = os.path.join(ROOT, "figures/metabolism")
 os.makedirs(OUTDIR, exist_ok=True)
 
-# plot style: larger fonts; panel labels are bold, top-left (no titles on panels)
+# plot style: large fonts overall; ONE bold organism label (a/b/c/d) per figure,
+# top-left, no panel titles and no organism name on the figure.
 plt.rcParams.update({
-    "font.size": 13, "axes.labelsize": 14,
-    "xtick.labelsize": 12, "ytick.labelsize": 12, "legend.fontsize": 12,
+    "font.size": 16, "axes.labelsize": 18, "axes.titlesize": 16,
+    "xtick.labelsize": 14, "ytick.labelsize": 14, "legend.fontsize": 14,
 })
 
 
-def panel_label(ax, letter):
-    ax.text(0.015, 0.985, letter, transform=ax.transAxes, fontsize=18,
-            fontweight="bold", va="top", ha="left")
+def figure_tag(fig, letter):
+    fig.text(0.012, 0.985, letter, fontsize=30, fontweight="bold",
+             va="top", ha="left")
 
 ORGANISMS = [
     ("E. coli",      "ecoli", "Ecoli1", "Annotation Ecoli"),
@@ -108,7 +109,7 @@ def lag1_autocorr(C):
     return np.array(out)
 
 
-def run_one(org, slug, t, C, idx2kegg, ref_kegg, ref_name):
+def run_one(org, slug, tag, t, C, idx2kegg, ref_kegg, ref_name):
     N, T = C.shape
     Z = zscore_rows(C)
     cum, r90, r99 = svd_rank(Z)
@@ -126,26 +127,23 @@ def run_one(org, slug, t, C, idx2kegg, ref_kegg, ref_name):
     ax[0, 0].axvline(r99, ls=":", c="#e74c3c", alpha=.6)
     ax[0, 0].set_xlabel("singular component"); ax[0, 0].set_ylabel("cumulative variance")
     ax[0, 0].set_xlim(0, min(60, len(cum)))
-    panel_label(ax[0, 0], "a")
     # (b) autocorrelation
     ax[0, 1].hist(ac, bins=30, color="#3498db", edgecolor="white")
     ax[0, 1].axvline(np.median(ac), c="#e74c3c", label=f"median = {np.median(ac):.2f}")
     ax[0, 1].set_xlabel("lag-1 autocorrelation"); ax[0, 1].set_ylabel("number of ions"); ax[0, 1].legend()
-    panel_label(ax[0, 1], "b")
     # (c) example traces
     for j in np.argsort(-np.nanvar(C, axis=1))[:6]:
-        ax[1, 0].plot(t, Z[j], lw=1)
+        ax[1, 0].plot(t, Z[j], lw=1.3)
     ax[1, 0].set_xlabel("time"); ax[1, 0].set_ylabel("z(intensity)")
-    panel_label(ax[1, 0], "c")
     # (d) network coverage
     labels = ["ions", "with\nKEGG", "unambig.", f"in\n{ref_name}"]
     vals = [n_ion, n_kegg, n_unambig, n_ref]
     for b, v in zip(ax[1, 1].bar(labels, vals,
                     color=["#95a5a6", "#3498db", "#2980b9", "#16a085"]), vals):
-        ax[1, 1].text(b.get_x() + b.get_width() / 2, v + 1, str(v), ha="center", fontsize=11)
+        ax[1, 1].text(b.get_x() + b.get_width() / 2, v + 1, str(v), ha="center", fontsize=14)
     ax[1, 1].set_ylabel("number of ions")
-    panel_label(ax[1, 1], "d")
-    fig.tight_layout()
+    fig.tight_layout(rect=[0.02, 0, 1, 1])
+    figure_tag(fig, tag)
     out = os.path.join(OUTDIR, f"amenability_{slug}.png")
     fig.savefig(out, dpi=130); plt.close(fig)
     verdict = dict(org=org, N=N, T=T, r90=r90, r99=r99, rank_frac=r99 / N,
@@ -164,9 +162,9 @@ def main():
     ref_name = "iJO1366"
     print("=== cross-organism amenability (common reference network: iJO1366) ===")
     res = []
-    for org, slug, ds, as_ in ORGANISMS:
+    for i, (org, slug, ds, as_) in enumerate(ORGANISMS):
         t, C, idx2kegg = load_organism(wb, ds, as_)
-        res.append(run_one(org, slug, t, C, idx2kegg, ref_kegg, ref_name))
+        res.append(run_one(org, slug, "abcd"[i], t, C, idx2kegg, ref_kegg, ref_name))
     wb.close()
     print("\n=== generalisation summary ===")
     for r in res:

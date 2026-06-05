@@ -15,6 +15,44 @@ def mlp(sizes, activation=nn.Tanh, final_activation=None):
     return nn.Sequential(*layers)
 
 
+class LogSubstrate(nn.Module):
+    """Substrate kinetic function in log-concentration space.
+
+    Input x = [c, |s|]; returns g = exp(MLP([log c, |s|])). For mass-action the
+    target g = c^s satisfies log g = s log c (LINEAR in log c), so even a shallow
+    net fits it -- unlike a plain MLP on c, which must reproduce the curvature
+    and large dynamic range of c^s directly and collapses c^2 toward linear.
+    Drop-in for self.substrate_func: same [c,|s|] -> scalar interface.
+    """
+    def __init__(self, hidden, n_layers, eps=1e-6):
+        super().__init__()
+        self.net = mlp([2] + [hidden] * (n_layers - 1) + [1], activation=nn.Tanh)
+        self.eps = eps
+
+    def forward(self, x):
+        c = x[..., 0:1].clamp(min=self.eps)
+        s = x[..., 1:2]
+        return torch.exp(self.net(torch.cat([torch.log(c), s], dim=-1)))
+
+
+class PowerLawSubstrate(nn.Module):
+    """Structured power-law: g = c^{a(|s|)} with a tiny learnable exponent map.
+
+    Exact functional family for mass-action (a(s)=s). a(|s|) is a small MLP of the
+    stoichiometry only, so curvature is guaranteed correct and only the exponent
+    is learned. Will NOT fit saturating (Michaelis-Menten) kinetics.
+    """
+    def __init__(self, eps=1e-6):
+        super().__init__()
+        self.a = mlp([1, 16, 1], activation=nn.Tanh)
+        self.eps = eps
+
+    def forward(self, x):
+        c = x[..., 0:1].clamp(min=self.eps)
+        s = x[..., 1:2]
+        return torch.pow(c, self.a(s))
+
+
 class Metabolism_Propagation(nn.Module):
     """training model for metabolic networks with learnable stoichiometry.
 
@@ -96,7 +134,13 @@ class Metabolism_Propagation(nn.Module):
 
         # MLP_sub: (c_k, |s_kj|) -> substrate contribution (learns c^s)
         sub_sizes = [2] + [hidden_sub] * (n_layers_sub - 1) + [1]
-        self.substrate_func = mlp(sub_sizes, activation=nn.Tanh)
+        self.substrate_func_type = getattr(model_config, 'substrate_func_type', 'mlp')
+        if self.substrate_func_type == 'logspace':
+            self.substrate_func = LogSubstrate(hidden_sub, n_layers_sub)
+        elif self.substrate_func_type == 'powerlaw':
+            self.substrate_func = PowerLawSubstrate()
+        else:
+            self.substrate_func = mlp(sub_sizes, activation=nn.Tanh)
         self.softplus = nn.Softplus(beta=1.0)
 
         # per-reaction rate constants k_j

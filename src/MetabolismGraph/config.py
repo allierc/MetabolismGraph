@@ -104,6 +104,11 @@ class GraphModelConfig(BaseModel):
     output_size_sub: int = 1
     hidden_dim_sub: int = 64
     n_layers_sub: int = 3
+    # substrate-function parameterisation: 'mlp' (default, MLP on (c,|s|)),
+    # 'logspace' (g = exp(MLP(log c, |s|)) -> power law c^s is linear in log-c,
+    # so curvature/dynamic-range are easy to learn), or 'powerlaw'
+    # (g = c^{a(|s|)} with a tiny learnable exponent map -- exact for mass-action).
+    substrate_func_type: str = "mlp"
 
     # MLP_node (rate_func / node_func): homeostasis function
     hidden_dim_node: int = 64

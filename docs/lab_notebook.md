@@ -172,3 +172,27 @@ glyco_ar_lrramp still running (AR glyco; k R²~0 expected, MM not mass-action).
 GPUs full (k_logspace cuda:0; k_powerlaw+lrramp cuda:1). No launches. Next cycle:
 final eval + curvature confirmation; if confirmed, build glyco_logspace (MM case)
 and promote a polished figure to the PDF.
+
+## 2026-06-05 (hourly) — log-space helps k recovery, but my c^2 story was WRONG
+
+FINISHED: k_logspace, k_powerlaw (toy). Skeptical confirmation:
+- **k recovery (leak-resistant):** k_logspace raw R²=0.887, trimmed 0.983, 6/256
+  (2.3%) outliers, slope 1.00, PASS. k_powerlaw raw 0.804, 3.1% outliers, PASS.
+  Both beat plain-MLP (0.74 raw, 4.3% out). REAL improvement.
+- **Curvature check (surprise):** MLP_sub |s|=2 growth over c in[1,9]: logspace 7.1,
+  powerlaw 12.3 — vs true 81. Still essentially linear / ignores s. So the gain is
+  NOT from fixing c^2.
+- **ROOT CAUSE of the surprise:** the toy stoichiometry is **100% |s|=1** (510 edges,
+  ZERO |s|>=2). So there are NO quadratic reactions in the toy. My earlier
+  "MLP_sub collapses c^2 -> root of degeneracy" was probing UNTRAINED EXTRAPOLATION
+  at |s|=2; it is NOT a real failure on the toy. **Self-correction: the toy
+  improvement comes from log-space better-CONDITIONING the c^1 (linear) fit
+  (log compresses dynamic range -> k more identifiable), not from curvature.**
+- Implication: the c^2 / nonlinear-kinetics question is only testable where the
+  kinetics are actually nonlinear -> GLYCOLYSIS (MM, saturating). Launched
+  **glyco_logspace** (glyco_ar_base + substrate_func_type=logspace, cuda:0) to test
+  whether log-space helps the REAL Vmax degeneracy (was R²~0). lrramp/steep/etc all
+  still Vmax R²~0.
+- Promoted to PDF: ledger rows (log-space improves toy k; toy-c^2-failure FALSIFIED).
+  NOT adding the |s|=2 extrapolation figure (would mislead). glyco_logspace verdict
+  next cycle.

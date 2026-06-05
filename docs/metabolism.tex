@@ -334,10 +334,18 @@ so $v_j = V_{\max,j}\prod_k\!\big[c_k/(K_{m,kj}+c_k)\big]^{|S_{kj}|}$ rather
 than a power law. This is the cleanest available ground truth: known
 $V_{\max}$/$K_m$ let us score parameter recovery directly. \emph{Status:}
 the SBML import, $\mathbf{S}$ extraction, and a Michaelis--Menten simulator
-are in place and generate a $12{,}000$-frame dataset; a first GNN fit does
-\emph{not} yet recover the dynamics (autoregressive rollout diverges), so
-the open problem is making $\mlpsub$ learn a saturating law and the
-homeostatic clamp behave under a stiff, stimulus-driven system.
+are in place and generate a $12{,}000$-frame dataset. A single-step fit
+diverges on rollout ($R^2={-}390$, Pearson $0.19$); porting the
+connectome-style \emph{autoregressive curriculum} (per-epoch horizon ramp
+$10\to300$, soft tail-loss, LR co-ramp, gradient clipping) lifts the rollout
+Pearson to $0.80$ --- the trajectory \emph{shape} is now recovered --- but the
+rollout $R^2$ stays negative, so the amplitude still drifts. The open problem
+is therefore narrowed from ``diverges'' to ``correlated but mis-scaled'':
+matching the quantitative envelope of a stiff, stimulus-driven Michaelis--Menten
+system. A cautionary note from the sweep: the config with the lowest
+\emph{training} loss (tighter gradient clip, no rollout noise) had the
+\emph{worst} rollout, so training loss is not a reliable proxy for rollout
+quality here.
 
 \paragraph{Rung 2 --- consensus genome-scale model (yeast-GEM).}
 The community-curated genome-scale model of \emph{S.\ cerevisiae}
@@ -408,7 +416,7 @@ Target & Network / kinetics & Ground truth & Status \\
 \midrule
 Synthetic $k_j$ (S given) & random / mass-action & $k_j$ known & \textbf{works}, $R^2{\approx}0.87$ \\
 Synthetic homeostasis & random / mass-action & $\lambda_i$ known & open (single-step blind) \\
-Rung 1: yeast glycolysis & real / MM+Hill & $V_{\max},K_m$ known & data ready; fit fails \\
+Rung 1: yeast glycolysis & real / MM+Hill & $V_{\max},K_m$ known & AR: Pearson 0.80, $R^2{<}0$ \\
 Rung 2: yeast-GEM subset & real / none (FBA) & none & not started \\
 Rung 3: real \emph{E.\ coli} & inferred / unknown & none & data in hand; not ingested \\
 \bottomrule
@@ -565,8 +573,11 @@ Date & Hypothesis & Experiment & Verdict \\
   & glycolysis\_yeast, $t{\to}t{+}1$
   & \textbf{\textsc{falsified}} ($R^2{=}{-}390$) \\
 2026-06-05 & H4: AR curriculum fixes the rollout
-  & opt-in $n$-steps curriculum
-  & sweep running (glyco\_ar\_base) \\
+  & opt-in $n$-steps curriculum, 4 configs
+  & \emph{partly}: Pearson $.19{\to}.80$, $R^2{<}0$ \\
+2026-06-05 & lowest train loss $=$ best rollout?
+  & clip05 (min loss) vs base
+  & \textbf{\textsc{falsified}} (clip05 worst rollout) \\
 2026-06-05 & H5: real \emph{E.\ coli} is low-rank
   & SVD of $247{\times}119$ matrix
   & \emph{validated} (rank$_{99}{=}102$, 41\%) \\

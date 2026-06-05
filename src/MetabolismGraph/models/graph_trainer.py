@@ -85,6 +85,17 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     time_step = train_config.time_step
     recurrent_training = train_config.recurrent_training
     noise_recurrent_level = train_config.noise_recurrent_level
+    # ---- autoregressive rollout curriculum (opt-in; active iff n_steps_schedule set) ----
+    ar_schedule = list(getattr(train_config, 'n_steps_schedule', []) or [])
+    ar_lr_schedule = list(getattr(train_config, 'lr_schedule', []) or [])
+    ar_coeff_tail = getattr(train_config, 'coeff_tail_loss', 0.0)
+    ar_max_roll = getattr(train_config, 'ar_max_roll', 0)
+    ar_grad_clip = getattr(train_config, 'grad_clip', 0.0)
+    ar_active = len(ar_schedule) > 0
+    if ar_active:
+        recurrent_training = True
+        print(f'[AR curriculum] n_steps_schedule={ar_schedule}, tail={ar_coeff_tail}, '
+              f'grad_clip={ar_grad_clip}, lr_schedule={ar_lr_schedule or "base"}')
     homeostasis_training = getattr(train_config, 'homeostasis_training', False)
     skip_phase1 = getattr(train_config, 'skip_phase1', False)
     homeostasis_time_step = getattr(train_config, 'homeostasis_time_step', 32)
@@ -378,6 +389,26 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
         else:
             current_L1 = coeff_S_L1
 
+        # ---- AR curriculum: per-epoch rollout horizon + LR co-ramp ----
+        if ar_active:
+            ar_T_epoch = ar_schedule[min(epoch, len(ar_schedule) - 1)]
+            if ar_coeff_tail > 0:
+                ar_T_eff = 2 * ar_T_epoch
+            else:
+                ar_T_eff = ar_T_epoch
+            if ar_max_roll > 0:
+                ar_T_eff = min(ar_T_eff, ar_max_roll)
+            ar_T_eff = min(ar_T_eff, n_frames - 2)
+            ar_T_epoch = min(ar_T_epoch, ar_T_eff)
+            if ar_lr_schedule:
+                lr_e = float(ar_lr_schedule[min(epoch, len(ar_lr_schedule) - 1)])
+                for g in optimizer.param_groups:
+                    if g.get('name') in ('k', 'MLP_sub'):
+                        g['lr'] = lr_e
+                print(f'[AR] epoch {epoch}: T_epoch={ar_T_epoch} T_eff={ar_T_eff} lr(k,sub)={lr_e}')
+            else:
+                print(f'[AR] epoch {epoch}: T_epoch={ar_T_epoch} T_eff={ar_T_eff}')
+
         last_r2 = None
         pbar = trange(Niter, ncols=100)
         for N in pbar:
@@ -393,7 +424,10 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
             for batch in range(batch_size):
 
                 # sample timepoint: 80% variance-weighted, 20% uniform
-                if variance_weighted_sampling and np.random.rand() < 0.8:
+                if ar_active:
+                    # need k + ar_T_eff + 1 in range for the trajectory rollout
+                    k = np.random.randint(max(1, n_frames - 1 - ar_T_eff))
+                elif variance_weighted_sampling and np.random.rand() < 0.8:
                     k = torch.multinomial(sampling_probs[run], 1).item()
                 else:
                     k = np.random.randint(n_frames - 4 - time_step)
@@ -440,7 +474,30 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                 # get stimulus for this frame (if available)
                 stim_k = stimulus_data[k] if stimulus_data is not None else None
 
-                if recurrent_training and time_step > 1:
+                if ar_active:
+                    # AR curriculum: per-frame tail-weighted trajectory rollout.
+                    # supervise every rolled frame against the true trajectory,
+                    # weight = 1 for t < T_epoch and coeff_tail_loss for the soft tail.
+                    pred_c = x[:, 3].clone()
+                    traj_loss = torch.zeros((), device=device)
+                    wsum = 0.0
+                    for step in range(ar_T_eff):
+                        stim_step = stimulus_data[k + step] if stimulus_data is not None else None
+                        dataset = pyg_Data(x=x.clone(), pos=x[:, 1:3])
+                        pred = model(dataset, stimulus=stim_step)
+                        pred_c = pred_c + delta_t * pred.squeeze()
+                        if noise_recurrent_level > 0:
+                            pred_c = pred_c + noise_recurrent_level * torch.randn_like(pred_c)
+                        w = 1.0 if step < ar_T_epoch else ar_coeff_tail
+                        if w > 0:
+                            target = x_list[run][k + step + 1, :, 3]
+                            traj_loss = traj_loss + w * (pred_c - target).norm(2)
+                            wsum += w
+                        x = x.clone()
+                        x[:, 3] = pred_c
+                    loss = loss + traj_loss / max(wsum, 1.0)
+
+                elif recurrent_training and time_step > 1:
                     # multi-step rollout: predict and feed back for time_step iterations
                     # target: concentration at frame k + time_step
                     y_target = x_list[run][k + time_step, :, 3]  # already on GPU
@@ -559,6 +616,8 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                     loss = loss + coeff_omega_f_L2 * model_f.get_omega_L2_loss()
 
             loss.backward()
+            if ar_grad_clip > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), ar_grad_clip)
             optimizer.step()
             if optimizer_f is not None:
                 optimizer_f.step()
@@ -674,12 +733,13 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
             ),
         )
 
-        recurrent_training = True
-        if epoch == 0:
-            time_step = 2
-        else:
-            time_step = min(time_step * 2, 64)
-        print(f'{recurrent_training} time_step: {time_step}')
+        if not ar_active:
+            recurrent_training = True
+            if epoch == 0:
+                time_step = 2
+            else:
+                time_step = min(time_step * 2, 64)
+            print(f'{recurrent_training} time_step: {time_step}')
 
 
     # ===== Phase 2: Homeostasis training (recurrent) =====

@@ -362,6 +362,45 @@ and yeast-GEM (\url{https://github.com/SysBioChalmers/yeast-GEM}); and the
 \texttt{glycolysis\_yeast} config/dataset; the leak-free synthetic
 $k_j$-recovery working point is the \texttt{k\_recovery\_winner} config.
 
+\appendix
+\section{Weekend hypothesis ledger (live)}
+\label{sec:ledger}
+
+This appendix is updated autonomously every few hours during unattended runs.
+Each row is a hypothesis with its experiment and a \emph{validated} /
+\textbf{\textsc{falsified}} / \emph{in progress} verdict. Falsifications are
+recorded as plainly as positive results.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{l l l l}
+\toprule
+Date & Hypothesis & Experiment & Verdict \\
+\midrule
+2026-06-05 & H1: winner reproduces $k$ R$^2{\approx}0.87$
+  & seed 77, leak-free, S given
+  & in progress (0.73 @ 79\%) \\
+2026-06-05 & H2: $k$ R$^2$ robust across seeds
+  & CV seeds 42/79/7/123
+  & in progress (s42 0.61) \\
+2026-06-05 & single-step rollout fits glycolysis
+  & glycolysis\_yeast, $t{\to}t{+}1$
+  & \textbf{\textsc{falsified}} ($R^2{=}{-}390$) \\
+2026-06-05 & H4: AR curriculum fixes the rollout
+  & opt-in $n$-steps curriculum, smoke-OK
+  & sweep queued (5 configs) \\
+\bottomrule
+\end{tabular}
+\caption{Live experiment ledger. The single-step rollout on the real
+Michaelis--Menten glycolysis model diverges ($R^2{=}{-}390$, Pearson $0.19$),
+motivating the autoregressive curriculum (\cref{sec:status}) ported from the
+connectome models: per-epoch horizon ramp $10{\to}300$, soft tail-loss, LR
+co-ramp, gradient clipping. Implementation is in place and smoke-validated
+(runs, finite loss); the 5-config sweep is queued behind the CV runs.}
+\label{tab:ledger}
+\end{table}
+
 \begin{thebibliography}{9}
 
 \bibitem[Smallbone et al.(2013)]{smallbone2013}

@@ -1,0 +1,68 @@
+dataset: glycolysis_yeast
+description: 'Rung1 AR: steep schedule 20..500'
+graph_model:
+  aggr_type: mul
+  hidden_dim_node: 64
+  hidden_dim_sub: 64
+  model_name: PDE_MichaelisMenten
+  n_layers_node: 3
+  n_layers_sub: 3
+  output_size_sub: 1
+  prediction: first_derivative
+  update_type: none
+plotting:
+  colormap: tab20
+simulation:
+  baseline_concentration: 1.0
+  baseline_mode: initial
+  circadian_amplitude: 0.0
+  circadian_period: 1440
+  delta_t: 0.035
+  flux_limit: true
+  homeostatic_strength: 1.0
+  log_k_max: 1.0
+  log_k_min: -0.5
+  log_km_max: 0.5
+  log_km_min: -0.5
+  max_metabolites_per_reaction: 4
+  n_frames: 12000
+  n_metabolites: 20
+  n_reactions: 30
+  sbml_file: papers/MODEL1303260010/MODEL1303260010/MODEL1303260010.xml
+  sbml_t_end: 420.0
+  seed: 42
+  start_frame: 0
+  use_mass_action: false
+training:
+  ar_max_roll: 600
+  batch_size: 4
+  coeff_MLP_node_L1: 1.0
+  coeff_MLP_sub_diff: 5
+  coeff_MLP_sub_norm: 0.0
+  coeff_S_L1: 0.0
+  coeff_S_integer: 0.0
+  coeff_k_floor: 0.0
+  coeff_mass_conservation: 0.0
+  coeff_tail_loss: 0.1
+  data_augmentation_loop: 1
+  device: cuda:0
+  freeze_stoichiometry: true
+  grad_clip: 0.5
+  k_floor_threshold: -3.0
+  learning_rate_S_start: 0.0
+  learning_rate_k: 0.005
+  learning_rate_node: 0.001
+  learning_rate_start: 0.001
+  learning_rate_sub: 0.0005
+  n_epochs: 5
+  n_runs: 1
+  n_steps_schedule:
+  - 20
+  - 60
+  - 150
+  - 300
+  - 500
+  noise_recurrent_level: 0.01
+  recurrent_training: false
+  seed: 42
+  time_step: 1

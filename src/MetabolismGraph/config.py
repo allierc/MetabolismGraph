@@ -214,6 +214,17 @@ class TrainingConfig(BaseModel):
     learning_rate_node_homeostasis: float = 0.0  # 0 = use learning_rate_node
     learning_rate_embedding_homeostasis: float = 0.0  # 0 = use learning_rate_node_homeostasis
 
+    # ---- autoregressive rollout curriculum (opt-in; active only when
+    # n_steps_schedule is non-empty). Ported from connectome-cx: ramp the
+    # supervised rollout horizon per epoch, co-ramp LR down, soft tail-loss
+    # weighting beyond the horizon, gradient clipping. Leaves the single-step
+    # k-recovery path untouched when n_steps_schedule is empty. ----
+    n_steps_schedule: list[int] = []        # per-epoch rollout horizon, e.g. [10,50,100,200,...]
+    lr_schedule: list[float] = []           # per-epoch lr for 'k'+'MLP_sub' groups; [] = keep base
+    coeff_tail_loss: float = 0.0            # weight for frames in [T_epoch, T_eff); 0 = hard cutoff
+    ar_max_roll: int = 0                    # cap on T_eff (0 = 2*T_epoch when tail>0 else T_epoch)
+    grad_clip: float = 0.0                  # max grad norm (0 = no clipping)
+
 
 class MetabolismGraphConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")

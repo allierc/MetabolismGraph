@@ -156,3 +156,19 @@ metabolism GPU jobs running concurrently; prefer the idle GPU.
 - Next: k_logspace / k_powerlaw evals (mlp_functions.py: does MLP_sub bend like c²?
   k_recovery.py: does k improve over plain-MLP 0.74/4.3%?). If log-space breaks the
   degeneracy on the toy, build glyco_logspace next.
+
+## 2026-06-05 (hourly) — MLP_sub fix is WORKING (interim, be-skeptical pending)
+
+Mid-training k recovery (toy, S given), vs plain-MLP baseline raw R²=0.74:
+- **k_logspace: k R²=0.871 @ 51%** (still climbing) — log-space MLP_sub.
+- **k_powerlaw: k R²=0.801 @ 49%** — exact c^a(s) form.
+Both already beat plain-MLP 0.74 at half an epoch. Strong signal that MLP_sub's
+inability to represent c^2 was the bottleneck; reparameterising it (log-space /
+power-law) recovers k far better. k-recovery is leak-resistant (can't memorise the
+right k), so this is credible — but NOT yet final/verified.
+DO NOT claim until: (1) runs finish, (2) figures/mlp_functions.py confirms MLP_sub
+now bends like c^2 (|s|=2 growth ~81x, not 8.5x), (3) check outlier % (10% rule).
+glyco_ar_lrramp still running (AR glyco; k R²~0 expected, MM not mass-action).
+GPUs full (k_logspace cuda:0; k_powerlaw+lrramp cuda:1). No launches. Next cycle:
+final eval + curvature confirmation; if confirmed, build glyco_logspace (MM case)
+and promote a polished figure to the PDF.

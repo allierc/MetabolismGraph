@@ -350,6 +350,43 @@ leak-free result; the rest is the work ahead.}
 \label{tab:status}
 \end{table}
 
+\subsection{First look: is the real \emph{E.\ coli} data amenable?}
+\label{sec:ecoli_amenability}
+
+Before any training on Rung~3, we ask a cheaper question: does the real
+\citet{link2015} \emph{E.\ coli} recording even have the structure the GNN
+needs? \Cref{fig:ecoli_amenability} reports three probes on the released
+intensity matrix ($247$ KEGG-annotated ions $\times$ $119$ time points,
+replicate Ecoli1); the analysis is reproduced by
+\texttt{figures/ecoli\_amenability.py}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{\figdir/ecoli_amenability.png}
+  \caption{\textbf{Amenability probes on real \emph{E.\ coli} metabolomics.}
+  \textbf{(a)} SVD of the ion$\times$time matrix: $\mathrm{rank}_{90\%}=60$,
+  $\mathrm{rank}_{99\%}=102$ of $247$ ions --- $41\%$ fractional rank,
+  comparable to the synthetic regime ($\sim$45\%), so the dynamics are
+  genuinely low-rank. \textbf{(b)} Per-ion lag-1 autocorrelation: median
+  $0.27$, only $34\%$ of ions above $0.5$ --- most traces are \emph{noisy},
+  far less smooth than the synthetic dynamics. \textbf{(c)} The six
+  highest-variance ions still show clear, slow real-time structure.
+  \textbf{(d)} Network coverage: $190/247$ measured ions ($77\%$) map onto the
+  \texttt{iJO1366} genome-scale model, $29$ onto \texttt{e\_coli\_core}; $134$
+  are unambiguous (single KEGG per $m/z$).}
+  \label{fig:ecoli_amenability}
+\end{figure}
+
+\noindent\textbf{Read.} Two of three signals are encouraging: the data are
+low-rank (the GNN's latent-structure assumption holds) and most ions sit in a
+real reaction network, so a stoichiometry $\mathbf{S}$ can be built from
+\texttt{iJO1366}. The caution is H6: roughly two-thirds of ion traces have
+low temporal autocorrelation, i.e.\ a large fraction of the measured
+$dc/dt$ is noise-dominated. The realistic implication is that a real-data fit
+should target the smooth, high-variance, network-mapped subset (tens of ions,
+not all $247$) and be judged by held-out prediction on those --- not by
+recovering mechanism across the whole noisy measurement.
+
 \section*{Data and code}
 Synthetic generators, the GNN model, and the LLM-driven exploration loop
 are in the \texttt{MetabolismGraph} repository; an overview minisite is at
@@ -390,6 +427,15 @@ Date & Hypothesis & Experiment & Verdict \\
 2026-06-05 & H4: AR curriculum fixes the rollout
   & opt-in $n$-steps curriculum, smoke-OK
   & sweep queued (5 configs) \\
+2026-06-05 & H5: real \emph{E.\ coli} is low-rank
+  & SVD of $247{\times}119$ matrix
+  & \emph{validated} (rank$_{99}{=}102$, 41\%) \\
+2026-06-05 & H6: real $dc/dt$ is learnable/smooth
+  & per-ion lag-1 autocorrelation
+  & \textbf{\textsc{falsified}} (med 0.27, noisy) \\
+2026-06-05 & H7: ions map to a real network
+  & KEGG $\cap$ iJO1366 / e\_coli\_core
+  & \emph{validated} (190/247 in iJO1366) \\
 \bottomrule
 \end{tabular}
 \caption{Live experiment ledger. The single-step rollout on the real

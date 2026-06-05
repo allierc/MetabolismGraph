@@ -432,6 +432,46 @@ mappability --- exact for \emph{E.\ coli}, approximate for the others).
 \Cref{tab:amenability} summarises and \cref{fig:amenability_grid} shows the
 per-organism panels.
 
+\paragraph{What the three probes compute, and how to read them.}
+\begin{itemize}
+  \item \textbf{SVD low-rank.} Stack the recording into a matrix
+    $C \in \mathbb{R}^{N \times T}$ ($N$ ions, $T$ time points) and $z$-score
+    each row over time, so the probe sees temporal \emph{shape} not absolute
+    scale. Its singular values $\sigma_1 \ge \sigma_2 \ge \dots$ give the
+    variance carried by each independent mode, $\sigma_i^2 / \sum_j \sigma_j^2$;
+    $\mathrm{rank}_{99}$ is the smallest number of modes whose cumulative
+    variance reaches $99\%$. \emph{Interpretation:} it counts the effective
+    dimensionality of the dynamics. A small $\mathrm{rank}_{99}$ relative to $N$
+    means the metabolites move in a coordinated, low-dimensional way --- shared
+    drivers and strong correlations --- which is exactly the structure a compact
+    network model can fit; $\mathrm{rank}_{99}\!\approx\!N$ would mean every ion
+    moves independently and no parsimonious mechanism exists. We compare the
+    \emph{fraction} $\mathrm{rank}_{99}/N$ against the synthetic regime
+    ($\sim$45\%).
+  \item \textbf{Per-ion lag-1 autocorrelation.} For each ion's mean-subtracted
+    trace $x(t)$, $\rho_1 = \sum_t x(t)\,x(t{-}1) \big/ \sum_t x(t)^2$ --- the
+    correlation of the signal with itself shifted by one frame; we report the
+    median over ions and the fraction with $\rho_1 > 0.5$.
+    \emph{Interpretation:} it measures temporal smoothness. $\rho_1 \to 1$ means
+    consecutive samples are nearly equal --- a smooth, slowly varying trace
+    whose finite-difference derivative $dc/dt$ is well defined and carries
+    signal; $\rho_1 \to 0$ means white-noise-like, so the measured $dc/dt$ is
+    dominated by noise. This is the decisive test for our setting, since the GNN
+    learns $dc/dt = f(c)$: a derivative made of noise cannot be fit, however
+    low-rank or well-annotated the data are.
+  \item \textbf{KEGG coverage.} Each ion is annotated with one or more KEGG
+    compound identifiers from its $m/z$ (an ion matching several formulae is
+    \emph{ambiguous}); we intersect those identifiers with the metabolites
+    present in a reference genome-scale network (\texttt{iJO1366}), and coverage
+    is the number of ions hitting at least one model metabolite.
+    \emph{Interpretation:} it asks whether a stoichiometry $\mathbf{S}$ --- the
+    reaction graph the GNN operates on --- can be built for the measured
+    species. A metabolite absent from every known reaction has no edges and
+    cannot be modelled mechanistically, so high coverage means the measured set
+    sits inside a real network; the \emph{unambiguous} count (single KEGG per
+    ion) flags how many identities are clean versus mass-degenerate.
+\end{itemize}
+
 \begin{table}[H]
 \centering
 \small

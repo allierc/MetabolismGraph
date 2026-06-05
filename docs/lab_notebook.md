@@ -101,3 +101,21 @@ not rollout stability. Needs: a genuine held-out trajectory with comparable rank
 and an identifiability fix (the model fits dc/dt with the wrong k via MLP_sub /
 homeostasis compensation — the same scale/compensation degeneracy as the toy model,
 but unbroken here). Created CLAUDE.md (repo gotchas) this session.
+
+## 2026-06-05 (late) — MLP diagnostic: MLP_sub cannot represent c^2
+
+Plotted both learned MLPs vs ground truth (figures/mlp_functions.py).
+- **MLP_node (homeostasis) — EASY:** flat ~0 for the toy (true lambda=0), as expected.
+- **MLP_sub (kinetic law) — the HARD one, and it FAILS the curvature.** Quantified
+  growth over c in [1,9] (toy, mass-action):
+    |s|=1: learned f(9)/f(1)=8.3  vs true 9^1=9    -> learned well.
+    |s|=2: learned f(9)/f(1)=8.5  vs true 9^2=81   -> learned as ~LINEAR.
+  MLP_sub barely distinguishes |s|=1 from |s|=2: it outputs ~the same near-linear
+  curve for both, missing the quadratic entirely. So reactions with |s|=2 substrates
+  get the WRONG functional form -> their k cannot be recovered -> this is the ROOT of
+  the identifiability degeneracy (the 4.3% toy outliers and the glyco Vmax R2~0).
+**Why:** c^s has high curvature / large dynamic range in linear space; an MLP with
+bounded activations linearises it. In LOG space, log(c^s)=s*log(c) is LINEAR (slope s)
+-> trivial. Candidate fix to discuss: feed log(c) / predict log(rate), or constrain
+MLP_sub = c^{g(s)} with a tiny learned exponent map g(s). Figures: mlp_k_recovery_winner.png,
+mlp_glyco.png. Discussing the fix with Cedric before implementing.

@@ -1222,7 +1222,7 @@ IMPORTANT:
             tree_save_dir = f"{exploration_dir}/exploration_tree"
             os.makedirs(tree_save_dir, exist_ok=True)
             ucb_tree_path = f"{tree_save_dir}/ucb_tree_iter_{batch_last:03d}.png"
-            nodes = parse_ucb_scores(ucb_path)
+            nodes = parse_ucb_scores(ucb_path) if os.path.exists(ucb_path) else []
             if nodes:
                 config = configs[0]
                 sim_info = f"Phase 2 homeostasis (ts={FIXED_TIME_STEPS})"

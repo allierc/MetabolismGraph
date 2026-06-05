@@ -53,9 +53,9 @@ training:
   data_augmentation_loop: 5000
   learning_rate_start: 1.0E-3
   learning_rate_k: 5.0E-3
-  learning_rate_embedding: 1.0E-4
-  learning_rate_node: 1.0E-4
-  learning_rate_sub: 5.0E-3
+  learning_rate_embedding: 1.0E-5
+  learning_rate_node: 1.0E-5
+  learning_rate_sub: 1.0E-3
   freeze_stoichiometry: true
   learning_rate_S_start: 0.0
   coeff_S_L1: 0.0

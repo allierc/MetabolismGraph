@@ -1,0 +1,6 @@
+=== UCB Scores (Simulation block 12, iters 97-104, N=4, c=1.414) ===
+
+Node 98: UCB=1.539, parent=100, visits=1, R2=0.125, Pearson=0.000, Mutation=baseline for ts=16 slot
+Node 97: UCB=1.486, parent=root, visits=1, R2=0.072, Pearson=0.000, Mutation=baseline for ts=4 slot
+Node 99: UCB=1.422, parent=100, visits=1, R2=0.008, Pearson=0.000, Mutation=lr_node_homeo: 0.007 -> 0.008 (push from Block 12)
+Node 100: UCB=1.190, parent=root, visits=3, R2=0.483, Pearson=0.000, Mutation=lr_node_homeo: 0.007 -> 0.0078 (test if above collapse threshold)

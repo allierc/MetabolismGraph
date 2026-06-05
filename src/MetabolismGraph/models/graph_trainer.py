@@ -102,7 +102,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     # --- load data and move to GPU ---
     x_list = []
     y_list = []
-    for run in trange(0, n_runs, ncols=50):
+    for run in trange(0, n_runs, ncols=100):
         x = load_simulation_data(f'graphs_data/{dataset_name}/x_list_{run}')
         y = load_simulation_data(f'graphs_data/{dataset_name}/y_list_{run}')
         # pre-load to GPU for faster training

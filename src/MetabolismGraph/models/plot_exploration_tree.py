@@ -361,7 +361,7 @@ def print_summary(nodes: list[UCBNode]):
         return
 
     print("\n=== UCB Tree Summary ===")
-    print(f"Total nodes: {len(nodes)}")
+    print(f"total nodes: {len(nodes)}")
     print(f"UCB range: {min(n.ucb for n in nodes):.3f} - {max(n.ucb for n in nodes):.3f}")
     print(f"Visits range: {min(n.visits for n in nodes)} - {max(n.visits for n in nodes)}")
     print(f"R² range: {min(n.r2 for n in nodes):.3f} - {max(n.r2 for n in nodes):.3f}")

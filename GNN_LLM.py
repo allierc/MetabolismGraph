@@ -674,6 +674,7 @@ If you cannot fix it, say "CANNOT_FIX" and explain why."""
                 # call Claude CLI for analysis
                 print("\033[93mClaude analysis...\033[0m")
 
+                next_iter = iteration + 1
                 claude_prompt = f"""Iteration {iteration}/{n_iterations}
 Block info: block {block_number}, iteration {iter_in_block}/{n_iter_block} within block
 {">>> BLOCK END <<<" if is_block_end else ""}
@@ -684,7 +685,11 @@ Full log (append only): {analysis_path}
 Activity image: {activity_path}
 Metrics log: {analysis_log_path}
 UCB scores: {ucb_path}
-Current config: {config_path}"""
+Current config: {config_path}
+
+Suggested seeds for next iteration (set simulation.seed and training.seed in config YAML):
+  simulation.seed={next_iter}, training.seed={next_iter}
+You may override these. Log your seed choices and rationale."""
 
                 claude_cmd = [
                     'claude',
@@ -792,7 +797,7 @@ Current config: {config_path}"""
                 should_save_tree = (block_number == 1) or is_block_end
                 if should_save_tree:
                     ucb_tree_path = f"{tree_save_dir}/ucb_tree_iter_{iteration:03d}.png"
-                    nodes = parse_ucb_scores(ucb_path)
+                    nodes = parse_ucb_scores(ucb_path) if os.path.exists(ucb_path) else []
                 else:
                     nodes = None  # skip tree generation for intermediate iterations in blocks > 0
                 if nodes:

@@ -464,6 +464,12 @@ if __name__ == "__main__":
 
         parallel_ref = f"\nParallel instructions: {parallel_instruction_path}" if parallel_instruction_path else ""
 
+        # Build seed suggestions for first batch
+        seed_suggestions = "\n".join(
+            f"  Slot {s} (iter {start_iteration + s}): simulation.seed={start_iteration + s}, training.seed={(start_iteration + s) * 4 + s}"
+            for s in range(N_PARALLEL)
+        )
+
         start_prompt = f"""PARALLEL START: Initialize {N_PARALLEL} config variations for the first batch.
 
 Instructions (follow all instructions): {instruction_path}{parallel_ref}
@@ -472,6 +478,10 @@ Full log (append only): {analysis_path}
 
 Config files to edit (all {N_PARALLEL}):
 {slot_list}
+
+Suggested seeds for this batch (set simulation.seed and training.seed in each config YAML):
+{seed_suggestions}
+You may override these — e.g. use the same simulation.seed across slots with different training.seed to test training robustness. Log your seed choices and rationale.
 
 Read the instructions and the base config, then create {N_PARALLEL} diverse initial training
 parameter variations. Each config already has a unique dataset name — do NOT change the
@@ -857,6 +867,13 @@ Fix the bug. Do NOT make other changes."""
 
         parallel_ref = f"\nParallel instructions: {parallel_instruction_path}" if parallel_instruction_path else ""
 
+        # Build seed suggestions for next batch
+        next_batch_start = batch_start + N_PARALLEL
+        next_seed_suggestions = "\n".join(
+            f"  Slot {s} (iter {next_batch_start + s}): simulation.seed={next_batch_start + s}, training.seed={(next_batch_start + s) * 4 + s}"
+            for s in range(N_PARALLEL)
+        )
+
         claude_prompt = f"""Batch iterations {batch_first}-{batch_last} / {n_iterations}
 Block info: block {block_number}, iterations {iter_in_block_first}-{iter_in_block_last}/{n_iter_block} within block{block_end_marker}
 
@@ -868,6 +885,10 @@ Full log (append only): {analysis_path}
 UCB scores: {ucb_path}
 
 {slot_info}
+
+Suggested seeds for next batch (set simulation.seed and training.seed in each config YAML):
+{next_seed_suggestions}
+You may override these — e.g. use the same simulation.seed across slots with different training.seed to test training robustness. Log your seed choices and rationale.
 
 Analyze all {n_slots} results. For each successful slot, write a separate iteration entry
 (## Iter N: ...) to the full log and memory file. Then edit all {N_PARALLEL} config files
@@ -910,7 +931,7 @@ IMPORTANT: Do NOT change the 'dataset' field in any config — it must stay as-i
             tree_save_dir = f"{exploration_dir}/exploration_tree"
             os.makedirs(tree_save_dir, exist_ok=True)
             ucb_tree_path = f"{tree_save_dir}/ucb_tree_iter_{batch_last:03d}.png"
-            nodes = parse_ucb_scores(ucb_path)
+            nodes = parse_ucb_scores(ucb_path) if os.path.exists(ucb_path) else []
             if nodes:
                 config = configs[0]
                 sim_info = f"n_metabolites={config.simulation.n_metabolites}, n_reactions={config.simulation.n_reactions}"

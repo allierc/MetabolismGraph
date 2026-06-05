@@ -50,7 +50,7 @@ training:
   device: auto
   batch_size: 8
   seed: 79
-  data_augmentation_loop: 1000
+  data_augmentation_loop: 1200
   learning_rate_start: 0.001
   learning_rate_k: 0.005
   learning_rate_node: 0.001
@@ -70,8 +70,8 @@ training:
   homeostasis_training: true
   skip_phase1: true
   homeostasis_time_step: 32
-  learning_rate_node_homeostasis: 0.01
-  learning_rate_embedding_homeostasis: 0.001
+  learning_rate_node_homeostasis: 0.007
+  learning_rate_embedding_homeostasis: 0.005
 claude:
   n_epochs: 1
   data_augmentation_loop: 1000

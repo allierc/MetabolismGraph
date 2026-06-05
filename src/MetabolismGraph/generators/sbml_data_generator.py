@@ -189,7 +189,7 @@ def _simulate_michaelis_menten(config, stoich_graph, n_metabolites, initial_conc
     x_list = []
     y_list = []
 
-    for it in trange(n_frames + 1, ncols=50, desc='Euler'):
+    for it in trange(n_frames + 1, ncols=100, desc='Euler'):
         bnd_stim = stim_tensor[it] if stim_tensor is not None else None
 
         with torch.no_grad():

@@ -1,0 +1,393 @@
+\documentclass[11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{natbib}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{cleveref}
+\crefname{equation}{Eq.\@}{Eqs.\@}
+\Crefname{equation}{Eq.\@}{Eqs.\@}
+\crefname{figure}{Fig.\@}{Figs.\@}
+\Crefname{figure}{Fig.\@}{Figs.\@}
+\crefname{table}{Tab.\@}{Tabs.\@}
+\Crefname{table}{Tab.\@}{Tabs.\@}
+\crefname{section}{Sect.\@}{Sects.\@}
+\Crefname{section}{Sect.\@}{Sects.\@}
+
+\def\eg{{\it e.g.}}
+\def\ie{{\it i.e.}}
+\def\R{\mathbb{R}}
+\newcommand{\mlpsub}{\mathrm{MLP}_{\mathrm{sub}}}
+\newcommand{\mlpnode}{\mathrm{MLP}_{\mathrm{node}}}
+
+% Figure directory. Change ONLY this line when moving between editors:
+%   Overleaf (main.tex next to figures/):  \newcommand{\figdir}{figures/metabolism}
+%   local repo (docs/ build):              \newcommand{\figdir}{../figures/metabolism}
+\newcommand{\figdir}{../figures/metabolism}
+
+\title{\textbf{MetabolismGraph: recovering reaction kinetics and homeostatic
+regulation from metabolite dynamics with graph neural networks}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+A metabolic network is a bipartite graph in which metabolites are coupled
+through reactions, each with its own rate constant and stoichiometry. We
+pose the \emph{inverse} problem: given only the time series of metabolite
+concentrations and the bipartite graph structure, recover the components
+that generated the dynamics --- the per-reaction rate constants $k_j$, the
+substrate-to-rate kinetic law, and the per-metabolite homeostatic
+regulation. We replace the unknown functions of the forward model with
+learnable MLPs that operate on the metabolite--reaction graph and a vector
+of learnable rate constants, and train the graph neural network (GNN)
+end-to-end to predict $dc/dt$. On synthetic mass-action systems with known
+ground truth we study rate-constant recovery and the identifiability
+obstacles that arise from scale ambiguity, functional compensation, and
+homeostasis absorption. We outline the path from synthetic data to real
+metabolomics --- starting from fully parameterised kinetic models from
+BioModels (yeast glycolysis), constraint-based genome-scale models
+(yeast-GEM), and high-frequency real-time metabolomics during nutrient
+transitions. This is a companion methods note to our connectome-dynamics
+studies, which apply the same sign-/structure-locked GNN inverse-modelling
+recipe to neural circuits.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Cellular metabolism is a large, sparse reaction network: hundreds of
+metabolites are interconverted by hundreds of enzyme-catalysed reactions,
+each proceeding at a rate set by an intrinsic rate constant and the
+instantaneous concentrations of its substrates. The \emph{forward} problem
+--- predicting concentration dynamics given the network, the kinetics and
+the rate constants --- is classical biochemistry. The \emph{inverse}
+problem is harder and is our subject: given measured concentration
+trajectories and the graph of which metabolites enter which reactions,
+recover the rate constants and the functional form of the kinetics. This
+is the metabolic analogue of the connectome-to-dynamics inverse problems
+we study elsewhere, and it shares their central difficulty: the mapping
+from parameters to dynamics is nonlinear, high-dimensional, and degenerate
+--- many parameter combinations produce nearly identical trajectories.
+
+\section{Metabolic networks as bipartite graphs}
+\label{sec:graph}
+
+A metabolic network is naturally a \textbf{bipartite graph} with two node
+types: metabolites and reactions. Edges connect only nodes of different
+type, and each edge carries an integer \emph{stoichiometric coefficient}.
+A single-partite metabolite--metabolite graph cannot represent the system,
+because a reaction couples \emph{several} substrates and products at once
+through a shared rate constant: collapsing it to pairwise metabolite edges
+would lose the information that those metabolites participate in the same
+reaction.
+
+\paragraph{Stoichiometric matrix.}
+The connectivity is summarised by the stoichiometric matrix
+$\mathbf{S} \in \R^{n \times m}$ ($n$ metabolites, $m$ reactions), where
+$S_{ij}$ is the signed coefficient with which metabolite $i$ enters
+reaction $j$: negative for substrates (consumed), positive for products
+(produced). $\mathbf{S}$ is sparse (each reaction touches only a handful of
+metabolites), integer-valued (typically in $\{-2,-1,0,+1,+2\}$), and for
+mass-balanced reactions its columns sum to zero.
+
+\section{Forward model: reaction kinetics and homeostasis}
+\label{sec:forward}
+
+\paragraph{Mass-action kinetics.}
+Under the law of mass action a reaction proceeds faster when its substrates
+are more abundant, with each substrate raised to the power of its
+stoichiometric coefficient. For reaction $j$ with rate constant $k_j$,
+\begin{equation}
+v_j \;=\; k_j \prod_{k \in \mathrm{sub}(j)} c_k^{\,|S_{kj}|},
+\label{eq:massaction}
+\end{equation}
+so a reaction consuming two molecules of a substrate depends quadratically
+on its concentration, and one consuming a single molecule depends linearly.
+The product over substrates (\emph{multiplicative} aggregation) encodes the
+requirement that \emph{all} substrates be present simultaneously, and the
+resulting nonlinear coupling is what allows autocatalytic cycles to sustain
+oscillations. A simpler \emph{additive} aggregation
+$v_j = k_j \sum_{k} c_k^{|S_{kj}|}$ treats substrates as contributing
+independently and is a useful surrogate for enzyme-mediated reactions that
+are not strictly mass-action.
+
+\paragraph{Full dynamics.}
+Combining reaction fluxes through $\mathbf{S}$ with a per-metabolite
+homeostatic restoring force gives the complete forward model
+\begin{equation}
+\frac{dc_i}{dt}
+  = \underbrace{-\lambda_i\,(c_i - c_i^{\mathrm{baseline}})}_{\text{homeostasis}}
+  + \underbrace{\sum_{j=1}^{m} S_{ij}\, v_j}_{\text{reaction dynamics}},
+\label{eq:full}
+\end{equation}
+with $v_j$ from \cref{eq:massaction}. The homeostatic term pulls each
+metabolite toward a baseline level $c_i^{\mathrm{baseline}}$ at a
+metabolite-specific rate $\lambda_i$; crucially it is \emph{small} relative
+to the reaction fluxes, which is what makes it hard to recover
+(\cref{sec:identifiability}). \Cref{eq:full} spans a family of regimes used
+for synthetic data: pure reaction ($\lambda = 0$, additive), homeostatic
+($\lambda > 0$, additive, convergent), and oscillatory (autocatalytic
+3-cycles, multiplicative, sustained oscillations).
+
+\section{Inverse problem: the GNN parameterisation}
+\label{sec:inverse}
+
+Given observed trajectories $\{c_i(t)\}$ and the bipartite graph, we
+recover the generating model by replacing every unknown function in
+\cref{eq:full,eq:massaction} with a learnable component on the graph:
+\begin{equation}
+\frac{dc_i}{dt}
+  = \underbrace{\mlpnode(c_i, a_i)}_{\approx\,-\lambda_i(c_i - c_i^{\mathrm{baseline}})}
+  + \sum_{j=1}^{m} S_{ij}
+    \underbrace{k_j \prod_{k \in \mathrm{sub}(j)} \mlpsub\!\big(c_k, |S_{kj}|\big)}
+              _{\approx\,k_j\,c_k^{|S_{kj}|}}.
+\label{eq:gnn}
+\end{equation}
+The GNN operates on the metabolite--reaction graph by message passing:
+substrate states are mapped through $\mlpsub$, aggregated per reaction
+(multiplicatively for mass-action), scaled by the learnable rate constant
+$k_j$, and distributed back to metabolites through $\mathbf{S}$; the
+node update $\mlpnode$ adds the self-regulation term. Training minimises the
+prediction error on $dc/dt$ end-to-end. The learnable parameters are
+listed in \cref{tab:params}.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{l l l}
+\toprule
+Parameter & Type & Role \\
+\midrule
+$a_i \in \R^d$ & embedding vector & per-metabolite identity \\
+$k_j$ & scalar ($m$ of them) & per-reaction rate constant (learned in $\log$-space) \\
+$\mlpsub(c_k, |S_{kj}|)$ & MLP & discovers the kinetic law $c_k^{|S_{kj}|}$ \\
+$\mlpnode(c_i, a_i)$ & MLP & discovers homeostasis $-\lambda_i(c_i - c_i^{\mathrm{baseline}})$ \\
+\bottomrule
+\end{tabular}
+\caption{Learnable components of the GNN inverse model
+(\cref{eq:gnn}). The stoichiometric matrix $\mathbf{S}$ is either frozen
+from ground truth (``S given'' mode, the focus here) or made learnable
+(``S learning'' mode).}
+\label{tab:params}
+\end{table}
+
+\paragraph{Function discovery.}
+The GNN is not told the kinetic law. $\mlpsub$ receives a substrate
+concentration and its stoichiometric coefficient and must learn the
+power-law response $c_k^{|S_{kj}|}$ from data alone --- in particular it
+must distinguish linear ($c^1$) from quadratic ($c^2$) dependence as the
+coefficient changes. Likewise $\mlpnode$ must recover the subtle,
+small-magnitude homeostatic signal without absorbing dynamics that belong
+to the reaction terms.
+
+\section{Identifiability}
+\label{sec:identifiability}
+
+The three learnable components interact and can compensate for one another,
+producing degenerate solutions with high prediction accuracy but poor
+parameter recovery:
+\begin{itemize}
+  \item \textbf{Scale ambiguity.} The product $k_j\,\mlpsub$ is invariant
+    under $k \to \alpha k,\ \mlpsub \to \mlpsub/\alpha$. Without anchoring,
+    the MLP absorbs a global scale and shifts every $k_j$. A centring
+    regulariser pins $\mathrm{mean}(\log k)$ to the known range centre.
+  \item \textbf{Functional compensation.} If $\mlpsub$ settles on a wrong
+    exponent (\eg{} $c^{1.5}$ instead of $c^2$), the rate constants can
+    partly compensate by re-scaling, masking the error.
+  \item \textbf{Homeostasis absorption.} $\mlpnode$ can grow and soak up
+    dynamics that should be explained by reactions, biasing the recovered
+    rate constants.
+\end{itemize}
+These are the metabolic counterparts of the sign/scale degeneracies that
+motivate the structure-locking and regularisation priors in our
+connectome-dynamics models.
+
+\section{Status: one validated working point}
+\label{sec:status}
+
+It is worth stating plainly where the method stands, because the gap
+between the synthetic proof-of-concept and real data is large and mostly
+unbridged. To date there is exactly \emph{one} validated, leak-free working
+point: recovery of the $256$ rate constants $k_j$ on the synthetic
+oscillatory regime with the stoichiometry $\mathbf{S}$ given, reaching
+$R^2 \approx 0.87$ in $\log_{10} k$ (slope $\approx 1$, ${\sim}10/256$
+outliers). This is an honest result --- the loss reads only the
+concentration dynamics, never any ground-truth label.
+
+Two caveats bound even this point. First, an earlier and more favourable
+``homeostasis recovery'' result was \emph{discarded}: it relied on a
+supervised contrastive term that read ground-truth metabolite-type labels
+during training (label leakage), and once that term was removed the
+homeostatic function $\mlpnode$ no longer separates --- it stays flat,
+because single-step $dc/dt$ training cannot see a force that only acts over
+many steps. Recovering homeostasis honestly (a two-phase / residual scheme,
+\cref{eq:full}) is unsolved. Second, the $k_j$ recovery itself carries a
+run-to-run variance of $\pm 0.2$--$0.3$ $R^2$ at fixed hyperparameters, so
+the working point is a \emph{distribution}, not a fixed number, and
+reducing that variance is open. Everything beyond rate-constant recovery on
+synthetic data --- homeostasis, stoichiometry learning, and every real-data
+rung below --- remains to be done.
+
+\section{Toward real metabolomics}
+\label{sec:realdata}
+
+The framework is developed and validated on synthetic data where ground
+truth is known; the goal is real metabolomic time series. Three concrete
+datasets, now vendored in the repository, stage that transition from fully
+parameterised kinetics, through genome-scale topology, to a real recording.
+None of the three is solved yet; this section describes what each provides
+and what stands between it and a result.
+
+\paragraph{Rung 1 --- yeast glycolysis kinetic model (BioModels
+\texttt{MODEL1303260010}).}
+A small, fully parameterised kinetic model of glycolysis in
+\emph{S.\ cerevisiae} \citep{smallbone2013}, imported from SBML. After
+separating dynamic from boundary species it gives $20$ internal metabolites
+($+9$ fixed boundary species), $30$ reactions including iso-enzymes (three
+hexokinase, three pyruvate-decarboxylase, three glyceraldehyde-3-phosphate
+variants), with real stoichiometry $\mathbf{S}$ and measured initial
+concentrations. Crucially the rate laws are \emph{not} mass-action: they
+mix reversible/irreversible Michaelis--Menten, Hill, and allosteric forms,
+so $v_j = V_{\max,j}\prod_k\!\big[c_k/(K_{m,kj}+c_k)\big]^{|S_{kj}|}$ rather
+than a power law. This is the cleanest available ground truth: known
+$V_{\max}$/$K_m$ let us score parameter recovery directly. \emph{Status:}
+the SBML import, $\mathbf{S}$ extraction, and a Michaelis--Menten simulator
+are in place and generate a $12{,}000$-frame dataset; a first GNN fit does
+\emph{not} yet recover the dynamics (autoregressive rollout diverges), so
+the open problem is making $\mlpsub$ learn a saturating law and the
+homeostatic clamp behave under a stiff, stimulus-driven system.
+
+\paragraph{Rung 2 --- consensus genome-scale model (yeast-GEM).}
+The community-curated genome-scale model of \emph{S.\ cerevisiae}
+\citep{yeastgem}: $2{,}806$ metabolites, $4{,}131$ reactions across $14$
+compartments. It supplies a large, real stoichiometric matrix $\mathbf{S}$
+and flux bounds but \emph{no} kinetic rate laws --- the true inverse
+problem. The intended use is to extract a central-carbon subgraph
+(glycolysis $+$ TCA $+$ fermentation, ${\sim}100$--$150$ reactions), drive
+it with dynamic-FBA or literature kinetics to generate in-silico dynamics,
+and fit the GNN in ``S given'' mode on a realistic topology. \emph{Status:}
+not started beyond vendoring the model; subgraph extraction and a dynamics
+generator are still to be written.
+
+\paragraph{Rung 3 --- real-time metabolomics during nutrient transitions
+(real data).}
+High-frequency flow-injection mass spectrometry of live microbial culture
+\citep{link2015}, now downloaded as the paper's supplementary tables. For
+\emph{E.\ coli} the released data give a metabolite$\times$time intensity
+matrix of $247$ annotated ions over $119$ evenly spaced time points in
+three biological replicates (a long batch course), plus a dedicated
+starvation$\to$growth switch series of $302$ ions over ${\sim}148$ points;
+companion \emph{B.\ subtilis} and \emph{Y.\ lipolytica} sets are included.
+Each ion carries a KEGG annotation ($444$ distinct KEGG IDs for
+\emph{E.\ coli}), though many ions are mass-ambiguous (one $m/z$ maps to
+several candidate metabolites) and values are \emph{relative} ion
+intensities, not absolute concentrations. \emph{Status:} the data are in
+hand but not yet ingested; the work is to deduplicate/annotate ions, build
+$\mathbf{S}$ for the measured subset from an \emph{E.\ coli} genome-scale
+model (\eg{} \texttt{iJO1366}) via KEGG$\to$BiGG mapping, and rescale the
+relative intensities. There is \emph{no} kinetic ground truth here, so
+success can only be judged by held-out prediction, not by recovered $k_j$.
+A parallel mammalian direction is chronic jugular microdialysis in freely
+moving mice \citep{nardin2025} (${\sim}123$ metabolites every $7.5$~min over
+${\sim}8$~h; $10$ components explain $73\%$ of variance).
+
+\paragraph{What transfers and what changes.}
+The core recipe transfers: the bipartite graph, message passing over
+reactions, function discovery via $\mlpsub/\mlpnode$, and log-space
+rate-constant recovery. Real data adds, all at once, the obstacles the
+synthetic setup omits: non-mass-action (saturating, allosteric) kinetics
+that $\mlpsub$ must learn; a partially known and incomplete $\mathbf{S}$
+(only measured metabolites, ambiguous identities); two orders of magnitude
+fewer, unevenly spaced time points ($\sim 10^2$ vs $\sim 10^3$); relative
+rather than absolute concentrations; and external drivers (the nutrient
+switch) that must enter as a term $f_{\mathrm{ext}}(t)$ in \cref{eq:full}.
+
+\paragraph{What we expect.}
+We do \emph{not} expect the real-data rungs to work soon. The realistic
+near-term target is Rung~1: get the GNN to recover the published
+$V_{\max}$/$K_m$ of a real kinetic model under Michaelis--Menten kinetics
+--- a contained problem with ground truth, but one the current code does not
+yet solve. Rung~2 is a topology-realism check with no kinetic ground truth.
+Rung~3 (real \emph{E.\ coli}) is the genuine goal but also where every
+difficulty above appears together; a first ``result'' there means only
+predicting held-out frames of measured dynamics, not recovering mechanism.
+\Cref{tab:status} summarises the gap. The honest reading: one validated
+synthetic working point, three real rungs at the data-and-scaffolding stage,
+and substantial method development (saturating kinetics, honest homeostasis,
+incomplete-network handling, relative-concentration rescaling) still
+required before any real-data claim.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{l l l l}
+\toprule
+Target & Network / kinetics & Ground truth & Status \\
+\midrule
+Synthetic $k_j$ (S given) & random / mass-action & $k_j$ known & \textbf{works}, $R^2{\approx}0.87$ \\
+Synthetic homeostasis & random / mass-action & $\lambda_i$ known & open (single-step blind) \\
+Rung 1: yeast glycolysis & real / MM+Hill & $V_{\max},K_m$ known & data ready; fit fails \\
+Rung 2: yeast-GEM subset & real / none (FBA) & none & not started \\
+Rung 3: real \emph{E.\ coli} & inferred / unknown & none & data in hand; not ingested \\
+\bottomrule
+\end{tabular}
+\caption{Where each target stands. Only the first row is a validated,
+leak-free result; the rest is the work ahead.}
+\label{tab:status}
+\end{table}
+
+\section*{Data and code}
+Synthetic generators, the GNN model, and the LLM-driven exploration loop
+are in the \texttt{MetabolismGraph} repository; an overview minisite is at
+\url{https://allierc.github.io/MetabolismGraph/}. The reference material is
+vendored under \texttt{papers/}: the two yeast models, BioModels
+\texttt{MODEL1303260010} (\url{https://github.com/biomodels/MODEL1303260010})
+and yeast-GEM (\url{https://github.com/SysBioChalmers/yeast-GEM}); and the
+\citet{link2015} real-time-metabolomics supplementary tables under
+\texttt{papers/nmeth3584/}. The Rung-1 SBML$\to$dynamics bridge is the
+\texttt{glycolysis\_yeast} config/dataset; the leak-free synthetic
+$k_j$-recovery working point is the \texttt{k\_recovery\_winner} config.
+
+\begin{thebibliography}{9}
+
+\bibitem[Smallbone et al.(2013)]{smallbone2013}
+Smallbone, K., Messiha, H.L., Carroll, K.M., \emph{et al.} (2013).
+A model of yeast glycolysis based on a consistent kinetic characterisation
+of all its enzymes. \emph{FEBS Letters} 587(17), 2832--2841.
+BioModels \texttt{MODEL1303260010}.
+
+\bibitem[Lu et al.(2019)]{yeastgem}
+Lu, H., Li, F., S{\'a}nchez, B.J., \emph{et al.} (2019).
+A consensus S.\ cerevisiae metabolic model Yeast8 and its ecosystem for
+comprehensively probing cellular metabolism. \emph{Nature Communications}
+10, 3586. yeast-GEM, SysBioChalmers.
+
+\bibitem[Link et al.(2015)]{link2015}
+Link, H., Fuhrer, T., Gerosa, L., Zamboni, N., \& Sauer, U. (2015).
+Real-time metabolome profiling of the metabolic switch between starvation
+and growth. \emph{Nature Methods} 12, 1091--1097.
+\url{https://www.nature.com/articles/nmeth.3584}.
+
+\bibitem[Nardin et al.(2025)]{nardin2025}
+Nardin, M., Wang, N., Elziny, S., \emph{et al.} (2025).
+Reconstructing a physiological state space via chronic jugular
+microdialysis in freely moving mice. \emph{bioRxiv}.
+\url{https://doi.org/10.64898/2025.12.08.692974}.
+
+\end{thebibliography}
+
+\end{document}

@@ -32,6 +32,17 @@ XLSX = os.path.join(ROOT, "papers/nmeth3584/41592_2015_BFnmeth3584_MOESM197_ESM.
 OUTDIR = os.path.join(ROOT, "figures/metabolism")
 os.makedirs(OUTDIR, exist_ok=True)
 
+# plot style: larger fonts; panel labels are bold, top-left (no titles on panels)
+plt.rcParams.update({
+    "font.size": 13, "axes.labelsize": 14,
+    "xtick.labelsize": 12, "ytick.labelsize": 12, "legend.fontsize": 12,
+})
+
+
+def panel_label(ax, letter):
+    ax.text(0.015, 0.985, letter, transform=ax.transAxes, fontsize=18,
+            fontweight="bold", va="top", ha="left")
+
 ORGANISMS = [
     ("E. coli",      "ecoli", "Ecoli1", "Annotation Ecoli"),
     ("B. subtilis",  "bsubt", "Bsubt1", "Annotation Bsubt"),
@@ -109,31 +120,32 @@ def run_one(org, slug, t, C, idx2kegg, ref_kegg, ref_name):
     n_ref = sum(1 for i in ions if ref_kegg and (idx2kegg[i] & ref_kegg))
 
     fig, ax = plt.subplots(2, 2, figsize=(12, 8))
+    # (a) SVD low-rank
     ax[0, 0].plot(np.arange(1, len(cum) + 1), cum, "o-", ms=3, color="#2c3e50")
     ax[0, 0].axhline(.99, ls="--", c="#e74c3c", alpha=.6); ax[0, 0].axhline(.90, ls="--", c="#f39c12", alpha=.6)
     ax[0, 0].axvline(r99, ls=":", c="#e74c3c", alpha=.6)
-    ax[0, 0].set_title(f"(a) H5 low-rank: SVD of C ({N} ions x {T} t)\n"
-                       f"rank@90%={r90}, rank@99%={r99} ({100*r99/N:.0f}% of ions)")
-    ax[0, 0].set_xlabel("singular component"); ax[0, 0].set_ylabel("cum. variance")
+    ax[0, 0].set_xlabel("singular component"); ax[0, 0].set_ylabel("cumulative variance")
     ax[0, 0].set_xlim(0, min(60, len(cum)))
+    panel_label(ax[0, 0], "a")
+    # (b) autocorrelation
     ax[0, 1].hist(ac, bins=30, color="#3498db", edgecolor="white")
-    ax[0, 1].axvline(np.median(ac), c="#e74c3c", label=f"median={np.median(ac):.2f}")
-    ax[0, 1].set_title("(b) H6 predictability:\nlag-1 autocorr (1=smooth, 0=noise)")
-    ax[0, 1].set_xlabel("lag-1 autocorr"); ax[0, 1].set_ylabel("# ions"); ax[0, 1].legend()
+    ax[0, 1].axvline(np.median(ac), c="#e74c3c", label=f"median = {np.median(ac):.2f}")
+    ax[0, 1].set_xlabel("lag-1 autocorrelation"); ax[0, 1].set_ylabel("number of ions"); ax[0, 1].legend()
+    panel_label(ax[0, 1], "b")
+    # (c) example traces
     for j in np.argsort(-np.nanvar(C, axis=1))[:6]:
         ax[1, 0].plot(t, Z[j], lw=1)
-    ax[1, 0].set_title("(c) 6 highest-variance ions (z-scored)")
     ax[1, 0].set_xlabel("time"); ax[1, 0].set_ylabel("z(intensity)")
+    panel_label(ax[1, 0], "c")
+    # (d) network coverage
     labels = ["ions", "with\nKEGG", "unambig.", f"in\n{ref_name}"]
     vals = [n_ion, n_kegg, n_unambig, n_ref]
     for b, v in zip(ax[1, 1].bar(labels, vals,
                     color=["#95a5a6", "#3498db", "#2980b9", "#16a085"]), vals):
-        ax[1, 1].text(b.get_x() + b.get_width() / 2, v + 1, str(v), ha="center", fontsize=9)
-    ax[1, 1].set_title(f"(d) H7 coverage vs {ref_name}\n(core-metabolite mappability)")
-    ax[1, 1].set_ylabel("# ions")
-    fig.suptitle(f"{org} — real-time metabolomics amenability (Link et al. 2015)",
-                 fontweight="bold")
-    fig.tight_layout(rect=[0, 0, 1, 0.97])
+        ax[1, 1].text(b.get_x() + b.get_width() / 2, v + 1, str(v), ha="center", fontsize=11)
+    ax[1, 1].set_ylabel("number of ions")
+    panel_label(ax[1, 1], "d")
+    fig.tight_layout()
     out = os.path.join(OUTDIR, f"amenability_{slug}.png")
     fig.savefig(out, dpi=130); plt.close(fig)
     verdict = dict(org=org, N=N, T=T, r90=r90, r99=r99, rank_frac=r99 / N,

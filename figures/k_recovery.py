@@ -31,6 +31,7 @@ from MetabolismGraph.models.Metabolism_Propagation import Metabolism_Propagation
 from MetabolismGraph.models.graph_trainer import (
     _plot_rate_constants_comparison, _compute_scalar_correction)
 from MetabolismGraph.generators.PDE_M1 import PDE_M1
+from MetabolismGraph.generators.PDE_MichaelisMenten import PDE_MichaelisMenten
 from MetabolismGraph.utils import to_numpy
 
 plt.rcParams.update({"font.size": 13, "axes.labelsize": 15,
@@ -51,9 +52,13 @@ def load_model(config_name, device):
     log_dir = os.path.join("./log", config_name)
     stoich_graph = torch.load(f"graphs_data/{ds}/stoich_graph.pt", map_location=device)
 
-    # ground-truth model (PDE_M1 for the synthetic mass-action regime)
+    # ground-truth model: PDE_MichaelisMenten for the real glycolysis (Vmax/Km),
+    # PDE_M1 for the synthetic mass-action regime.
     gt_state = torch.load(f"graphs_data/{ds}/gt_model.pt", map_location=device)
-    gt_model = PDE_M1(config=config, stoich_graph=stoich_graph, device=device)
+    if "MichaelisMenten" in config.graph_model.model_name:
+        gt_model = PDE_MichaelisMenten(config=config, stoich_graph=stoich_graph, device=device)
+    else:
+        gt_model = PDE_M1(config=config, stoich_graph=stoich_graph, device=device)
     gt_model.load_state_dict(gt_state, strict=False); gt_model.to(device).eval()
 
     # trained model: pick the latest 'best_model_*' checkpoint
@@ -110,12 +115,18 @@ def main():
     ax.text(0.035, 0.86, txt, transform=ax.transAxes, va="top", ha="left",
             fontsize=13, bbox=dict(boxstyle="round,pad=0.4", fc="white", ec="0.7"))
 
-    out = os.path.join(ROOT, "figures/metabolism/k_recovery.png")
+    if "glyco" in cfg_name:
+        fname = "glyco_k_recovery.png"
+    elif cfg_name == "k_recovery_winner":
+        fname = "k_recovery.png"
+    else:
+        fname = f"k_recovery_{cfg_name}.png"
+    out = os.path.join(ROOT, "figures/metabolism", fname)
     fig.tight_layout(); fig.savefig(out, dpi=140); plt.close(fig)
     print(f"saved {out}  ({cfg_name}, ckpt {ckpt})")
     print(f"  raw R2={raw_r2:.3f}  trimmed R2={trimmed_r2:.3f}  "
           f"outliers={n_out}/{n_rxn} ({pct:.1f}%)  slope={slope:.2f}  "
-          f"-> {HARD_RULE_PCT:.0f}% rule {badge}")
+          f"-> {HARD_RULE_PCT:.0f}% rule {'PASS' if passed else 'FAIL'}")
     return dict(config=cfg_name, raw_r2=raw_r2, trimmed_r2=trimmed_r2,
                 n_out=n_out, n_rxn=n_rxn, pct=pct, slope=slope, passed=passed)
 

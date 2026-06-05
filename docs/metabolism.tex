@@ -334,18 +334,52 @@ so $v_j = V_{\max,j}\prod_k\!\big[c_k/(K_{m,kj}+c_k)\big]^{|S_{kj}|}$ rather
 than a power law. This is the cleanest available ground truth: known
 $V_{\max}$/$K_m$ let us score parameter recovery directly. \emph{Status:}
 the SBML import, $\mathbf{S}$ extraction, and a Michaelis--Menten simulator
-are in place and generate a $12{,}000$-frame dataset. A single-step fit
-diverges on rollout ($R^2={-}390$, Pearson $0.19$); porting the
+are in place and generate a $12{,}000$-frame dataset, and we port the
 connectome-style \emph{autoregressive curriculum} (per-epoch horizon ramp
-$10\to300$, soft tail-loss, LR co-ramp, gradient clipping) lifts the rollout
-Pearson to $0.80$ --- the trajectory \emph{shape} is now recovered --- but the
-rollout $R^2$ stays negative, so the amplitude still drifts. The open problem
-is therefore narrowed from ``diverges'' to ``correlated but mis-scaled'':
-matching the quantitative envelope of a stiff, stimulus-driven Michaelis--Menten
-system. A cautionary note from the sweep: the config with the lowest
-\emph{training} loss (tighter gradient clip, no rollout noise) had the
-\emph{worst} rollout, so training loss is not a reliable proxy for rollout
-quality here.
+$10\to300$, soft tail-loss, LR co-ramp, gradient clipping) to stabilise the
+rollout. Two cautions, both found by being sceptical of an initially good
+number. First, the test rollout looked catastrophic ($R^2={-}390$) only because
+the evaluator omitted the model's \emph{boundary stimulus}; supplying it, the
+curriculum model reproduces the trajectory well (global $R^2 = 0.99$,
+\cref{fig:glyco_rollout}). Second, that success is misleading: it is
+\emph{in-sample} (a single trajectory, no held-out run), the per-metabolite
+$R^2$ is only $0.15$, and the leak-resistant test fails outright --- the
+recovered $V_{max}$ correlate with ground truth at $R^2 \approx 0$ (slope
+$0.06$, $73\%$ outliers, \cref{fig:glyco_recovery}). The model therefore
+reproduces the dynamics with the \emph{wrong} kinetics: a degenerate fit that
+would not generalise. The curriculum fixed rollout \emph{stability}; the real
+open problem on real Michaelis--Menten data is parameter \emph{identifiability}
+--- the same scale/compensation degeneracy as the synthetic setup, but here
+unbroken. (One robust falsification survived both metrics: the config with the
+lowest \emph{training} loss had the worst rollout \emph{and} the worst recovery,
+so training loss is not a proxy for either.)
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth]{\figdir/glyco_rollout.png}
+  \caption{\textbf{Rung 1 glycolysis: free-running rollout, ground truth vs
+  learned} (\texttt{glyco\_ar\_base}, stimulus supplied). \textbf{(a)} The four
+  highest-variance metabolites: ground truth (green) vs learned rollout (dashed
+  black). \textbf{(b)} Learned vs true concentration over all metabolites/time;
+  global $R^2 = 0.99$ but per-metabolite $R^2 = 0.15$ (the global value is
+  variance-weighted, carried by a few high-variance species). This is
+  \emph{in-sample} (single trajectory, no held-out run). Reproduced by
+  \texttt{figures/glyco\_rollout.py}.}
+  \label{fig:glyco_rollout}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.6\textwidth]{\figdir/glyco_k_recovery.png}
+  \caption{\textbf{Rung 1 glycolysis: $V_{max}$ recovery fails} ---
+  the leak-resistant test. Learned vs true $\log_{10} V_{max}$ for the $30$
+  reactions: $R^2 \approx 0$, slope $0.06$, $22/30$ ($73\%$) outliers (fails the
+  $10\%$ gate). Despite the near-perfect in-sample rollout
+  (\cref{fig:glyco_rollout}), the model recovers essentially \emph{none} of the
+  true kinetics --- a degenerate fit (right dynamics, wrong mechanism).
+  Reproduced by \texttt{figures/k\_recovery.py glyco\_ar\_base}.}
+  \label{fig:glyco_recovery}
+\end{figure}
 
 \paragraph{Rung 2 --- consensus genome-scale model (yeast-GEM).}
 The community-curated genome-scale model of \emph{S.\ cerevisiae}
@@ -416,7 +450,7 @@ Target & Network / kinetics & Ground truth & Status \\
 \midrule
 Synthetic $k_j$ (S given) & random / mass-action & $k_j$ known & \textbf{works}, $R^2{\approx}0.87$ \\
 Synthetic homeostasis & random / mass-action & $\lambda_i$ known & open (single-step blind) \\
-Rung 1: yeast glycolysis & real / MM+Hill & $V_{\max},K_m$ known & AR: Pearson 0.80, $R^2{<}0$ \\
+Rung 1: yeast glycolysis & real / MM+Hill & $V_{\max},K_m$ known & rollout in-sample; $V_{\max}$ R$^2{\approx}0$ (degenerate) \\
 Rung 2: yeast-GEM subset & real / none (FBA) & none & not started \\
 Rung 3: real \emph{E.\ coli} & inferred / unknown & none & data in hand; not ingested \\
 \bottomrule
@@ -569,15 +603,18 @@ Date & Hypothesis & Experiment & Verdict \\
 2026-06-05 & H2: $k$ R$^2$ robust across seeds
   & CV 4 seeds, S given
   & \emph{validated} ($0.75{\pm}0.04$) \\
-2026-06-05 & single-step rollout fits glycolysis
-  & glycolysis\_yeast, $t{\to}t{+}1$
-  & \textbf{\textsc{falsified}} ($R^2{=}{-}390$) \\
-2026-06-05 & H4: AR curriculum fixes the rollout
-  & opt-in $n$-steps curriculum, 4 configs
-  & \emph{partly}: Pearson $.19{\to}.80$, $R^2{<}0$ \\
+2026-06-05 & glycolysis rollout $R^2{=}{-}390$ is real
+  & data\_test omits stimulus
+  & \textbf{\textsc{falsified}} (eval bug, not model) \\
+2026-06-05 & H4: AR curriculum \emph{recovers} glycolysis
+  & rollout (w/ stim) + $V_{\max}$ recovery
+  & \emph{no}: rollout in-sample 0.99, $V_{\max}$ R$^2{\approx}0$ \\
+2026-06-05 & rollout R$^2$ $=$ mechanism learned?
+  & global rollout vs $V_{\max}$ recovery
+  & \textbf{\textsc{falsified}} (degenerate fit) \\
 2026-06-05 & lowest train loss $=$ best rollout?
   & clip05 (min loss) vs base
-  & \textbf{\textsc{falsified}} (clip05 worst rollout) \\
+  & \textbf{\textsc{falsified}} (worst on both metrics) \\
 2026-06-05 & H5: real \emph{E.\ coli} is low-rank
   & SVD of $247{\times}119$ matrix
   & \emph{validated} (rank$_{99}{=}102$, 41\%) \\

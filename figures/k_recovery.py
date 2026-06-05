@@ -102,7 +102,6 @@ def main():
     ax.set_xlabel(r"true $\log_{10} k_j$"); ax.set_ylabel(r"learned $\log_{10} k_j$")
     ax.set_xlim(lo, hi); ax.set_ylim(lo, hi); ax.set_aspect("equal")
     ax.legend(loc="lower right", frameon=False)
-    panel_label(ax, "a")
 
     txt = (f"raw $R^2$ = {raw_r2:.3f}\n"
            f"trimmed $R^2$ = {trimmed_r2:.3f}\n"

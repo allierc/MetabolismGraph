@@ -119,3 +119,22 @@ bounded activations linearises it. In LOG space, log(c^s)=s*log(c) is LINEAR (sl
 -> trivial. Candidate fix to discuss: feed log(c) / predict log(rate), or constrain
 MLP_sub = c^{g(s)} with a tiny learned exponent map g(s). Figures: mlp_k_recovery_winner.png,
 mlp_glyco.png. Discussing the fix with Cedric before implementing.
+
+## 2026-06-05 (late) — MLP_sub alternatives implemented + launched
+
+Implemented opt-in substrate-function variants (config.graph_model.substrate_func_type):
+- **logspace**: g = exp(MLP([log c, |s|])) — c^s is linear in log-c, so curvature
+  & dynamic range become trivial. The recommended first fix.
+- **powerlaw**: g = c^{a(|s|)}, tiny learnable exponent map — exact for mass-action
+  (sanity upper bound; will NOT fit MM saturation).
+Default 'mlp' path unchanged; smoke-tested (LogSubstrate builds, finite output).
+Configs k_logspace (cuda:0, RUNNING), k_powerlaw (queued) — toy, reuse k_recovery_winner data.
+
+**Eval plan per experiment:** (1) figures/mlp_functions.py <cfg> — does MLP_sub now
+bend like c^2 (|s|=2 growth ~81x vs the plain-MLP 8.5x)? (2) figures/k_recovery.py
+<cfg> — does k recovery raw R² and the 4.3% outlier tail improve? The plain-MLP
+baseline: |s|=2 collapses to ~linear, raw R²=0.74 / 4.3% outliers.
+Then glyco_logspace on the SBML model (does log-space help the MM case / Vmax recovery?).
+
+NOTE: station now SHARED with Cedric's zebrafish (connectome-cx) jobs — keep <=2
+metabolism GPU jobs running concurrently; prefer the idle GPU.

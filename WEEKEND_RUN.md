@@ -83,15 +83,40 @@ checkpoint + gt_model); E. coli SVD/amenability (from the xlsx). Read the traine
 code (`graph_trainer.py` `_plot_rate_constants_comparison`, `data_test`) to reuse the
 exact recovery computation rather than guessing.
 
+## MLP_sub alternatives (active experiment)
+Diagnosed: the plain MLP_sub collapses $c^2$ to ~linear (root of the
+identifiability degeneracy). Testing opt-in substrate parameterisations
+(`config.graph_model.substrate_func_type`): `logspace` (g=exp(MLP(log c,s))) and
+`powerlaw` (g=c^{a(s)}). Configs: `k_logspace` (running), `k_powerlaw` (queued),
+then `glyco_logspace` (build from glycolysis_yeast + substrate_func_type=logspace).
+Evaluate each finished run with BOTH: `figures/mlp_functions.py <cfg>` (does
+MLP_sub now bend like $c^2$? plain-MLP baseline grows 8.5x vs true 81x over the
+range) and `figures/k_recovery.py <cfg>` (does raw R² / the 4.3% outlier tail
+improve over the plain-MLP 0.74 / 4.3%?). Promote a figure to the PDF only if a
+variant clearly beats the plain MLP.
+
+**Shared station:** Cedric's zebrafish (connectome-cx) jobs may be running too —
+keep at most ~2 metabolism GPU jobs at once and prefer the idle GPU.
+
 ## Per-cycle procedure
+0. **Recall first.** Read `docs/lab_notebook.md` (the running log) and skim
+   `docs/metabolism.tex` to remember what has been done, what the current
+   hypotheses/verdicts are, and what was queued next — before doing anything.
 1. `nvidia-smi` load + `pgrep -af GNN_Main.py`.
 2. Evaluate finished runs; record k R² / rollout metrics.
 3. If a GPU has < 2 jobs and experiments remain, launch the next (CV seed, or AR sweep
    config, or an amenability probe) — balance cuda:0/cuda:1.
-4. Update the **"Weekend hypothesis ledger"** appendix in `docs/metabolism.tex`: a dated
-   table (hypothesis, experiment, result, validated/FALSIFIED). Recompile:
-   `cd docs && pdflatex -interaction=nonstopmode metabolism.tex >/dev/null 2>&1` ×2;
-   `rm -f metabolism.aux metabolism.log metabolism.out`.
+4. **Two-tier docs.**
+   (a) ALWAYS append a dated entry to `docs/lab_notebook.md` — the detailed,
+       raw lab notebook (what was checked/launched/found/decided, incl. dead ends,
+       configs, exact metrics, file paths). This is hourly and verbose.
+   (b) Promote ONLY polished, semi-publishable results to `docs/metabolism.tex`
+       (the PDF): finished-experiment verdicts as a ledger row, and proper
+       figures/sections when a result is solid. Keep the PDF concise and
+       publication-quality — NOT a copy of the notebook. Then recompile:
+       `cd docs && pdflatex -interaction=nonstopmode metabolism.tex >/dev/null 2>&1` ×2;
+       `rm -f metabolism.aux metabolism.log metabolism.out`.
+   Every figure in the PDF must come from a re-runnable `figures/<name>.py`.
 5. `git add -u docs/metabolism.tex metabolism.pdf WEEKEND_RUN.md && git add config/k_cv_*.yaml config/glyco_ar_*.yaml scripts/ 2>/dev/null; git commit -m "weekend <date>: <result>"; git push --no-verify`.
    Never stage `graphs_data/` or `log/`.
 

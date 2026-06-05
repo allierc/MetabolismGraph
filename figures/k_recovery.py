@@ -112,8 +112,7 @@ def main():
            f"trimmed $R^2$ = {trimmed_r2:.3f}\n"
            f"outliers = {n_out}/{n_rxn} = {pct:.1f}%\n"
            f"slope = {slope:.2f}")
-    ax.text(0.035, 0.86, txt, transform=ax.transAxes, va="top", ha="left",
-            fontsize=13, bbox=dict(boxstyle="round,pad=0.4", fc="white", ec="0.7"))
+    ax.text(0.035, 0.96, txt, transform=ax.transAxes, va="top", ha="left", fontsize=13)
 
     if "glyco" in cfg_name:
         fname = "glyco_k_recovery.png"

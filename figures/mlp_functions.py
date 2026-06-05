@@ -72,7 +72,7 @@ def main():
     ax[0].axvline(1.0, color="0.8", lw=1, zorder=0)
     ax[0].set_xlabel("concentration $c$")
     ax[0].set_ylabel(r"$\mathrm{MLP_{sub}}(c,|s|)$  (anchored at $c{=}1$)")
-    ax[0].legend(loc="upper left"); panel_label(ax[0], "a")
+    ax[0].legend(loc="lower right", frameon=False); panel_label(ax[0], "a")
 
     # ---- (b) MLP_node per metabolite (the easy term) ----
     with torch.no_grad():
@@ -84,7 +84,7 @@ def main():
             ax[1].plot(c_np, to_numpy(h), color=LEARNED, lw=1, alpha=.5)
     ax[1].axhline(0, color=TRUE, lw=1.6, ls="--", label="true (homeostasis)")
     ax[1].set_xlabel("concentration $c$"); ax[1].set_ylabel(r"$\mathrm{MLP_{node}}(c,a_i)$")
-    ax[1].legend(loc="upper right"); panel_label(ax[1], "b")
+    ax[1].legend(loc="upper right", frameon=False); panel_label(ax[1], "b")
 
     out = os.path.join(ROOT, "figures/metabolism",
                        f"mlp_{'glyco' if 'glyco' in cfg else cfg}.png")

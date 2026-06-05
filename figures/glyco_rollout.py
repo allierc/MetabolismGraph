@@ -111,7 +111,7 @@ def main():
     ax[0].plot([], [], color=GT_C, lw=2, label="ground truth")
     ax[0].plot([], [], color=PRED_C, lw=1.3, ls="--", label="learned rollout")
     ax[0].set_xlabel("time"); ax[0].set_ylabel("concentration")
-    ax[0].legend(loc="upper left"); panel_label(ax[0], "a")
+    ax[0].legend(loc="lower right", frameon=False); panel_label(ax[0], "a")
 
     yt, yp = c_true.ravel(), c_pred.ravel(); ok = np.isfinite(yp)
     ax[1].scatter(yt[ok][::20], yp[ok][::20], s=4, c="#1f77b4", alpha=.2, edgecolors="none")
@@ -119,9 +119,8 @@ def main():
     ax[1].plot([lim_lo, lim_hi], [lim_lo, lim_hi], "--", c="gray", lw=1)
     ax[1].set_xlim(lim_lo, lim_hi); ax[1].set_ylim(lim_lo, lim_hi)
     ax[1].set_xlabel("true concentration"); ax[1].set_ylabel("learned (rollout)")
-    ax[1].text(0.04, 0.96, f"per-metabolite\nPearson = {pear:.2f}\n$R^2$ = {r2:.2f}",
-               transform=ax[1].transAxes, va="top", fontsize=14,
-               bbox=dict(boxstyle="round,pad=0.4", fc="white", ec="0.7"))
+    ax[1].text(0.97, 0.06, f"per-metabolite\nPearson = {pear:.2f}\n$R^2$ = {r2:.2f}",
+               transform=ax[1].transAxes, va="bottom", ha="right", fontsize=14)
     panel_label(ax[1], "b")
 
     out = os.path.join(ROOT, "figures/metabolism/glyco_rollout.png")

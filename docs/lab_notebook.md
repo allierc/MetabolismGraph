@@ -138,3 +138,21 @@ Then glyco_logspace on the SBML model (does log-space help the MM case / Vmax re
 
 NOTE: station now SHARED with Cedric's zebrafish (connectome-cx) jobs — keep <=2
 metabolism GPU jobs running concurrently; prefer the idle GPU.
+
+## 2026-06-05 (hourly) — steep finished; degeneracy is universal; k_powerlaw launched
+
+- **glyco_ar_steep** DONE (5 epochs). Correct rollout (with stimulus): per-met
+  R²=0.521 Pearson=0.871, global R²=0.991 — the BEST AR rollout so far
+  (base 0.145, tail10 0.058, clip05 −17.5 per-met). BUT Vmax recovery still FAILS:
+  raw R²=0.003, 19/30 (63%) outliers, slope −0.07. ⇒ even the best-rolling config
+  recovers NO mechanism. Rollout quality and Vmax recovery are decoupled — the
+  degeneracy is universal across the AR sweep, not a tuning issue. Reinforces the
+  PDF verdict (no PDF change; confirmation only).
+- AR sweep ranking by per-met rollout R²: **steep 0.52 > base 0.145 > tail10 0.058
+  ≫ clip05 −17.5**; all have Vmax R²≈0.
+- **k_logspace** still early (2%, k R²=0.003 — first eval ~19800 iters). **lrramp**
+  running (epoch 4/7). Launched **k_powerlaw** (cuda:1) — the exact-mass-action
+  sanity bound for MLP_sub. Station clear of zebrafish this cycle.
+- Next: k_logspace / k_powerlaw evals (mlp_functions.py: does MLP_sub bend like c²?
+  k_recovery.py: does k improve over plain-MLP 0.74/4.3%?). If log-space breaks the
+  degeneracy on the toy, build glyco_logspace next.

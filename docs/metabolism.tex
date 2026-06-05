@@ -398,42 +398,84 @@ leak-free result; the rest is the work ahead.}
 \label{tab:status}
 \end{table}
 
-\subsection{First look: is the real \emph{E.\ coli} data amenable?}
-\label{sec:ecoli_amenability}
+\subsection{First look: are the four real datasets amenable?}
+\label{sec:amenability}
 
-Before any training on Rung~3, we ask a cheaper question: does the real
-\citet{link2015} \emph{E.\ coli} recording even have the structure the GNN
-needs? \Cref{fig:ecoli_amenability} reports three probes on the released
-intensity matrix ($247$ KEGG-annotated ions $\times$ $119$ time points,
-replicate Ecoli1); the analysis is reproduced by
-\texttt{figures/ecoli\_amenability.py}.
+Before training, we run the same cheap test on \emph{all four} datasets
+measured by \citet{link2015} --- \emph{E.\ coli}, \emph{B.\ subtilis},
+\emph{Y.\ lipolytica}, and a hybrid sample --- asking whether each recording
+carries the structure the GNN needs. The identical four-probe analysis
+(\texttt{figures/amenability.py}) is applied to every organism: SVD low-rank,
+per-ion lag-1 autocorrelation, example traces, and KEGG coverage against a
+common reference network (\texttt{iJO1366}; a proxy for core-metabolite
+mappability --- exact for \emph{E.\ coli}, approximate for the others).
+\Cref{tab:amenability} summarises and \cref{fig:amenability_grid} shows the
+per-organism panels.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{l c c c c c}
+\toprule
+Organism & ions$\times$t & $\mathrm{rank}_{99}$ & autocorr med. & in iJO1366 & $dc/dt$ \\
+\midrule
+\emph{E.\ coli}       & $247{\times}119$ & 102 (41\%) & 0.27 & 190 (77\%) & noisy \\
+\emph{B.\ subtilis}   & $239{\times}119$ & 98 (41\%)  & 0.41 & 160 (67\%) & noisy \\
+\emph{Y.\ lipolytica} & $164{\times}59$  & 51 (31\%)  & \textbf{0.62} & 103 (63\%) & \textbf{smooth} \\
+Hybrid                & $338{\times}60$  & 55 (16\%)  & 0.24 & 155 (46\%) & noisy \\
+\bottomrule
+\end{tabular}
+\caption{Amenability of the four measured datasets. $\mathrm{rank}_{99}$ is the
+number (and fraction) of singular components for $99\%$ variance; autocorr is
+the median per-ion lag-1 autocorrelation; coverage is the count mapped onto
+\texttt{iJO1366}. All four are low-rank and reasonably network-mappable; only
+\emph{Y.\ lipolytica} has smooth ($dc/dt$-learnable) dynamics.}
+\label{tab:amenability}
+\end{table}
+
+\noindent\textbf{Does it generalise?} Two of the three signals hold across all
+four datasets: the dynamics are \emph{low-rank} ($\mathrm{rank}_{99}=16$--$41\%$
+of ions) and a large share of metabolites are core/conserved (coverage
+$46$--$77\%$). The third --- temporal smoothness of $dc/dt$ --- does
+\emph{not} generalise: \emph{E.\ coli}, \emph{B.\ subtilis} and the hybrid are
+noise-dominated (median lag-1 autocorrelation $0.24$--$0.41$), whereas
+\textbf{\emph{Y.\ lipolytica} is smooth} (median $0.62$, $59\%$ of ions above
+$0.5$). The actionable consequence: the most promising target for an actual
+real-data fit is \emph{not} \emph{E.\ coli} (best network coverage but
+noisiest) but \textbf{\emph{Y.\ lipolytica}} --- smooth, learnable dynamics
+that are still low-rank and network-mappable. The hybrid is least amenable
+(lowest coverage, noisy), though most strongly low-rank. A real fit should
+therefore start from \emph{Y.\ lipolytica}, restricted to its smooth,
+high-variance, network-mapped ions and judged by held-out prediction --- not by
+mechanism recovery across the whole noisy measurement.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{\figdir/ecoli_amenability.png}
-  \caption{\textbf{Amenability probes on real \emph{E.\ coli} metabolomics.}
-  \textbf{(a)} SVD of the ion$\times$time matrix: $\mathrm{rank}_{90\%}=60$,
-  $\mathrm{rank}_{99\%}=102$ of $247$ ions --- $41\%$ fractional rank,
-  comparable to the synthetic regime ($\sim$45\%), so the dynamics are
-  genuinely low-rank. \textbf{(b)} Per-ion lag-1 autocorrelation: median
-  $0.27$, only $34\%$ of ions above $0.5$ --- most traces are \emph{noisy},
-  far less smooth than the synthetic dynamics. \textbf{(c)} The six
-  highest-variance ions still show clear, slow real-time structure.
-  \textbf{(d)} Network coverage: $190/247$ measured ions ($77\%$) map onto the
-  \texttt{iJO1366} genome-scale model, $29$ onto \texttt{e\_coli\_core}; $134$
-  are unambiguous (single KEGG per $m/z$).}
-  \label{fig:ecoli_amenability}
-\end{figure}
+  \begin{subfigure}{0.49\textwidth}
+    \includegraphics[width=\textwidth]{\figdir/amenability_ecoli.png}
+    \caption{\emph{E.\ coli}}
+  \end{subfigure}\hfill
+  \begin{subfigure}{0.49\textwidth}
+    \includegraphics[width=\textwidth]{\figdir/amenability_bsubt.png}
+    \caption{\emph{B.\ subtilis}}
+  \end{subfigure}
 
-\noindent\textbf{Read.} Two of three signals are encouraging: the data are
-low-rank (the GNN's latent-structure assumption holds) and most ions sit in a
-real reaction network, so a stoichiometry $\mathbf{S}$ can be built from
-\texttt{iJO1366}. The caution is H6: roughly two-thirds of ion traces have
-low temporal autocorrelation, i.e.\ a large fraction of the measured
-$dc/dt$ is noise-dominated. The realistic implication is that a real-data fit
-should target the smooth, high-variance, network-mapped subset (tens of ions,
-not all $247$) and be judged by held-out prediction on those --- not by
-recovering mechanism across the whole noisy measurement.
+  \begin{subfigure}{0.49\textwidth}
+    \includegraphics[width=\textwidth]{\figdir/amenability_ylipo.png}
+    \caption{\emph{Y.\ lipolytica}}
+  \end{subfigure}\hfill
+  \begin{subfigure}{0.49\textwidth}
+    \includegraphics[width=\textwidth]{\figdir/amenability_hybr.png}
+    \caption{Hybrid}
+  \end{subfigure}
+  \caption{\textbf{Identical amenability probes across the four measured
+  datasets} (each panel: (a) SVD low-rank, (b) lag-1 autocorrelation,
+  (c) highest-variance traces, (d) iJO1366 coverage). Low-rank structure and
+  network coverage recur everywhere; only \emph{Y.\ lipolytica} (c) shows
+  smooth, slowly varying traces and a right-shifted autocorrelation
+  distribution. Reproduced by \texttt{figures/amenability.py}.}
+  \label{fig:amenability_grid}
+\end{figure}
 
 \section*{Data and code}
 Synthetic generators, the GNN model, and the LLM-driven exploration loop
@@ -484,6 +526,12 @@ Date & Hypothesis & Experiment & Verdict \\
 2026-06-05 & H7: ions map to a real network
   & KEGG $\cap$ iJO1366 / e\_coli\_core
   & \emph{validated} (190/247 in iJO1366) \\
+2026-06-05 & generalises to 4 organisms?
+  & same probes: Bsubt/Ylipo/hybrid
+  & low-rank\,\&\,cover \emph{yes}; smooth \emph{no} \\
+2026-06-05 & best real fit target
+  & cross-organism $dc/dt$ smoothness
+  & \emph{Y.\ lipolytica} (autocorr 0.62) \\
 \bottomrule
 \end{tabular}
 \caption{Live experiment ledger. The single-step rollout on the real

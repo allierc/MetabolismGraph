@@ -457,3 +457,4 @@ is a correctness requirement, not a preference -> needs Cedric's domain check of
       164-rxn set), (ii) intensity normalisation, (iii) which replicate / time handling.
 STATE: recipe + format ready; one command from a dataset once (i)-(iii) are set. Holding
 on execution. 5th idle cycle. (Recommended pausing the cron last cycle.)
+- 2026-06-06 (hourly): PAUSED the hourly cron (job 1a6ded85) after 6 idle cycles. Work complete (synthetic science closed; Rung-3 fully scoped + build-recipe ready). No value in further idle spinning; recommended pausing twice. Loop easily resumable on Cedric's word. Final state pushed.

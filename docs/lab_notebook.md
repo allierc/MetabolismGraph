@@ -411,3 +411,22 @@ COMPARTMENTAL copies per KEGG (cytosol/mito/...). Options: (a) aggregate compart
 observation map (several nodes share one measured intensity). Plus relative-intensity
 normalisation + uneven 59-frame time. These are the steer points; the go/no-go itself
 is GREEN. Promoted: ledger row (subnetwork well-posed). No training; idle GPUs.
+
+## 2026-06-06 (hourly) — Rung-3 FULLY SCOPED: a clean 164-reaction first-fit exists
+
+Observation completeness of the Y. lipolytica measured subnetwork in yeast-GEM:
+  740 reactions touch >=2 measured metabolites, but only **164 are FULLY measured**
+  (all participants observed); 576 are partially measured (median 50% of participants
+  unobserved). 
+KEY: restricting to the 164 fully-observed reactions gives a COMPLETE inverse problem
+on real data (no latent species) -- directly analogous to the synthetic/glyco setups,
+and the cleanest entry point for a first real fit. The full 740-rxn network (576
+partial) is the harder latent-species follow-on (flagged in PDF as incomplete observation).
+=> Rung-3 is now FULLY SCOPED with a tractable plan:
+  (1) right network: yeast-GEM (77% coverage);
+  (2) well-posed: 401 met x 740 rxn measured subnetwork;
+  (3) clean entry: 164 fully-observed reactions -> complete inverse problem.
+Remaining build decisions (steer): compartment aggregation (164 ions -> ~127 unique vs
+401 compartmental nodes), relative-intensity normalisation, uneven 59-frame time. The
+build itself (C(t) + S for the 164-rxn subnetwork) is the next concrete step on the
+user's word. Promoted: ledger row. No training; idle GPUs. Structural scoping COMPLETE.

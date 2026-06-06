@@ -382,3 +382,18 @@ the committed PNGs (deterministic re-render) and removed stray untracked eval PN
 STATUS unchanged: investigation done + reproducible; high-value next steps (Y. lipolytica
 real fit; real-glyco identifiability; decoupled high-|s| positive control via a small
 generator change) await steer.
+
+## 2026-06-06 (hourly) — advancing Rung-3: yeast-GEM is the right network for Y. lipolytica
+
+Idle GPUs; advanced the best real-data thread (Y. lipolytica fit) with a low-risk,
+decisive analysis: which network to build S from? Amenability used iJO1366 (E. coli)
+as a common cross-organism proxy, but Y. lipolytica is a YEAST.
+  yeast-GEM (885 KEGG ids) covers 127/164 (77%) of Y. lipolytica measured ions
+  iJO1366  (911 KEGG ids) covers 103/164 (63%)  <- the proxy used in the figure
+⇒ yeast-GEM is the proper network and raises coverage 63%->77%. A real Y. lipolytica
+fit is viable on it (77% of measured metabolites sit in a curated yeast reaction net).
+This sets up thread (b): build C(t) for the 127 mapped ions + the yeast-GEM S submatrix
+(needs: KEGG->yeast-GEM metabolite map, extract bipartite S for the subset, decide
+relative-intensity normalisation). Those choices still benefit from steer, so I did the
+go/no-go (viable) but did NOT auto-build the full pipeline. Promoted: 1-sentence refinement
+of the amenability caveat + ledger row. No training this cycle.

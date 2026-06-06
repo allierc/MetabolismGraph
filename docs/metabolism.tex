@@ -516,7 +516,10 @@ carries the structure the GNN needs. The identical four-probe analysis
 (\texttt{figures/amenability.py}) is applied to every organism: SVD low-rank,
 per-ion lag-1 autocorrelation, example traces, and KEGG coverage against a
 common reference network (\texttt{iJO1366}; a proxy for core-metabolite
-mappability --- exact for \emph{E.\ coli}, approximate for the others).
+mappability --- exact for \emph{E.\ coli}, approximate for the others). For the
+\emph{Y.\ lipolytica} fit target the proper yeast network \texttt{yeast-GEM}
+raises coverage from $63\%$ to $77\%$ ($127/164$ ions), confirming the
+under-estimate from the bacterial proxy.
 \Cref{tab:amenability} summarises and \cref{fig:amenability_grid} shows the
 per-organism panels.
 
@@ -694,6 +697,9 @@ Date & Hypothesis & Experiment & Verdict \\
 2026-06-06 & exact power-law $c^{a(s)}$ fixes high-$|s|$?
   & learned exponent map $a(s)$
   & \textbf{\textsc{falsified}} ($a(s){\to}1.7$; high-$|s|$ too rare) \\
+2026-06-06 & right network for the \emph{Y.\ lipolytica} fit
+  & KEGG $\cap$ yeast-GEM vs iJO1366
+  & yeast-GEM $77\%$ ($>63\%$); fit viable \\
 \bottomrule
 \end{tabular}
 \caption{Live experiment ledger. The single-step rollout on the real

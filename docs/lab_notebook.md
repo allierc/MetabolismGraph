@@ -323,3 +323,26 @@ Launched **mixed_s2_powerlaw** (cuda:0): if a(s) learns the true exponents, it s
 fix the high-|s| reactions where the MLP/log-space undershoot. Eval next cycle:
 k_recovery.py + does a(s) -> [1,2,3,..]? Promoted: ledger row (identifiability FALSIFIED).
 - 2026-06-06 (hourly): structured power-law mid-run (61%): mixed_s2_powerlaw k R²=0.220 — between plain-MLP 0.16 and log-space 0.26 on |s|>=2 so far. NOT yet dramatically better despite c^{a(s)} being the exact mass-action family (likely: few |s|>=3 reactions => weak signal to learn a(3),a(4),...). Final + a(s)->[1,2,3,..]? check next cycle. No crash.
+
+## 2026-06-06 (hourly) — CLOSING the arc: even exact power-law fails (high-|s| too rare)
+
+mixed_s2_powerlaw DONE. k recovery: raw 0.255, trimmed 0.851, 79/256 (30.9%) outliers,
+FAIL. So on |s|>=2: plain 0.158/37.5%, log-space 0.259/40.6%, power-law 0.255/30.9%.
+Power-law has fewest outliers but still fails; NOT better than log-space despite being
+the exact mass-action family.
+DECISIVE a(s) check (PowerLawSubstrate g=c^{a(s)}, can represent any exponent exactly):
+  learned a(s), s=1..6: [1.00, 1.45, 1.64, 1.71, 1.73, 1.75]
+  true    a(s)=s      : [1,    2,    3,    4,    5,    6]
+  |s| counts in data  : {1:499, 2:187, 3:15, 4:12, 5:8, 6:2}
+⇒ a(s) SATURATES at ~1.7; it learns a(1)=1 perfectly (499 reactions) and a(2)=1.45
+(undershoots, 187 rxns), and completely fails s>=3 (15/12/8/2 rxns — too rare).
+SYNTHESIS of the whole MLP_sub/curvature/identifiability arc:
+  - representation capacity is NOT the limit (power-law has it exactly),
+  - data volume / more trajectories is NOT the limit (falsified, same S),
+  - the limit is SIGNAL: high-order (|s|>=3) reactions are too RARE to identify their
+    exponent. The ~31% outliers ARE the |s|>=2 reactions, unrecoverable across all 3
+    parameterisations. Fix would need either more high-|s| reactions or an integer-
+    exponent prior (a(s)->round), not a better generic function approximator.
+Promoted to PDF: paragraph + ledger row (power-law a(s) saturation). This cleanly
+concludes the synthetic MLP_sub investigation. Remaining big threads (Y. lipolytica real
+fit; real-glyco identifiability) still need steer.

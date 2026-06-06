@@ -411,6 +411,22 @@ remains hard for either parameterisation --- a real but partial fix.
   \label{fig:curvature}
 \end{figure}
 
+\paragraph{The limit is signal, not capacity.} Two further controls localise the
+residual failure. (i)~Training on four diverse trajectories instead of one
+barely helps (outliers $37.5\%\!\to\!32\%$), so it is not a data-volume /
+identifiability-by-replication problem. (ii)~A \emph{structured} substrate
+function $g=c^{a(|s|)}$ --- which can represent any exponent \emph{exactly} ---
+still fails (outliers $30.9\%$): its learned exponent map saturates at
+$a(s){=}1.0, 1.45, 1.64, 1.71, 1.73, 1.75$ for $s{=}1{\dots}6$, against the true
+$1,2,3,4,5,6$. It nails $a(1)$ ($499$ reactions) but never reaches the high
+exponents --- because those reactions are \emph{rare} ($15/12/8/2$ reactions at
+$|s|{=}3/4/5/6$). The unrecoverable ${\sim}31\%$ are exactly the $|s|{\ge}2$
+reactions, across all three parameterisations. So the bottleneck for high-order
+kinetics is neither MLP capacity nor data volume but the \emph{scarcity of
+high-order reactions}: too little signal to identify a steep exponent. The fix is
+a structural prior (e.g.\ integer exponents) or a regime richer in high-$|s|$
+reactions --- not a better generic function approximator.
+
 \paragraph{Rung 2 --- consensus genome-scale model (yeast-GEM).}
 The community-curated genome-scale model of \emph{S.\ cerevisiae}
 \citep{yeastgem}: $2{,}806$ metabolites, $4{,}131$ reactions across $14$
@@ -675,6 +691,9 @@ Date & Hypothesis & Experiment & Verdict \\
 2026-06-06 & more trajectories break the $|s|{\ge}2$ degeneracy?
   & mixed\_s2: 1 vs 4 diverse trajectories
   & \textbf{\textsc{falsified}} ($37{\to}32\%$ out; representation, not data) \\
+2026-06-06 & exact power-law $c^{a(s)}$ fixes high-$|s|$?
+  & learned exponent map $a(s)$
+  & \textbf{\textsc{falsified}} ($a(s){\to}1.7$; high-$|s|$ too rare) \\
 \bottomrule
 \end{tabular}
 \caption{Live experiment ledger. The single-step rollout on the real

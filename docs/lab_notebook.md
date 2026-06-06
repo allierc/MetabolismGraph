@@ -366,3 +366,19 @@ next steps all need steer: (a) decoupled high-|s| positive control; (b) Rung-3 Y
 real fit (the best real target); (c) symbolic regression / structural integer-exponent
 prior for the real (unknown-form) kinetics. Not launching marginal/confounded experiments
 autonomously — holding. rich_s2.yaml kept as a record of the attempt.
+
+## 2026-06-06 (hourly) — reproducibility integrity check (consolidation, no new experiment)
+
+Synthetic investigation complete; held on new synthetic experiments (clean positive
+control needs risky generator surgery to keep sub/all/S edge lists consistent — not
+worth it autonomously vs the already strong a(s)-saturation evidence). Instead did a
+low-risk consolidation: re-ran ALL figure scripts that feed the PDF, from saved
+artifacts only.
+  amenability.py, curvature_compare.py, k_recovery.py (winner + glyco_ar_base),
+  mlp_functions.py, glyco_rollout.py  ->  6/6 OK, 0 fail.
+So every PDF figure is reproducible (figures rule satisfied). Discarded byte-churn on
+the committed PNGs (deterministic re-render) and removed stray untracked eval PNGs
+(k_recovery_<cfg>.png from per-cycle evals, not referenced by the PDF).
+STATUS unchanged: investigation done + reproducible; high-value next steps (Y. lipolytica
+real fit; real-glyco identifiability; decoupled high-|s| positive control via a small
+generator change) await steer.

@@ -213,3 +213,4 @@ FINISHED: k_logspace, k_powerlaw (toy). Skeptical confirmation:
 - Open idea worth queuing: test log-space on a regime that ACTUALLY has |s|=2 reactions
   (toy is all |s|=1) to properly test the curvature hypothesis — needs a new dataset
   with |s|>=2 stoichiometry.
+- 2026-06-05 (hourly): glyco_logspace on final epoch (6/7, T_epoch=300); KEY MM Vmax test finishes next cycle. GPU1 idle, held. No zebrafish.

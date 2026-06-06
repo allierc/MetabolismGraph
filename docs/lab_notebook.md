@@ -287,3 +287,19 @@ Promoted to PDF: fig:curvature (figures/curvature_compare.py, 2-panel plain vs l
 + paragraph + ledger row. Note: even the BEST (log-space) fails the 10% gate here, so
 the |s|>=2 regime is genuinely hard regardless of MLP_sub form.
 Queued threads unchanged (need steer): Y. lipolytica real fit; multi-traj glyco identifiability.
+
+## 2026-06-06 (hourly) — IDENTIFIABILITY test: multi-trajectory training (generator fix)
+
+Central open problem = identifiability (single in-sample trajectory admits many k;
+glyco Vmax R²~0, mixed_s2 |s|>=2 fails 37-40% outliers). Direct test: train on
+MULTIPLE diverse trajectories.
+- Found generation bug: init_concentration computed ONCE (outside run loop), so
+  n_runs>1 produced IDENTICAL trajectories (useless). FIX (data_generator.py): run 0
+  keeps original IC (single-run datasets byte-unchanged), run>0 re-inits with seed+run
+  -> diverse ICs. Verified: mixed_s2_multi has 4 finite runs with different ICs
+  (run0 IC [5.9,1.1,4.2,..], run1 [2.0,1.4,3.2,..]) and ranges [0,86]..[0,146].
+- Launched **mixed_s2_multi** (plain-MLP, n_runs=4, |s|>=2 regime, S given), cuda:0.
+  HYPOTHESIS: if the mixed_s2 failure (raw k R²=0.16, 37% outliers, single traj) is
+  identifiability, 4 diverse trajectories should improve k recovery / cut outliers.
+  Baseline to beat: single-traj plain-MLP mixed_s2 = 0.158 raw / 37.5% out.
+Eval next cycle. GPU change is opt-in-safe (run0 unchanged). No zebrafish this cycle.

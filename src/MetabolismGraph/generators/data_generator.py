@@ -167,8 +167,16 @@ def data_generate(
         x_list = []
         y_list = []
 
-        # reset concentrations per run
-        x[:, 3] = concentrations.clone().detach()
+        # reset concentrations per run; run 0 keeps the original IC (so single-run
+        # datasets are unchanged), run>0 gets a DIFFERENT random IC (seed+run) so
+        # that n_runs>1 yields diverse trajectories (for identifiability tests).
+        if run == 0:
+            x[:, 3] = concentrations.clone().detach()
+        else:
+            x[:, 3] = init_concentration(
+                n_metabolites, device, mode='random',
+                seed=simulation_config.seed + run, c_min=c_min, c_max=c_max,
+            )
 
         for it in trange(simulation_config.start_frame, n_frames + 1, ncols=100):
 

@@ -432,3 +432,28 @@ build itself (C(t) + S for the 164-rxn subnetwork) is the next concrete step on 
 user's word. Promoted: ledger row. No training; idle GPUs. Structural scoping COMPLETE.
 - 2026-06-06 (hourly): no runs, no clean autonomous experiment. Synthetic science COMPLETE; Rung-3 Y. lipolytica FULLY SCOPED (yeast-GEM 77%, 401x740 well-posed, clean 164-rxn fully-observed first fit). Genuine steer-gated resting point — next moves (build the 164-rxn fit / pick a thread) need direction + a multi-hour build; not manufacturing more analyses. Holding.
 - 2026-06-06 (hourly): idle, steer-gated (4th holding cycle). Work complete & build-ready; loop now idle-spinning. Recommending user pause the hourly cron or pick a thread. Holding.
+
+## 2026-06-06 (hourly) — Y. lipolytica build RECIPE ready (execution gated on domain validation)
+
+Reverse-engineered the exact repo data format (from glycolysis_yeast) so the real build
+is execute-ready:
+  graphs_data/<ds>/  needs:
+   - stoich_graph.pt = dict{ 'sub':(met_sub,rxn_sub,|coeff|), 'all':(met_all,rxn_all,signed),
+       optional 'stimulus_sub' }  (contiguous met/rxn indices)
+   - stoichiometry.pt = dense (N x M)
+   - x_list_0.npy (T,N,8): col0=idx, col1-2=pos, col3=conc, col4=ext(0), col6=type(0)
+   - y_list_0.npy (T,N,1) = dc/dt (finite diff of conc)
+   - metadata.pt (species_names). gt_model.pt/stimulus.npy NOT needed (trainer skips
+     k-comparison when gt_model absent -> only held-out prediction). Train with
+     Metabolism_Propagation (learns MLP_sub, S given); no kinetic form assumed.
+  BUILD STEPS: 164 fully-observed yeast-GEM reactions -> measured metabolite nodes ->
+  contiguous bipartite edges (sub/all) + dense S; C(t)=measured Y.lipolytica intensities
+  for those nodes, normalised, on a uniform grid; y=dc/dt.
+WHY NOT EXECUTED autonomously: real data has NO ground truth, so a network-construction
+error (reaction set / sign / metabolite identity / compartment aggregation) would be
+INVISIBLE (can't be GT-validated, unlike every synthetic experiment this weekend). That
+is a correctness requirement, not a preference -> needs Cedric's domain check of:
+  (i) compartment aggregation (KEGG-merge ~127 vs 401 compartmental nodes -- changes the
+      164-rxn set), (ii) intensity normalisation, (iii) which replicate / time handling.
+STATE: recipe + format ready; one command from a dataset once (i)-(iii) are set. Holding
+on execution. 5th idle cycle. (Recommended pausing the cron last cycle.)

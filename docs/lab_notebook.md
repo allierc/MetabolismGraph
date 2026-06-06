@@ -214,3 +214,24 @@ FINISHED: k_logspace, k_powerlaw (toy). Skeptical confirmation:
   (toy is all |s|=1) to properly test the curvature hypothesis — needs a new dataset
   with |s|>=2 stoichiometry.
 - 2026-06-05 (hourly): glyco_logspace on final epoch (6/7, T_epoch=300); KEY MM Vmax test finishes next cycle. GPU1 idle, held. No zebrafish.
+
+## 2026-06-05 (hourly) — DECISIVE: log-space does NOT fix glyco Vmax (degeneracy is identifiability)
+
+glyco_logspace DONE (7 epochs). Leak-resistant Vmax recovery: raw R²=0.044, 23/30
+(76.7%) outliers, slope −0.32 → STILL FAIL (baseline plain-MLP glyco_ar_base:
+0.001/73%). Rollout per-met R²=0.474 Pearson=0.867 (fine, in-sample, as always).
+**Verdict: reparameterising MLP_sub (log-space) does NOT break the glycolysis MM
+Vmax degeneracy.** So the glyco failure is NOT an MLP_sub representation problem.
+
+Synthesis of the MLP_sub line:
+- TOY (mass-action, all |s|=1): log-space improves k 0.74→0.89 — CONDITIONING gain.
+- GLYCO (real MM, saturating): log-space gives Vmax 0.001→0.044 — no real change.
+⇒ The glyco degeneracy is **identifiability**, not representation: a single in-sample
+trajectory (rank ~6/20) + homeostasis compensation + isoenzymes (3 HXK, 3 PDC, 3 TDH
+sharing flux) admit many Vmax sets with the same dynamics. MLP_sub form is not the lever.
+
+MLP_sub line CONCLUDED. Promoted to PDF: ledger row (glyco-logspace FALSIFIED).
+Next threads (NOT auto-launched — need setup): (a) break the identifiability degeneracy
+with MULTIPLE glyco trajectories (n_runs>1, diverse ICs) so Vmax becomes identifiable
+[note: a single holdout at seed 777 was rank-1, so need rich/diverse ICs]; (b) Rung-3
+Y. lipolytica real-data fit (the best real target). GPUs free; held pending direction.

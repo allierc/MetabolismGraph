@@ -381,6 +381,36 @@ so training loss is not a proxy for either.)
   \label{fig:glyco_recovery}
 \end{figure}
 
+\paragraph{Can $\mathrm{MLP_{sub}}$ learn the kinetic curvature?}
+A natural suspect for the recovery failures is that the MLP cannot represent the
+substrate power law $c^{|s|}$. On the synthetic toy this is untestable --- that
+network is $100\%$ $|s|{=}1$ (linear), so any probe at $|s|{\ge}2$ is untrained
+extrapolation. We therefore built a controlled regime (\texttt{mixed\_s2}: $31\%$
+of substrate edges with $|s|{\ge}2$) and compared a plain MLP against the
+log-space parameterisation $g=\exp(\mathrm{MLP}(\log c, |s|))$
+(\cref{fig:curvature}). Two things hold. First, \emph{with} genuine $|s|{\ge}2$
+signal the MLP now learns \emph{some} curvature (the toy could not), and log-space
+learns more: the growth of $\mathrm{MLP_{sub}}$ over $c\in[1,9]$ reaches
+$24\!\to\!32$ for $c^2$ (true $81$) and $28\!\to\!57$ for $c^3$ (true $729$),
+plain $\to$ log-space. So curvature \emph{does} matter and log-space helps. Second,
+\emph{both still badly undershoot} the higher powers, and both fail the
+$10\%$-outlier gate on this regime (raw $k$ $R^2 = 0.16$ plain vs $0.26$
+log-space; ${\sim}40\%$ outliers). Representing $c^3$--$c^4$ over a wide range
+remains hard for either parameterisation --- a real but partial fix.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{\figdir/curvature_compare.png}
+  \caption{\textbf{Curvature recovery on a regime with $|s|{\ge}2$
+  (\texttt{mixed\_s2}).} Learned $\mathrm{MLP_{sub}}(c,|s|)$ (solid) vs the true
+  power law $c^{|s|}$ (dashed) for $|s|{=}1,2,3$, log $y$-axis, anchored at
+  $c{=}1$. \textbf{(a)} plain MLP, \textbf{(b)} log-space MLP. Both track $c^1$;
+  both bend upward for $c^2,c^3$ now that the data contains such reactions, with
+  log-space bending more --- but both fall well short of the true $c^2$ (and far
+  short of $c^3$). Reproduced by \texttt{figures/curvature\_compare.py}.}
+  \label{fig:curvature}
+\end{figure}
+
 \paragraph{Rung 2 --- consensus genome-scale model (yeast-GEM).}
 The community-curated genome-scale model of \emph{S.\ cerevisiae}
 \citep{yeastgem}: $2{,}806$ metabolites, $4{,}131$ reactions across $14$
@@ -639,6 +669,9 @@ Date & Hypothesis & Experiment & Verdict \\
 2026-06-05 & log-space $\mathrm{MLP_{sub}}$ fixes glyco $V_{\max}$
   & glyco\_logspace, leak-resistant
   & \textbf{\textsc{falsified}} ($R^2{=}0.04$; identifiability, not form) \\
+2026-06-06 & $\mathrm{MLP_{sub}}$ learns $c^2$ given $|s|{\ge}2$ data?
+  & mixed\_s2: plain vs log-space
+  & \emph{partly} (log $>$ plain; both undershoot, FAIL) \\
 \bottomrule
 \end{tabular}
 \caption{Live experiment ledger. The single-step rollout on the real

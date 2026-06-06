@@ -269,3 +269,21 @@ test (31% |s|>=2 reactions present), just not pure power-law. Eval next cycle:
 does log-space beat plain-MLP HERE (k_recovery.py), and does MLP_sub bend like c^2
 for |s|=2 (mlp_functions.py)?
 - 2026-06-06 (hourly): |s|=2 curvature test mid-run (~55%): log-space k R²=0.250 vs plain-MLP 0.123 — log-space ~2x ahead WHERE curvature exists (toy tied at all-|s|=1). Both low (hard regime). Verify + curvature check (mlp_functions.py) at completion next cycle. No crash.
+
+## 2026-06-06 (hourly) — |s|=2 curvature VERDICT: log-space > plain, but both undershoot
+
+mixed_s2 (plain-MLP) vs mixed_s2_logspace DONE (stable, flux_limit=true, rank 17).
+- k recovery: plain raw R²=0.158 trimmed 0.856 (37.5% out, FAIL); log-space raw 0.259
+  trimmed 0.905 (40.6% out, FAIL). Log-space better on raw/trimmed; both fail 10% rule.
+- CURVATURE growth over c[1,9] (true 9/81/729 for |s|=1/2/3):
+    plain:     |s|=1 7.9   |s|=2 24.4   |s|=3 28.0
+    log-space: |s|=1 8.6   |s|=2 32.3   |s|=3 56.6
+  ⇒ WITH |s|>=2 signal, MLP_sub DOES learn some curvature (toy couldn't — it was all
+  |s|=1, extrapolation). Log-space learns MORE. But BOTH undershoot badly (c^2: 32 vs
+  81; c^3: 57 vs 729). Higher powers over a wide range stay hard.
+VERDICT (partial): curvature hypothesis has real support (log-space>plain WHERE
+curvature exists), but reparameterising MLP_sub is only a partial fix; c^3-c^4 unsolved.
+Promoted to PDF: fig:curvature (figures/curvature_compare.py, 2-panel plain vs log-space)
++ paragraph + ledger row. Note: even the BEST (log-space) fails the 10% gate here, so
+the |s|>=2 regime is genuinely hard regardless of MLP_sub form.
+Queued threads unchanged (need steer): Y. lipolytica real fit; multi-traj glyco identifiability.

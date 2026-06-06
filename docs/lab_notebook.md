@@ -397,3 +397,17 @@ This sets up thread (b): build C(t) for the 127 mapped ions + the yeast-GEM S su
 relative-intensity normalisation). Those choices still benefit from steer, so I did the
 go/no-go (viable) but did NOT auto-build the full pipeline. Promoted: 1-sentence refinement
 of the amenability caveat + ledger row. No training this cycle.
+
+## 2026-06-06 (hourly) — Rung-3 structural go/no-go: Y. lipolytica fit is WELL-POSED
+
+Beyond raw coverage (77%), computed the actual subnetwork the GNN would fit. Parsed
+yeast-GEM (2806 mets, 1723 with KEGG; 4131 rxns). Measured Y. lipolytica KEGG set
+(269 ids) maps to 401 yeast-GEM metabolites; 740 reactions touch >=2 measured mets
+(1212 touch >=1). => effective measured S ~ 401 met x 740 rxn — a substantial bipartite
+graph (cf. toy 100x256, glyco 20x30). So the fit is STRUCTURALLY VIABLE/well-posed.
+Surfaced the key remaining setup choice: 164 ions -> 401 yeast-GEM mets = ~2.4
+COMPARTMENTAL copies per KEGG (cytosol/mito/...). Options: (a) aggregate compartments
+-> ~127 unique nodes (1 measurement = 1 node); (b) keep 401 nodes with a many-to-one
+observation map (several nodes share one measured intensity). Plus relative-intensity
+normalisation + uneven 59-frame time. These are the steer points; the go/no-go itself
+is GREEN. Promoted: ledger row (subnetwork well-posed). No training; idle GPUs.

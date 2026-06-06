@@ -303,3 +303,4 @@ MULTIPLE diverse trajectories.
   identifiability, 4 diverse trajectories should improve k recovery / cut outliers.
   Baseline to beat: single-traj plain-MLP mixed_s2 = 0.158 raw / 37.5% out.
 Eval next cycle. GPU change is opt-in-safe (run0 unchanged). No zebrafish this cycle.
+- 2026-06-06 (hourly): identifiability test mid-run (54%): mixed_s2_multi (4 traj) k R²=0.135 — so far TRACKING the single-traj baseline (final 0.16), not obviously better. If it ends ~similar with ~37% outliers, more data did NOT break the degeneracy (=> failure is curvature/representation of c³+ , not pure identifiability). Final + outlier% next cycle. No crash.

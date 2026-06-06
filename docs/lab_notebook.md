@@ -268,3 +268,4 @@ so MLP_sub only gets clean c^s gradient in the UNsaturated regime — still a va
 test (31% |s|>=2 reactions present), just not pure power-law. Eval next cycle:
 does log-space beat plain-MLP HERE (k_recovery.py), and does MLP_sub bend like c^2
 for |s|=2 (mlp_functions.py)?
+- 2026-06-06 (hourly): |s|=2 curvature test mid-run (~55%): log-space k R²=0.250 vs plain-MLP 0.123 — log-space ~2x ahead WHERE curvature exists (toy tied at all-|s|=1). Both low (hard regime). Verify + curvature check (mlp_functions.py) at completion next cycle. No crash.

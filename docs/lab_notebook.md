@@ -346,3 +346,23 @@ SYNTHESIS of the whole MLP_sub/curvature/identifiability arc:
 Promoted to PDF: paragraph + ledger row (power-law a(s) saturation). This cleanly
 concludes the synthetic MLP_sub investigation. Remaining big threads (Y. lipolytica real
 fit; real-glyco identifiability) still need steer.
+
+## 2026-06-06 (hourly) — positive control is confounded; holding for steer
+
+Tried to build a clean positive control for the scarcity conclusion: a regime RICH in
+|s|=2 to see if a(2) reaches 2.0 with more signal. Generated rich_s2 (cycle_fraction=0,
+flux_limit=true): |s| counts {1:493, 2:403, 3:36, 4:23, 5:11, 6:3} (49% |s|>=2, |s|=2
+DOUBLED vs mixed_s2's 187) — BUT activity rank(99%)=2. cycle_fraction couples dynamic
+richness with the |s| distribution: cf=1 → rich dynamics, all |s|=1; cf=0 → many |s|=2
+but trivial (rank-2) dynamics with ~no signal to identify k. So this is NOT a clean test
+(low k signal would confound the a(s) result). Did NOT launch it.
+Reflection: my earlier "integer-exponent prior" idea also wouldn't fix the diagnosed
+problem — a(2)=1.45 saturates by MAGNITUDE (signal), and snapping to nearest integer
+rounds it to 1 (worse), not 2.
+STATUS: the synthetic MLP_sub / curvature / identifiability investigation is COMPLETE and
+fully documented (PDF + ledger). A clean positive control needs a generator change to
+decouple stoichiometry magnitude from cycle structure (bigger than config). The high-value
+next steps all need steer: (a) decoupled high-|s| positive control; (b) Rung-3 Y. lipolytica
+real fit (the best real target); (c) symbolic regression / structural integer-exponent
+prior for the real (unknown-form) kinetics. Not launching marginal/confounded experiments
+autonomously — holding. rich_s2.yaml kept as a record of the attempt.

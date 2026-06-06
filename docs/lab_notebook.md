@@ -431,3 +431,4 @@ Remaining build decisions (steer): compartment aggregation (164 ions -> ~127 uni
 build itself (C(t) + S for the 164-rxn subnetwork) is the next concrete step on the
 user's word. Promoted: ledger row. No training; idle GPUs. Structural scoping COMPLETE.
 - 2026-06-06 (hourly): no runs, no clean autonomous experiment. Synthetic science COMPLETE; Rung-3 Y. lipolytica FULLY SCOPED (yeast-GEM 77%, 401x740 well-posed, clean 164-rxn fully-observed first fit). Genuine steer-gated resting point — next moves (build the 164-rxn fit / pick a thread) need direction + a multi-hour build; not manufacturing more analyses. Holding.
+- 2026-06-06 (hourly): idle, steer-gated (4th holding cycle). Work complete & build-ready; loop now idle-spinning. Recommending user pause the hourly cron or pick a thread. Holding.

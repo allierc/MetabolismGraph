@@ -322,3 +322,4 @@ exponent exactly. Tested on the toy (all |s|=1, gave 0.80) but NOT on |s|>=2.
 Launched **mixed_s2_powerlaw** (cuda:0): if a(s) learns the true exponents, it should
 fix the high-|s| reactions where the MLP/log-space undershoot. Eval next cycle:
 k_recovery.py + does a(s) -> [1,2,3,..]? Promoted: ledger row (identifiability FALSIFIED).
+- 2026-06-06 (hourly): structured power-law mid-run (61%): mixed_s2_powerlaw k R²=0.220 — between plain-MLP 0.16 and log-space 0.26 on |s|>=2 so far. NOT yet dramatically better despite c^{a(s)} being the exact mass-action family (likely: few |s|>=3 reactions => weak signal to learn a(3),a(4),...). Final + a(s)->[1,2,3,..]? check next cycle. No crash.

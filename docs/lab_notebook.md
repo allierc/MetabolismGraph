@@ -304,3 +304,21 @@ MULTIPLE diverse trajectories.
   Baseline to beat: single-traj plain-MLP mixed_s2 = 0.158 raw / 37.5% out.
 Eval next cycle. GPU change is opt-in-safe (run0 unchanged). No zebrafish this cycle.
 - 2026-06-06 (hourly): identifiability test mid-run (54%): mixed_s2_multi (4 traj) k R²=0.135 — so far TRACKING the single-traj baseline (final 0.16), not obviously better. If it ends ~similar with ~37% outliers, more data did NOT break the degeneracy (=> failure is curvature/representation of c³+ , not pure identifiability). Final + outlier% next cycle. No crash.
+
+## 2026-06-06 (hourly) — IDENTIFIABILITY verdict: FALSIFIED (it's representation, not data)
+
+mixed_s2_multi (4 diverse trajectories, plain-MLP) DONE. Head-to-head k recovery:
+  single-traj mixed_s2:       raw 0.158, trimmed 0.856, 96/256 (37.5%) outliers, FAIL
+  multi-traj  mixed_s2_multi: raw 0.164, trimmed 0.850, 82/256 (32.0%) outliers, FAIL
+⇒ 4x diverse trajectories barely helped (outliers 37.5→32%, raw flat). **"More
+trajectories breaks the |s|>=2 degeneracy" is FALSIFIED.** The failure is
+REPRESENTATION-limited (MLP_sub can't fit c^3-c^4 over the range, last cycle's
+curvature result), not data/identifiability-limited. NOTE: this is the SYNTHETIC
+high-|s| regime; the GLYCO MM degeneracy (isoenzymes) is a separate question, not
+tested here (glyco multi-traj would need rich ICs; seed-777 holdout was rank-1).
+
+⇒ Right next move: structured form. PowerLawSubstrate g=c^{a(s)} can represent ANY
+exponent exactly. Tested on the toy (all |s|=1, gave 0.80) but NOT on |s|>=2.
+Launched **mixed_s2_powerlaw** (cuda:0): if a(s) learns the true exponents, it should
+fix the high-|s| reactions where the MLP/log-space undershoot. Eval next cycle:
+k_recovery.py + does a(s) -> [1,2,3,..]? Promoted: ledger row (identifiability FALSIFIED).

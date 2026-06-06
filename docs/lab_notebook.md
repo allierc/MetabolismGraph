@@ -235,3 +235,19 @@ Next threads (NOT auto-launched — need setup): (a) break the identifiability d
 with MULTIPLE glyco trajectories (n_runs>1, diverse ICs) so Vmax becomes identifiable
 [note: a single holdout at seed 777 was rank-1, so need rich/diverse ICs]; (b) Rung-3
 Y. lipolytica real-data fit (the best real target). GPUs free; held pending direction.
+
+## 2026-06-05 (hourly) — launched the |s|=2 curvature experiment (controlled)
+
+GPUs were free (MLP_sub line concluded). Set up the queued curvature test properly:
+the toy was all |s|=1, so log-space's "conditioning gain" couldn't be separated from a
+real curvature benefit. init_reaction gives |s| in {1,2} for RANDOM (non-cycle)
+reactions, so cycle_fraction<1 brings them in (no code change).
+- Generated **mixed_s2** (k_recovery_winner + cycle_fraction=0.5, S given). |s| dist:
+  {1:499, 2:187, 3:15, 4:12, 5:8, 6:2} → **31% of substrate edges are |s|>=2**. Now
+  there IS real quadratic+ curvature to learn.
+- Launched **mixed_s2** (plain-MLP, cuda:0) vs **mixed_s2_logspace** (log-space, cuda:1),
+  same data, S given. HYPOTHESIS: if curvature is the issue, log-space should beat
+  plain-MLP HERE (unlike the toy, where both were ~equal because all |s|=1). Eval next
+  cycle(s): k_recovery.py (raw/trimmed/outliers) + mlp_functions.py (does MLP_sub now
+  bend like c^2/c^3 for |s|>=2, growth toward 81 not 8.5?).
+- Configs committed; data gitignored. No zebrafish this cycle.

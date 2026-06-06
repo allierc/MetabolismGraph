@@ -196,3 +196,20 @@ FINISHED: k_logspace, k_powerlaw (toy). Skeptical confirmation:
 - Promoted to PDF: ledger rows (log-space improves toy k; toy-c^2-failure FALSIFIED).
   NOT adding the |s|=2 extrapolation figure (would mislead). glyco_logspace verdict
   next cycle.
+
+## 2026-06-05 (hourly) — lrramp finished (AR sweep complete); glyco_logspace mid-run
+
+- **glyco_ar_lrramp** DONE. Correct rollout: per-met R²=0.551 Pearson=0.879 (best of
+  the sweep, edging steep 0.521). Vmax recovery: raw R²=0.006, 24/30 (80%) outliers,
+  slope −0.14 → FAIL. Same degeneracy.
+- **AR sweep COMPLETE (all 5).** Per-met rollout R²: lrramp 0.551 > steep 0.521 >
+  base 0.145 > tail10 0.058 ≫ clip05 −17.5. **ALL have Vmax R²≈0** — degeneracy is
+  universal, decoupled from rollout quality. No PDF change (confirms existing verdict).
+- **glyco_logspace** still training (epoch 4/7) — the KEY test: does log-space MLP_sub
+  break the glyco MM Vmax degeneracy? Verdict next cycle.
+- GPU1 idle; held (glyco_logspace is the active key experiment; not half-starting the
+  bigger Rung-3 Y. lipolytica real-data build unsupervised — that's the next major
+  thread once the MLP_sub line concludes). No zebrafish this cycle.
+- Open idea worth queuing: test log-space on a regime that ACTUALLY has |s|=2 reactions
+  (toy is all |s|=1) to properly test the curvature hypothesis — needs a new dataset
+  with |s|>=2 stoichiometry.

@@ -30,7 +30,7 @@ simulation:
   cycle_fraction: 0.5
   cycle_length: 3
   delta_t: 0.1
-  flux_limit: false
+  flux_limit: true
   homeostatic_baseline_per_type:
   - 4.0
   - 6.0

@@ -251,3 +251,20 @@ reactions, so cycle_fraction<1 brings them in (no code change).
   cycle(s): k_recovery.py (raw/trimmed/outliers) + mlp_functions.py (does MLP_sub now
   bend like c^2/c^3 for |s|>=2, growth toward 81 not 8.5?).
 - Configs committed; data gitignored. No zebrafish this cycle.
+
+## 2026-06-06 (hourly) — DEAD END then fix: |s|=2 regime exploded; flux_limit stabilised it
+
+mixed_s2 / mixed_s2_logspace (first launch) both CRASHED: "SVD did not converge in
+lstsq" at the first plot checkpoint, no models saved. Diagnosed: the data was
+catastrophically unstable — 99.8% non-finite, blew up to 7e35 by frame 5. Cause:
+|s|>=2 mass-action reactions with flux_limit=false → autocatalytic c^2 explosion
+(the toy was stable only because it was all |s|=1). The lstsq crash was downstream
+of NaN concentrations.
+FIX: set flux_limit=true (bounds reaction velocity). Regenerated mixed_s2 → 100%
+finite, range [0, 86], activity rank(99%)=17. Relaunched both (plain-MLP cuda:0,
+log-space cuda:1); training cleanly past startup, no crash.
+Caveat for the curvature test: flux_limit adds a saturation on the aggregate rate,
+so MLP_sub only gets clean c^s gradient in the UNsaturated regime — still a valid
+test (31% |s|>=2 reactions present), just not pure power-law. Eval next cycle:
+does log-space beat plain-MLP HERE (k_recovery.py), and does MLP_sub bend like c^2
+for |s|=2 (mlp_functions.py)?

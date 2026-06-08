@@ -107,32 +107,53 @@ def main():
     g_r2, g_pear = m_stim[2], m_stim[3]
     tgrid = np.arange(T + 1) * dt
 
-    # ---- figure: (a) example traces, (b) predicted-vs-true scatter ----
-    sel = np.argsort(-np.nanvar(c_true, axis=0))[:4]
-    fig, ax = plt.subplots(1, 2, figsize=(14, 6))
-    for i in sel:
-        ax[0].plot(tgrid, c_true[:, i], color=GT_C, lw=2, alpha=.9)
-        ax[0].plot(tgrid, c_pred[:, i], color=PRED_C, lw=1.3, ls="--")
-        ax[0].annotate(str(names[i]), (tgrid[-1], c_true[-1, i]), fontsize=11,
-                       color="0.3", va="center")
-    ax[0].plot([], [], color=GT_C, lw=2, label="ground truth")
-    ax[0].plot([], [], color=PRED_C, lw=1.3, ls="--", label="learned rollout")
-    ax[0].set_xlabel("time"); ax[0].set_ylabel("concentration")
-    ax[0].set_ylim(0, 1.5 * float(np.nanmax(c_true)))   # clip if the rollout diverges
-    ax[0].legend(loc="lower right", frameon=False); panel_label(ax[0], "a")
+    # rollout PEARSON (bounded, shape-based) on a window, and divergence onset
+    # (first frame where the rollout exceeds 5x the true dynamic range).
+    def win_pearson(gt, cp):
+        prs = [np.corrcoef(gt[:, i], cp[:, i])[0, 1] for i in range(gt.shape[1])
+               if np.std(gt[:, i]) > 1e-9 and np.all(np.isfinite(cp[:, i])) and np.std(cp[:, i]) > 1e-12]
+        yt, yp = gt.ravel(), cp.ravel(); ok = np.isfinite(yp)
+        gP = np.corrcoef(yt[ok], yp[ok])[0, 1] if np.std(yp[ok]) > 1e-12 else float("nan")
+        return (float(np.mean(prs)) if prs else float("nan"), float(gP))
+    thr = 5.0 * float(np.nanmax(np.abs(c_true)))
+    diverged = np.nanmax(np.abs(c_pred), axis=1) > thr
+    t_div = int(np.argmax(diverged)) if diverged.any() else T + 1
+    conv_pm, conv_g = win_pearson(c_true[:t_div], c_pred[:t_div])
+    print(f"  rollout Pearson FULL: per-met={pear:.3f} global={g_pear:.3f}")
+    print(f"  convergent window t<{t_div} (time<{t_div*dt:.0f}): "
+          f"Pearson per-met={conv_pm:.3f} global={conv_g:.3f}")
+    for tf in (250, 500, 1000, t_div):
+        if tf <= T:
+            wp, wg = win_pearson(c_true[:tf], c_pred[:tf])
+            print(f"    t<{tf} (time<{tf*dt:.0f}): Pearson per-met={wp:.3f} global={wg:.3f}")
+    pear, g_pear = conv_pm, conv_g   # report the convergent-window Pearson on the figure
 
-    yt, yp = c_true.ravel(), c_pred.ravel(); ok = np.isfinite(yp)
-    ax[1].scatter(yt[ok][::20], yp[ok][::20], s=4, c="#1f77b4", alpha=.2, edgecolors="none")
-    lim_lo = float(np.nanpercentile(yt, 1)); lim_hi = float(np.nanpercentile(yt, 99))
-    ax[1].plot([lim_lo, lim_hi], [lim_lo, lim_hi], "--", c="gray", lw=1)
-    ax[1].set_xlim(lim_lo, lim_hi); ax[1].set_ylim(lim_lo, lim_hi)
-    ax[1].set_xlabel("true concentration"); ax[1].set_ylabel("learned (rollout)")
-    fmt = lambda r: r"$\ll 0$" if r < -100 else f"{r:.2f}"
-    ax[1].text(0.97, 0.06,
-               f"per-metabolite $R^2$ = {fmt(r2)}\nglobal $R^2$ = {fmt(g_r2)}\n"
-               f"per-met Pearson = {pear:.2f}",
-               transform=ax[1].transAxes, va="bottom", ha="right", fontsize=13)
-    panel_label(ax[1], "b")
+    # ---- single panel: z-scored traces, stacked by a vertical offset ----
+    # each metabolite z-scored by its GT mean/std; the rollout uses the SAME
+    # transform, so a perfect rollout overlays GT and divergence departs (clipped
+    # to the band so it cannot overrun neighbours). GT green, rollout black.
+    sel = np.argsort(-np.nanvar(c_true, axis=0))[:8]
+    SEP = 5.0
+    fig, ax = plt.subplots(figsize=(10, 8))
+    for k, i in enumerate(sel):
+        gt = c_true[:, i]; pr = c_pred[:, i]
+        mu, sd = np.nanmean(gt), np.nanstd(gt) + 1e-9
+        off = k * SEP
+        ax.plot(tgrid, (gt - mu) / sd + off, color=GT_C, lw=1.6)
+        ax.plot(tgrid, np.clip((pr - mu) / sd, -0.45 * SEP, 0.45 * SEP) + off,
+                color=PRED_C, lw=1.1, ls="--")
+        ax.text(tgrid[0], off + 0.4 * SEP, f" {names[i]}", fontsize=10,
+                color="0.4", va="center", ha="left")
+    ax.plot([], [], color=GT_C, lw=1.6, label="ground truth")
+    ax.plot([], [], color=PRED_C, lw=1.1, ls="--", label="learned rollout")
+    if t_div <= T:   # mark divergence onset
+        ax.axvline(t_div * dt, color="#cc0000", ls=":", lw=1.2)
+        ax.text(t_div * dt, len(sel) * SEP, " diverges", color="#cc0000",
+                fontsize=10, va="top", ha="left")
+    ax.set_xlabel("time"); ax.set_yticks([])
+    ax.set_ylabel("$z$-scored concentration  (offset per metabolite)")
+    ax.set_ylim(-SEP, len(sel) * SEP)
+    ax.legend(loc="lower right", frameon=False)
 
     fname = ("glyco_rollout.png" if "glyco" in cfg_name
              else "toy_rollout.png" if cfg_name == "k_recovery_winner"

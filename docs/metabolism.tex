@@ -37,6 +37,9 @@
 %   local repo (docs/ build):              \newcommand{\figdir}{../figures/metabolism}
 \newcommand{\figdir}{../figures/metabolism}
 
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
 \title{\textbf{MetabolismGraph: recovering reaction kinetics and homeostatic
 regulation from metabolite dynamics with graph neural networks}}
 \author{}
@@ -216,45 +219,28 @@ These are the metabolic counterparts of the sign/scale degeneracies that
 motivate the structure-locking and regularisation priors in our
 connectome-dynamics models.
 
-\section{Status: one validated working point}
-\label{sec:status}
+\section{Toy model}
+\label{sec:toy}
 
-It is worth stating plainly where the method stands, because the gap
-between the synthetic proof-of-concept and real data is large and mostly
-unbridged. To date there is exactly \emph{one} validated, leak-free working
-point: recovery of the $256$ rate constants $k_j$ on the synthetic
-oscillatory regime with the stoichiometry $\mathbf{S}$ given. The best single
-run reaches $R^2 \approx 0.87$ in $\log_{10} k$ (slope $\approx 1$,
-${\sim}10/256$ outliers), but a cross-seed reproduction puts the honest
-working point lower, at $R^2 = 0.75 \pm 0.04$ (\cref{sec:cv}). This is a
-genuine result --- the loss reads only the concentration dynamics, never any
-ground-truth label.
-
-Two caveats bound even this point. First, an earlier and more favourable
-``homeostasis recovery'' result was \emph{discarded}: it relied on a
-supervised contrastive term that read ground-truth metabolite-type labels
-during training (label leakage), and once that term was removed the
-homeostatic function $\mlpnode$ no longer separates --- it stays flat,
-because single-step $dc/dt$ training cannot see a force that only acts over
-many steps. Recovering homeostasis honestly (a two-phase / residual scheme,
-\cref{eq:full}) is unsolved. Second, the $k_j$ recovery itself carries a
-run-to-run variance of $\pm 0.2$--$0.3$ $R^2$ at fixed hyperparameters, so
-the working point is a \emph{distribution}, not a fixed number, and
-reducing that variance is open. Everything beyond rate-constant recovery on
-synthetic data --- homeostasis, stoichiometry learning, and every real-data
-rung below --- remains to be done.
-
-\section{Reproduction and cross-seed robustness}
-\label{sec:cv}
-
-The single validated point (\cref{sec:status}) was reproduced from scratch on
-a fresh data generation, then cross-validated across training seeds to ask how
-much of the headline $R^2 \approx 0.87$ is reproducible versus a favourable
-draw. All runs use the identical leak-free configuration
-(\texttt{k\_recovery\_winner}: rank-50 oscillatory, $\mathbf{S}$ given,
-$\mathrm{aggr}=\mathrm{mul}$, $k$-floor and $\mathrm{MLP_{sub}}$-norm priors),
-varying only the optimisation seed. \Cref{tab:cv} reports the recovered
-rate-constant $R^2$.
+The toy model is a synthetic rank-50 oscillatory mass-action network ($100$
+metabolites, $256$ reactions, stoichiometry $\mathbf{S}$ given, no homeostasis),
+generated with known rate constants and fit leak-free (the loss reads only the
+concentration dynamics, never a ground-truth label). The \emph{rate-constant
+recovery} $R^2$ (learned vs.\ true $\log_{10} k_j$) is $0.75 \pm 0.04$ across
+four seeds (\cref{tab:cv}); for the published seed it is raw $0.74$ over all
+$256$ reactions, or trimmed $0.98$ after excluding the $4.3\%$ ($11/256$)
+outliers, at slope $1.00$ (\cref{fig:k_recovery}). The two learned functions
+match ground truth (\cref{fig:mlp}): $\mathrm{MLP_{sub}}$ recovers the substrate
+law $c^{|s|}$ and $\mathrm{MLP_{node}}$ (homeostasis) stays $\approx 0$, the
+correct value for this regime. Rollout quality is measured by the \emph{Pearson}
+correlation between the learned free autoregressive rollout and the true
+trajectory: it is high early ($0.96$ up to time $25$) and degrades as
+integration error accumulates ($0.85$ at time $50$, $0.74$ up to the divergence
+onset at time ${\approx}124$), after which the rollout diverges
+(\cref{fig:toy_rollout}). The rate constants are recovered, but single-step
+training places no constraint on multi-step stability, so the autocatalytic
+dynamics eventually blow up. Rate-constant recovery and rollout are different
+questions: this model recovers the parameters but is not a stable simulator.
 
 \begin{table}[H]
 \centering
@@ -281,21 +267,17 @@ halted once the cross-seed picture was clear.}
 \label{tab:cv}
 \end{table}
 
-\noindent\textbf{Read.} The working point reproduces \emph{robustly} --- the
-cross-seed spread is small ($\pm 0.04$), not the $\pm 0.2$ that single-run
-exploration logs had suggested --- but it reproduces at $R^2 \approx 0.75$,
-not $0.87$. The published $0.87$ was the best of many draws; the honest,
-reproducible recovery of the $256$ rate constants is $0.75 \pm 0.04$.
-
-\Cref{fig:k_recovery} unpacks what that $0.75$ means. The seed-77 run recovers
-the rate constants with \emph{raw} $R^2 = 0.74$ over all $256$ reactions, but a
-\emph{trimmed} $R^2 = 0.98$ once the small outlier tail is removed: $245/256$
-reactions sit on the identity line at unit slope, and only $11$ ($4.3\%$) are
-mis-estimated by more than $0.3$ dex. The raw $R^2$ is therefore dragged down
-by a few hard reactions, not by a diffuse failure. We adopt a hard quality gate
---- the outlier fraction must not exceed $10\%$ --- which this run passes
-comfortably ($4.3\%$). This raw-versus-trimmed split is the number to carry into
-the real-data comparisons.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth]{\figdir/mlp_k_recovery_winner.png}
+  \caption{\textbf{Toy model: the two learned functions vs.\ ground truth.}
+  \textbf{(a)} $\mathrm{MLP_{sub}}(c,|s|)$ (solid) vs.\ the true power law
+  $c^{|s|}$ (dashed) for $|s|{=}1,2$, anchored at $c{=}1$ --- the substrate law
+  is recovered. \textbf{(b)} $\mathrm{MLP_{node}}(c,a_i)$ per metabolite (the
+  homeostasis term); it stays $\approx 0$ (dashed: the true zero homeostasis of
+  this regime). Reproduced by \texttt{figures/mlp\_functions.py}.}
+  \label{fig:mlp}
+\end{figure}
 
 \begin{figure}[H]
   \centering
@@ -310,35 +292,17 @@ the real-data comparisons.
   \label{fig:k_recovery}
 \end{figure}
 
-\paragraph{Recovery $R^2$ vs.\ rollout $R^2$ --- two different questions.}
-The recovery $R^2$ above asks whether the \emph{rate constants} are right; it
-says nothing about whether the model reproduces the \emph{trajectory} when run
-forward. These can disagree sharply. \Cref{fig:toy_rollout} free-runs the toy
-model autoregressively from frame~0 ($\hat c(t{+}1)=\hat c(t)+\Delta t\,
-f_\theta(\hat c(t))$): although the rate constants are well recovered
-(\cref{fig:k_recovery}), the rollout \emph{diverges} --- rollout $R^2 \ll 0$,
-Pearson $0.16$. The cause is that this working point is trained single-step
-($t\to t{+}1$) and the homeostatic restoring force ($\mathrm{MLP_{node}}$) is
-never learned, so integration error compounds with no damping. So for the toy:
-\emph{recovery} $R^2 = 0.75$ (parameters good) while \emph{rollout} $R^2 \ll 0$
-(dynamics unstable) --- the two metrics measure different things, and a model can
-pass one while failing the other. (This is exactly what motivates the
-autoregressive curriculum of Rung~1, which trains for stable rollout;
-\cref{fig:glyco_rollout} shows it reaches rollout $R^2 = 0.99$ \emph{globally},
-the opposite trade-off --- good rollout, but degenerate parameters.)
-
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.92\textwidth]{\figdir/toy_rollout.png}
-  \caption{\textbf{Toy-model free rollout: good parameters, unstable dynamics.}
-  Autoregressive rollout of the leak-free working point (seed 77) from frame~0.
-  \textbf{(a)} The four highest-variance metabolites: ground truth (green) vs
-  learned free rollout (dashed black), $y$-axis clipped to $1.5\times$ the true
-  range --- the rollout tracks briefly then diverges off-scale. \textbf{(b)}
-  Learned vs true concentration; rollout $R^2 \ll 0$ (the prediction explodes),
-  Pearson $0.16$. Despite recovering the rate constants
-  (\cref{fig:k_recovery}, $R^2=0.74$/$0.98$), this single-step-trained model does
-  not produce a stable trajectory. Reproduced by
+  \includegraphics[width=0.7\textwidth]{\figdir/toy_rollout.png}
+  \caption{\textbf{Toy-model free rollout (seed 77).} The eight highest-variance
+  metabolites, $z$-scored and stacked by a vertical offset: ground truth (green)
+  vs.\ the learned free autoregressive rollout (dashed black, clipped to its
+  band). The rollout tracks the oscillations early and drifts with accumulating
+  error until it diverges at time ${\approx}124$ (red line). Rollout Pearson
+  vs.\ the true trajectory: $0.96$ (time${<}25$) $\to 0.74$ (up to divergence),
+  then $\ll 0$. The rate constants are recovered (\cref{fig:k_recovery}) but the
+  single-step-trained model is not a stable simulator. Reproduced by
   \texttt{figures/glyco\_rollout.py k\_recovery\_winner}.}
   \label{fig:toy_rollout}
 \end{figure}
@@ -391,12 +355,14 @@ so training loss is not a proxy for either.)
   \centering
   \includegraphics[width=0.92\textwidth]{\figdir/glyco_rollout.png}
   \caption{\textbf{Rung 1 glycolysis: free-running rollout, ground truth vs
-  learned} (\texttt{glyco\_ar\_base}, stimulus supplied). \textbf{(a)} The four
-  highest-variance metabolites: ground truth (green) vs learned rollout (dashed
-  black). \textbf{(b)} Learned vs true concentration over all metabolites/time;
-  global $R^2 = 0.99$ but per-metabolite $R^2 = 0.15$ (the global value is
-  variance-weighted, carried by a few high-variance species). This is
-  \emph{in-sample} (single trajectory, no held-out run). Reproduced by
+  learned} (\texttt{glyco\_ar\_base}, stimulus supplied). The eight
+  highest-variance metabolites, $z$-scored and stacked by a vertical offset:
+  ground truth (green) vs.\ the learned free autoregressive rollout (dashed
+  black). The rollout tracks the trajectory with no divergence; rollout Pearson
+  vs.\ the true trajectory is $0.997$ globally ($0.89$ per-metabolite). This is
+  \emph{in-sample} (single trajectory, no held-out run), and despite the good
+  rollout the rate constants are not recovered ($V_{\max}$ recovery
+  $R^2 \approx 0$, \cref{fig:glyco_recovery}). Reproduced by
   \texttt{figures/glyco\_rollout.py}.}
   \label{fig:glyco_rollout}
 \end{figure}
@@ -746,7 +712,7 @@ Date & Hypothesis & Experiment & Verdict \\
 \end{tabular}
 \caption{Live experiment ledger. The single-step rollout on the real
 Michaelis--Menten glycolysis model diverges ($R^2{=}{-}390$, Pearson $0.19$),
-motivating the autoregressive curriculum (\cref{sec:status}) ported from the
+motivating the autoregressive curriculum (\cref{sec:toy}) ported from the
 connectome models: per-epoch horizon ramp $10{\to}300$, soft tail-loss, LR
 co-ramp, gradient clipping. Implementation is in place and smoke-validated
 (runs, finite loss); the 5-config sweep is queued behind the CV runs.}

@@ -39,6 +39,17 @@ advanced; do the next in the rotation). Loop cadence: hourly.
 dashboard (`figures/toy_dashboard.py <cfg>`: a=MLP_sub, b=MLP_node, c=k-recovery, d=rollout),
 not separate figures. Config-parameterised — use it for D1/D2/D3 results in the PDF too.
 
+**ROLLOUT METRIC = per-metabolite Pearson, NOT pooled** (Cedric's catch, 2026-06-08):
+pooled Pearson is flattering (dominated by between-metabolite levels; rewards staying
+bounded). Always lead with per-met. Single-step=0.47, naive recurrent=0.18 (dynamically dead).
+
+**24h FOCUS (Cedric, 2026-06-08 ~17:00 -> ~17:00 next day): sweep RECURRENT TRAINING SCHEMES.**
+Pause the D1/D2/D3 rotation; spend the next 24h finding a recurrent scheme with a TRUE good
+rollout (per-met > 0.47 AND stable AND k preserved). Track everything in
+`docs/recurrent_sweep_log.md` (results table + backlog + running best). Cedric reviews at the
+12h mark. Each cycle: evaluate finished runs by per-met Pearson + k-recovery, append results,
+launch the next backlog schemes (adapt toward what works), keep <=2 jobs/GPU, commit.
+
 ---
 
 ## 2026-06-05 — weekend kickoff

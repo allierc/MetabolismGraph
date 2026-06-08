@@ -391,11 +391,15 @@ so training loss is not a proxy for either.)
   learned} (the curriculum model, stimulus supplied). The eight
   highest-variance metabolites, $z$-scored and stacked by a vertical offset:
   ground truth (green) vs.\ the learned free autoregressive rollout (dashed
-  black). The rollout tracks the trajectory with no divergence; rollout Pearson
-  vs.\ the true trajectory is $0.997$ globally ($0.89$ per-metabolite). This is
-  \emph{in-sample} (single trajectory, no held-out run), and despite the good
-  rollout the rate constants are not recovered ($V_{\max}$ recovery
-  $R^2 \approx 0$, \cref{fig:glyco_recovery}).}
+  black); the nine \emph{given} external stimulus channels (orange, top) are the
+  known boundary drive supplied to the rollout, not predicted. The rollout tracks
+  the trajectory with no divergence; rollout Pearson vs.\ the true trajectory is
+  $0.997$ globally ($0.89$ per-metabolite). But note the metabolites mostly relax
+  to a steady state under the strong given drive --- so the high Pearson is partly
+  stimulus-driven settling, and per-metabolite $R^2$ is only $0.14$ (the settled
+  levels drift). This is \emph{in-sample} (single trajectory, no held-out run),
+  and despite the good-looking rollout the rate constants are not recovered
+  ($V_{\max}$ recovery $R^2 \approx 0$, \cref{fig:glyco_recovery}).}
   \label{fig:glyco_rollout}
 \end{figure}
 

@@ -134,7 +134,9 @@ def main():
     # to the band so it cannot overrun neighbours). GT green, rollout black.
     sel = np.argsort(-np.nanvar(c_true, axis=0))[:8]
     SEP = 5.0
-    fig, ax = plt.subplots(figsize=(10, 8))
+    STIM_C = "#ff7f0e"                      # stimulus = given INPUT (orange, distinct from GT/pred)
+    n_met = len(sel)
+    fig, ax = plt.subplots(figsize=(10, 8.5))
     for k, i in enumerate(sel):
         gt = c_true[:, i]; pr = c_pred[:, i]
         mu, sd = np.nanmean(gt), np.nanstd(gt) + 1e-9
@@ -144,15 +146,33 @@ def main():
                 color=PRED_C, lw=1.1, ls="--")
         ax.text(tgrid[0], off + 0.4 * SEP, f" {names[i]}", fontsize=10,
                 color="0.4", va="center", ha="left")
+    # overlay the GIVEN external stimulus (boundary drive) above the metabolites,
+    # z-scored and stacked. This is a known INPUT to the inverse problem, not predicted.
+    top = n_met * SEP
+    if has_stim:
+        stim_np = to_numpy(stim[:T + 1])                       # (T+1, n_stim)
+        sidx = [j for j in range(stim_np.shape[1]) if np.nanstd(stim_np[:, j]) > 1e-9]
+        for kk, j in enumerate(sidx):
+            sg = stim_np[:, j]; mu, sd = np.nanmean(sg), np.nanstd(sg) + 1e-9
+            off = (n_met + kk) * SEP
+            ax.plot(tgrid, (sg - mu) / sd + off, color=STIM_C, lw=1.3)
+            ax.text(tgrid[0], off + 0.4 * SEP, f" stim {j}", fontsize=9,
+                    color=STIM_C, va="center", ha="left")
+        if sidx:
+            ax.plot([], [], color=STIM_C, lw=1.3, label="stimulus (given input)")
+            top = (n_met + len(sidx)) * SEP
     ax.plot([], [], color=GT_C, lw=1.6, label="ground truth")
     ax.plot([], [], color=PRED_C, lw=1.1, ls="--", label="learned rollout")
     if t_div <= T:   # mark divergence onset
         ax.axvline(t_div * dt, color="#cc0000", ls=":", lw=1.2)
-        ax.text(t_div * dt, len(sel) * SEP, " diverges", color="#cc0000",
+        ax.text(t_div * dt, top, " diverges", color="#cc0000",
                 fontsize=10, va="top", ha="left")
+    ax.text(0.985, 0.985, f"rollout Pearson (per-metabolite) = {pear:.2f}\n"
+            f"per-metabolite $R^2$ = {r2:.2f}  (global Pearson {g_pear:.2f})",
+            transform=ax.transAxes, va="top", ha="right", fontsize=11)
     ax.set_xlabel("time"); ax.set_yticks([])
     ax.set_ylabel("$z$-scored concentration  (offset per metabolite)")
-    ax.set_ylim(-SEP, len(sel) * SEP)
+    ax.set_ylim(-SEP, top + SEP)
     ax.legend(loc="lower right", frameon=False)
 
     fname = ("glyco_rollout.png" if "glyco" in cfg_name

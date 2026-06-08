@@ -40,8 +40,8 @@
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{0.5em}
 
-\title{\textbf{MetabolismGraph: recovering reaction kinetics and homeostatic
-regulation from metabolite dynamics with graph neural networks}}
+\title{\textbf{Recovering reaction kinetics and homeostatic regulation from
+metabolite dynamics with graph neural networks}}
 \author{}
 \date{}
 
@@ -245,25 +245,28 @@ questions: this model recovers the parameters but is not a stable simulator.
 \begin{table}[H]
 \centering
 \small
-\begin{tabular}{l c c}
+\begin{tabular}{l c c c}
 \toprule
-Seed & training completed & $k$ recovery $R^2$ \\
+Seed & training completed & rate-constant recovery $R^2$ & rollout Pearson \\
 \midrule
-77 (published winner) & 100\% & 0.742 \\
-42 & 100\% & 0.705 \\
-79 & 90\% & 0.808 \\
-7  & 90\% & 0.738 \\
+77 (published winner) & 100\% & 0.742 & 0.74 \\
+42 & 100\% & 0.705 & 0.77 \\
+79 & 90\% & 0.808 & 0.37 \\
+7  & 90\% & 0.738 & 0.72 \\
 \midrule
-\multicolumn{2}{l}{\emph{mean $\pm$ s.d.\ (4 mature seeds)}} & $\mathbf{0.748 \pm 0.037}$ \\
+\multicolumn{2}{l}{\emph{mean $\pm$ s.d.\ (4 mature seeds)}}
+  & $\mathbf{0.748 \pm 0.037}$ & $0.65 \pm 0.16$ \\
 \midrule
-123 & 30\% (stopped) & 0.722 (rising) \\
+123 & 30\% (stopped) & 0.722 (rising) & 0.65 \\
 \bottomrule
 \end{tabular}
 \caption{Cross-seed reproduction of the leak-free $k_j$-recovery working
-point. Four seeds run to (near-)completion cluster tightly at
-$R^2 = 0.75 \pm 0.04$; seed 123 was stopped early (to free GPUs for the
-real-data rungs) at $0.72$ and still climbing. The runs were deliberately
-halted once the cross-seed picture was clear.}
+point. Rate-constant recovery $R^2$ clusters tightly at $0.75 \pm 0.04$ over
+four seeds; seed 123 was stopped early at $0.72$ and still rising. Rollout
+Pearson is the global correlation between the learned free rollout and the true
+trajectory over the convergent window (before divergence); it is far more
+variable ($0.65 \pm 0.16$) and never stable --- every seed recovers the rate
+constants but none yields a stable simulator.}
 \label{tab:cv}
 \end{table}
 
@@ -275,7 +278,7 @@ halted once the cross-seed picture was clear.}
   $c^{|s|}$ (dashed) for $|s|{=}1,2$, anchored at $c{=}1$ --- the substrate law
   is recovered. \textbf{(b)} $\mathrm{MLP_{node}}(c,a_i)$ per metabolite (the
   homeostasis term); it stays $\approx 0$ (dashed: the true zero homeostasis of
-  this regime). Reproduced by \texttt{figures/mlp\_functions.py}.}
+  this regime).}
   \label{fig:mlp}
 \end{figure}
 
@@ -288,7 +291,7 @@ halted once the cross-seed picture was clear.}
   Inliers (black) lie on the diagonal at slope $1.00$; the $11$ red points
   ($4.3\%$) exceed the $0.3$-dex outlier threshold. Raw $R^2 = 0.74$ over all
   reactions, trimmed $R^2 = 0.98$ excluding outliers, within the $10\%$-outlier
-  gate. Reproduced by \texttt{figures/k\_recovery.py}.}
+  gate.}
   \label{fig:k_recovery}
 \end{figure}
 
@@ -302,8 +305,7 @@ halted once the cross-seed picture was clear.}
   error until it diverges at time ${\approx}124$ (red line). Rollout Pearson
   vs.\ the true trajectory: $0.96$ (time${<}25$) $\to 0.74$ (up to divergence),
   then $\ll 0$. The rate constants are recovered (\cref{fig:k_recovery}) but the
-  single-step-trained model is not a stable simulator. Reproduced by
-  \texttt{figures/glyco\_rollout.py k\_recovery\_winner}.}
+  single-step-trained model is not a stable simulator.}
   \label{fig:toy_rollout}
 \end{figure}
 
@@ -318,7 +320,7 @@ None of the three is solved yet; this section describes what each provides
 and what stands between it and a result.
 
 \paragraph{Rung 1 --- yeast glycolysis kinetic model (BioModels
-\texttt{MODEL1303260010}).}
+the published yeast glycolysis kinetic model).}
 A small, fully parameterised kinetic model of glycolysis in
 \emph{S.\ cerevisiae} \citep{smallbone2013}, imported from SBML. After
 separating dynamic from boundary species it gives $20$ internal metabolites
@@ -355,15 +357,14 @@ so training loss is not a proxy for either.)
   \centering
   \includegraphics[width=0.92\textwidth]{\figdir/glyco_rollout.png}
   \caption{\textbf{Rung 1 glycolysis: free-running rollout, ground truth vs
-  learned} (\texttt{glyco\_ar\_base}, stimulus supplied). The eight
+  learned} (the curriculum model, stimulus supplied). The eight
   highest-variance metabolites, $z$-scored and stacked by a vertical offset:
   ground truth (green) vs.\ the learned free autoregressive rollout (dashed
   black). The rollout tracks the trajectory with no divergence; rollout Pearson
   vs.\ the true trajectory is $0.997$ globally ($0.89$ per-metabolite). This is
   \emph{in-sample} (single trajectory, no held-out run), and despite the good
   rollout the rate constants are not recovered ($V_{\max}$ recovery
-  $R^2 \approx 0$, \cref{fig:glyco_recovery}). Reproduced by
-  \texttt{figures/glyco\_rollout.py}.}
+  $R^2 \approx 0$, \cref{fig:glyco_recovery}).}
   \label{fig:glyco_rollout}
 \end{figure}
 
@@ -375,8 +376,7 @@ so training loss is not a proxy for either.)
   reactions: $R^2 \approx 0$, slope $0.06$, $22/30$ ($73\%$) outliers (fails the
   $10\%$ gate). Despite the near-perfect in-sample rollout
   (\cref{fig:glyco_rollout}), the model recovers essentially \emph{none} of the
-  true kinetics --- a degenerate fit (right dynamics, wrong mechanism).
-  Reproduced by \texttt{figures/k\_recovery.py glyco\_ar\_base}.}
+  true kinetics --- a degenerate fit (right dynamics, wrong mechanism).}
   \label{fig:glyco_recovery}
 \end{figure}
 
@@ -384,7 +384,7 @@ so training loss is not a proxy for either.)
 A natural suspect for the recovery failures is that the MLP cannot represent the
 substrate power law $c^{|s|}$. On the synthetic toy this is untestable --- that
 network is $100\%$ $|s|{=}1$ (linear), so any probe at $|s|{\ge}2$ is untrained
-extrapolation. We therefore built a controlled regime (\texttt{mixed\_s2}: $31\%$
+extrapolation. We therefore built a controlled regime (the $|s|{\ge}2$ regime: $31\%$
 of substrate edges with $|s|{\ge}2$) and compared a plain MLP against the
 log-space parameterisation $g=\exp(\mathrm{MLP}(\log c, |s|))$
 (\cref{fig:curvature}). Two things hold. First, \emph{with} genuine $|s|{\ge}2$
@@ -401,12 +401,12 @@ remains hard for either parameterisation --- a real but partial fix.
   \centering
   \includegraphics[width=\textwidth]{\figdir/curvature_compare.png}
   \caption{\textbf{Curvature recovery on a regime with $|s|{\ge}2$
-  (\texttt{mixed\_s2}).} Learned $\mathrm{MLP_{sub}}(c,|s|)$ (solid) vs the true
+  (the $|s|{\ge}2$ regime).} Learned $\mathrm{MLP_{sub}}(c,|s|)$ (solid) vs the true
   power law $c^{|s|}$ (dashed) for $|s|{=}1,2,3$, log $y$-axis, anchored at
   $c{=}1$. \textbf{(a)} plain MLP, \textbf{(b)} log-space MLP. Both track $c^1$;
   both bend upward for $c^2,c^3$ now that the data contains such reactions, with
   log-space bending more --- but both fall well short of the true $c^2$ (and far
-  short of $c^3$). Reproduced by \texttt{figures/curvature\_compare.py}.}
+  short of $c^3$).}
   \label{fig:curvature}
 \end{figure}
 
@@ -453,7 +453,7 @@ several candidate metabolites) and values are \emph{relative} ion
 intensities, not absolute concentrations. \emph{Status:} the data are in
 hand but not yet ingested; the work is to deduplicate/annotate ions, build
 $\mathbf{S}$ for the measured subset from an \emph{E.\ coli} genome-scale
-model (\eg{} \texttt{iJO1366}) via KEGG$\to$BiGG mapping, and rescale the
+model (\eg{} iJO1366) via KEGG$\to$BiGG mapping, and rescale the
 relative intensities. There is \emph{no} kinetic ground truth here, so
 success can only be judged by held-out prediction, not by recovered $k_j$.
 A parallel mammalian direction is chronic jugular microdialysis in freely
@@ -512,11 +512,11 @@ Before training, we run the same cheap test on \emph{all four} datasets
 measured by \citet{link2015} --- \emph{E.\ coli}, \emph{B.\ subtilis},
 \emph{Y.\ lipolytica}, and a hybrid sample --- asking whether each recording
 carries the structure the GNN needs. The identical four-probe analysis
-(\texttt{figures/amenability.py}) is applied to every organism: SVD low-rank,
+is applied to every organism: SVD low-rank,
 per-ion lag-1 autocorrelation, example traces, and KEGG coverage against a
-common reference network (\texttt{iJO1366}; a proxy for core-metabolite
+common reference network (iJO1366; a proxy for core-metabolite
 mappability --- exact for \emph{E.\ coli}, approximate for the others). For the
-\emph{Y.\ lipolytica} fit target the proper yeast network \texttt{yeast-GEM}
+\emph{Y.\ lipolytica} fit target the proper yeast network yeast-GEM
 raises coverage from $63\%$ to $77\%$ ($127/164$ ions), confirming the
 under-estimate from the bacterial proxy.
 \Cref{tab:amenability} summarises and \cref{fig:amenability_grid} shows the
@@ -552,7 +552,7 @@ per-organism panels.
   \item \textbf{KEGG coverage.} Each ion is annotated with one or more KEGG
     compound identifiers from its $m/z$ (an ion matching several formulae is
     \emph{ambiguous}); we intersect those identifiers with the metabolites
-    present in a reference genome-scale network (\texttt{iJO1366}), and coverage
+    present in a reference genome-scale network (iJO1366), and coverage
     is the number of ions hitting at least one model metabolite.
     \emph{Interpretation:} it asks whether a stoichiometry $\mathbf{S}$ --- the
     reaction graph the GNN operates on --- can be built for the measured
@@ -578,7 +578,7 @@ Hybrid                & $338{\times}60$  & 55 (16\%)  & 0.24 & 155 (46\%) & nois
 \caption{Amenability of the four measured datasets. $\mathrm{rank}_{99}$ is the
 number (and fraction) of singular components for $99\%$ variance; autocorr is
 the median per-ion lag-1 autocorrelation; coverage is the count mapped onto
-\texttt{iJO1366}. All four are low-rank and reasonably network-mappable; only
+iJO1366. All four are low-rank and reasonably network-mappable; only
 \emph{Y.\ lipolytica} has smooth ($dc/dt$-learnable) dynamics.}
 \label{tab:amenability}
 \end{table}
@@ -610,114 +610,11 @@ mechanism recovery across the whole noisy measurement.
   \textbf{(c)} \emph{Y.\ lipolytica}, \textbf{(d)} hybrid. Within each panel,
   top-left: SVD cumulative variance (low-rank); top-right: per-ion lag-1
   autocorrelation; bottom-left: six highest-variance traces ($z$-scored);
-  bottom-right: KEGG coverage against \texttt{iJO1366}. Low-rank structure and
+  bottom-right: KEGG coverage against iJO1366. Low-rank structure and
   network coverage recur in all four; only \emph{Y.\ lipolytica} shows smooth,
-  slowly varying traces and a right-shifted autocorrelation distribution.
-  Reproduced by \texttt{figures/amenability.py}.}
+  slowly varying traces and a right-shifted autocorrelation distribution.}
   \label{fig:amenability_grid}
 \end{figure}
-
-\section*{Data and code}
-Synthetic generators, the GNN model, and the LLM-driven exploration loop
-are in the \texttt{MetabolismGraph} repository; an overview minisite is at
-\url{https://allierc.github.io/MetabolismGraph/}. The reference material is
-vendored under \texttt{papers/}: the two yeast models, BioModels
-\texttt{MODEL1303260010} (\url{https://github.com/biomodels/MODEL1303260010})
-and yeast-GEM (\url{https://github.com/SysBioChalmers/yeast-GEM}); and the
-\citet{link2015} real-time-metabolomics supplementary tables under
-\texttt{papers/nmeth3584/}. The Rung-1 SBML$\to$dynamics bridge is the
-\texttt{glycolysis\_yeast} config/dataset; the leak-free synthetic
-$k_j$-recovery working point is the \texttt{k\_recovery\_winner} config.
-
-\appendix
-\section{Weekend hypothesis ledger (live)}
-\label{sec:ledger}
-
-This appendix is updated autonomously every few hours during unattended runs.
-Each row is a hypothesis with its experiment and a \emph{validated} /
-\textbf{\textsc{falsified}} / \emph{in progress} verdict. Falsifications are
-recorded as plainly as positive results.
-
-\begin{table}[H]
-\centering
-\small
-\begin{tabular}{l l l l}
-\toprule
-Date & Hypothesis & Experiment & Verdict \\
-\midrule
-2026-06-05 & H1: winner reproduces $k$ R$^2{\approx}0.87$
-  & seed 77, leak-free, S given
-  & 0.74 raw / 0.98 trim (4.3\% out, PASS) \\
-2026-06-05 & H2: $k$ R$^2$ robust across seeds
-  & CV 4 seeds, S given
-  & \emph{validated} ($0.75{\pm}0.04$) \\
-2026-06-05 & glycolysis rollout $R^2{=}{-}390$ is real
-  & data\_test omits stimulus
-  & \textbf{\textsc{falsified}} (eval bug, not model) \\
-2026-06-05 & H4: AR curriculum \emph{recovers} glycolysis
-  & rollout (w/ stim) + $V_{\max}$ recovery
-  & \emph{no}: rollout in-sample 0.99, $V_{\max}$ R$^2{\approx}0$ \\
-2026-06-05 & rollout R$^2$ $=$ mechanism learned?
-  & global rollout vs $V_{\max}$ recovery
-  & \textbf{\textsc{falsified}} (degenerate fit) \\
-2026-06-05 & lowest train loss $=$ best rollout?
-  & clip05 (min loss) vs base
-  & \textbf{\textsc{falsified}} (worst on both metrics) \\
-2026-06-05 & H5: real \emph{E.\ coli} is low-rank
-  & SVD of $247{\times}119$ matrix
-  & \emph{validated} (rank$_{99}{=}102$, 41\%) \\
-2026-06-05 & H6: real $dc/dt$ is learnable/smooth
-  & per-ion lag-1 autocorrelation
-  & \textbf{\textsc{falsified}} (med 0.27, noisy) \\
-2026-06-05 & H7: ions map to a real network
-  & KEGG $\cap$ iJO1366 / e\_coli\_core
-  & \emph{validated} (190/247 in iJO1366) \\
-2026-06-05 & generalises to 4 organisms?
-  & same probes: Bsubt/Ylipo/hybrid
-  & low-rank\,\&\,cover \emph{yes}; smooth \emph{no} \\
-2026-06-05 & best real fit target
-  & cross-organism $dc/dt$ smoothness
-  & \emph{Y.\ lipolytica} (autocorr 0.62) \\
-2026-06-05 & log-space $\mathrm{MLP_{sub}}$ improves toy $k$
-  & k\_logspace vs plain MLP
-  & \emph{validated} ($0.74{\to}0.89$, 2.3\% out) \\
-2026-06-05 & toy degeneracy is a $c^2$ failure
-  & $|s|$ distribution of toy network
-  & \textbf{\textsc{falsified}} (toy all $|s|{=}1$; conditioning) \\
-2026-06-05 & log-space $\mathrm{MLP_{sub}}$ fixes glyco $V_{\max}$
-  & glyco\_logspace, leak-resistant
-  & \textbf{\textsc{falsified}} ($R^2{=}0.04$; identifiability, not form) \\
-2026-06-06 & $\mathrm{MLP_{sub}}$ learns $c^2$ given $|s|{\ge}2$ data?
-  & mixed\_s2: plain vs log-space
-  & \emph{partly} (log $>$ plain; both undershoot, FAIL) \\
-2026-06-06 & more trajectories break the $|s|{\ge}2$ degeneracy?
-  & mixed\_s2: 1 vs 4 diverse trajectories
-  & \textbf{\textsc{falsified}} ($37{\to}32\%$ out; representation, not data) \\
-2026-06-06 & exact power-law $c^{a(s)}$ fixes high-$|s|$?
-  & learned exponent map $a(s)$
-  & \textbf{\textsc{falsified}} ($a(s){\to}1.7$; high-$|s|$ too rare) \\
-2026-06-06 & right network for the \emph{Y.\ lipolytica} fit
-  & KEGG $\cap$ yeast-GEM vs iJO1366
-  & yeast-GEM $77\%$ ($>63\%$); fit viable \\
-2026-06-06 & is the \emph{Y.\ lipolytica} fit well-posed?
-  & measured subnetwork in yeast-GEM
-  & \emph{yes}: $S\sim 401$ met $\times\,740$ rxn \\
-2026-06-06 & a clean (fully-observed) first fit exists?
-  & reactions with all participants measured
-  & \emph{yes}: $164/740$ rxn fully observed \\
-2026-06-07 & does good $k$-recovery imply good rollout?
-  & toy free rollout vs recovery
-  & \textbf{\textsc{no}} (recovery 0.75, rollout $R^2{\ll}0$) \\
-\bottomrule
-\end{tabular}
-\caption{Live experiment ledger. The single-step rollout on the real
-Michaelis--Menten glycolysis model diverges ($R^2{=}{-}390$, Pearson $0.19$),
-motivating the autoregressive curriculum (\cref{sec:toy}) ported from the
-connectome models: per-epoch horizon ramp $10{\to}300$, soft tail-loss, LR
-co-ramp, gradient clipping. Implementation is in place and smoke-validated
-(runs, finite loss); the 5-config sweep is queued behind the CV runs.}
-\label{tab:ledger}
-\end{table}
 
 \begin{thebibliography}{9}
 
@@ -725,7 +622,7 @@ co-ramp, gradient clipping. Implementation is in place and smoke-validated
 Smallbone, K., Messiha, H.L., Carroll, K.M., \emph{et al.} (2013).
 A model of yeast glycolysis based on a consistent kinetic characterisation
 of all its enzymes. \emph{FEBS Letters} 587(17), 2832--2841.
-BioModels \texttt{MODEL1303260010}.
+BioModels the published yeast glycolysis kinetic model.
 
 \bibitem[Lu et al.(2019)]{yeastgem}
 Lu, H., Li, F., S{\'a}nchez, B.J., \emph{et al.} (2019).

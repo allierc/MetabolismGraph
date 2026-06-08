@@ -72,7 +72,8 @@ def main():
     ax[0].axvline(1.0, color="0.8", lw=1, zorder=0)
     ax[0].set_xlabel("concentration $c$")
     ax[0].set_ylabel(r"$\mathrm{MLP_{sub}}(c,|s|)$  (anchored at $c{=}1$)")
-    ax[0].legend(loc="lower right", frameon=False); panel_label(ax[0], "a")
+    ax[0].legend(loc="upper left", frameon=False, bbox_to_anchor=(0.06, 0.93))
+    panel_label(ax[0], "a")
 
     # ---- (b) MLP_node per metabolite (the easy term) ----
     with torch.no_grad():

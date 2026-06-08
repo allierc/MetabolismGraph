@@ -376,8 +376,14 @@ curriculum model reproduces the trajectory well (global $R^2 = 0.99$,
 $R^2$ is only $0.15$, and the leak-resistant test fails outright --- the
 recovered $V_{max}$ correlate with ground truth at $R^2 \approx 0$ (slope
 $0.06$, $73\%$ outliers, \cref{fig:glyco_recovery}). The model therefore
-reproduces the dynamics with the \emph{wrong} kinetics: a degenerate fit that
-would not generalise. The curriculum fixed rollout \emph{stability}; the real
+reproduces the dynamics with the \emph{wrong} kinetics: a degenerate fit. A
+\emph{direct held-out test} confirms it does not generalise: rolling the trained
+model out on an unseen trajectory (a different boundary stimulus, comparable
+rank, \cref{fig:glyco_holdout}) collapses the fit from global Pearson $0.997$
+in-sample to $0.28$ (global $R^2$ $0.99 \to 0.05$; per-metabolite $R^2$ strongly
+negative) --- the predicted traces settle to the wrong levels and no longer track
+the true dynamics. The good in-sample rollout was effectively memorisation of the
+single training trajectory. The curriculum fixed rollout \emph{stability}; the real
 open problem on real Michaelis--Menten data is parameter \emph{identifiability}
 --- the same scale/compensation degeneracy as the synthetic setup, but here
 unbroken. (One robust falsification survived both metrics: the config with the
@@ -401,6 +407,21 @@ so training loss is not a proxy for either.)
   and despite the good-looking rollout the rate constants are not recovered
   ($V_{\max}$ recovery $R^2 \approx 0$, \cref{fig:glyco_recovery}).}
   \label{fig:glyco_rollout}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth]{\figdir/glyco_rollout_holdout.png}
+  \caption{\textbf{Rung 1 glycolysis: the held-out generalisation test.} The same
+  trained model rolled out on an \emph{unseen} trajectory --- a different given
+  stimulus (orange, top) and a different initial state, comparable rank --- never
+  used in training. Unlike the in-sample case (\cref{fig:glyco_rollout}), the
+  learned rollout (dashed black) settles to the \emph{wrong} levels and no longer
+  tracks ground truth (green): global Pearson falls from $0.997$ to $0.28$
+  (global $R^2$ $0.99 \to 0.05$; per-metabolite $R^2$ strongly negative). The
+  in-sample fit was memorisation of one trajectory, not a learned mechanism ---
+  direct evidence for the degeneracy implied by the failed $V_{\max}$ recovery.}
+  \label{fig:glyco_holdout}
 \end{figure}
 
 \begin{figure}[H]

@@ -45,18 +45,22 @@ def main():
     config = MetabolismGraphConfig.from_yaml(f"config/{cfg_name}.yaml")
     config.config_file = cfg_name
     ds = config.dataset
+    # optional 2nd arg = a DIFFERENT dataset to evaluate the trained model on
+    # (held-out generalization test): model from log/<cfg>, data from this dataset.
+    data_ds = sys.argv[2] if len(sys.argv) > 2 else ds
+    held_out = data_ds != ds
     dt = config.simulation.delta_t
 
-    stoich_graph = torch.load(f"graphs_data/{ds}/stoich_graph.pt", map_location=device)
-    meta_path = f"graphs_data/{ds}/metadata.pt"
+    stoich_graph = torch.load(f"graphs_data/{data_ds}/stoich_graph.pt", map_location=device)
+    meta_path = f"graphs_data/{data_ds}/metadata.pt"
     if os.path.exists(meta_path):
         names = torch.load(meta_path, map_location=device, weights_only=False).get(
             "species_names", [str(i) for i in range(config.simulation.n_metabolites)])
     else:
         names = [str(i) for i in range(config.simulation.n_metabolites)]
 
-    x_true = torch.tensor(np.load(f"graphs_data/{ds}/x_list_0.npy"), dtype=torch.float32)
-    stim_path = f"graphs_data/{ds}/stimulus.npy"
+    x_true = torch.tensor(np.load(f"graphs_data/{data_ds}/x_list_0.npy"), dtype=torch.float32)
+    stim_path = f"graphs_data/{data_ds}/stimulus.npy"
     has_stim = os.path.exists(stim_path)   # toy regimes have no external stimulus
     stim = torch.tensor(np.load(stim_path), dtype=torch.float32) if has_stim else None
     T = min(T_ROLL, x_true.shape[0] - 1)
@@ -175,9 +179,10 @@ def main():
     ax.set_ylim(-SEP, top + SEP)
     ax.legend(loc="lower right", frameon=False)
 
-    fname = ("glyco_rollout.png" if "glyco" in cfg_name
-             else "toy_rollout.png" if cfg_name == "k_recovery_winner"
-             else f"{cfg_name}_rollout.png")
+    base = ("glyco_rollout" if "glyco" in cfg_name
+            else "toy_rollout" if cfg_name == "k_recovery_winner"
+            else f"{cfg_name}_rollout")
+    fname = f"{base}_holdout.png" if held_out else f"{base}.png"
     out = os.path.join(ROOT, "figures/metabolism", fname)
     fig.tight_layout(); fig.savefig(out, dpi=140); plt.close(fig)
     print(f"saved {out}  ({cfg_name}, T={T})")

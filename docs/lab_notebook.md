@@ -645,3 +645,32 @@ hard way (learn real dynamics). Schemes launched (eval by per-met Pearson + k-re
   prepended), n_steps ramp to an 800-step PLATEAU held for ~11 epochs, LR decay
   5e-4->5e-5. The long low-LR plateau at a moderate horizon is the likely key. RUNNING.
 - All on the 2 GPUs, <=2 jobs/GPU (two serial queues + zebra). Evaluate next cycle.
+
+## 2026-06-08 (cycle 6) — log-exp panel-a test (NEGATIVE) + n_runs lever experiment (overnight)
+
+**Q1 (Cedric): can the log-exp transform learn the c^2 quadratic in toy dashboard panel a?**
+k_logspace (toy k_recovery_winner data, substrate_func_type=logspace) was already trained.
+Dashboard panel (a): the learned |s|=2 curve stays FLAT, far below true c^2 (red dashed -> 80).
+=> **NO.** The toy has ZERO |s|=2 data, so the |s| input to MLP_sub is untrained at |s|=2;
+no parameterization (plain/logspace/powerlaw) can produce c^2 without quadratic signal. My
+"log-space extrapolates in log c" idea is FALSIFIED: log-space linearizes the CONCENTRATION
+dependence at fixed |s|, but the |s|-dependence is still learned and unconstrained for unseen |s|.
+BUT log-space IS a lever on the other axes (toy):
+| toy | plain MLP | log-space |
+|---|---|---|
+| k-recovery raw R2 | 0.74 | **0.89** |
+| trimmed / %out | 0.98 / 4% | 0.98 / 2% |
+| rollout | diverges@124 | **stable, no divergence** |
+| rollout per-met Pearson | 0.47 | 0.32 |
+To learn c^2 you need |s|=2 reactions in the data (mixed_s2, D2: logspace lifted curvature
+24->32, still capped by high-|s| signal scarcity).
+
+**Q2 (Cedric): is n_runs a lever? train toy with 10 runs of 2881 timepoints instead of 1.**
+Clean controlled design: generate ONE 12-run dataset (same network S), train on 1 / 3 / 10 of
+the runs, hold out run 11 for a true generalization test. Launched overnight (controller
+/tmp/run_nruns.sh, results -> /tmp/nruns_results.txt). Configs: toy_runs_data (gen, n_runs=12),
+toy_1run / toy_3runs / toy_10runs (dataset=toy_runs_data, n_runs=1/3/10). Eval per config:
+k-recovery + in-sample rollout (dashboard) AND held-out run-11 rollout (glyco_rollout.py
+<cfg> toy_holdout_run11). Hypothesis: more diverse runs raise the effective rank seen in
+training -> better k-recovery and/or a stable, generalizing rollout. Baseline: 1 run = k R2 0.75,
+rollout diverges. Generation done (12 runs), held-out staged, toy_1run training now. Eval next cycle.

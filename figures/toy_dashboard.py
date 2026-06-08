@@ -104,7 +104,13 @@ def main():
             x[:, 3:4] = x[:, 3:4] + dt * pr.reshape(-1, 1); cp[t + 1] = to_numpy(x[:, 3])
     thr = 5 * np.nanmax(np.abs(ctru)); dv = np.nanmax(np.abs(cp), axis=1) > thr
     tdiv = int(np.argmax(dv)) if dv.any() else T + 1
-    yt, yp = ctru[:tdiv].ravel(), cp[:tdiv].ravel(); ok = np.isfinite(yp)
+    # PER-METABOLITE Pearson (honest: within-trace dynamics, each metabolite vs itself)
+    # alongside POOLED (flattering: dominated by between-metabolite level differences).
+    gw, pw = ctru[:tdiv], cp[:tdiv]
+    pm = [np.corrcoef(gw[:, i], pw[:, i])[0, 1] for i in range(gw.shape[1])
+          if np.std(gw[:, i]) > 1e-6 and np.std(pw[:, i]) > 1e-6 and np.isfinite(pw[:, i]).all()]
+    pe_pm = float(np.mean(pm)) if pm else float("nan")
+    yt, yp = gw.ravel(), pw.ravel(); ok = np.isfinite(yp)
     pe = np.corrcoef(yt[ok], yp[ok])[0, 1] if np.std(yp[ok]) > 1e-9 else float("nan")
     tg = np.arange(T + 1) * dt; sel = np.argsort(-np.nanvar(ctru, axis=0))[:8]; SEP = 5
     for k, i in enumerate(sel):
@@ -120,7 +126,7 @@ def main():
     ax[1, 1].set_ylabel("$z$-scored conc. (offset)")
     ax[1, 1].set_ylim(-SEP, len(sel) * SEP)
     ax[1, 1].legend(loc="lower right", frameon=False)
-    ax[1, 1].text(0.97, 0.97, f"rollout Pearson = {pe:.2f}",
+    ax[1, 1].text(0.97, 0.97, f"Pearson: {pe_pm:.2f} per-met / {pe:.2f} pooled",
                   transform=ax[1, 1].transAxes, va="top", ha="right", fontsize=11)
     panel(ax[1, 1], "d")
 
@@ -129,7 +135,7 @@ def main():
     out_path = os.path.join(ROOT, "figures/metabolism", fname)
     fig.savefig(out_path, dpi=140); plt.close(fig)
     print(f"saved {out_path}: raw R2={raw:.3f} trim={trim:.3f} {pct:.0f}% out | "
-          f"rollout Pearson(conv)={pe:.3f}")
+          f"rollout Pearson per-met={pe_pm:.3f} / pooled={pe:.3f} | t_div={tdiv}")
 
 
 if __name__ == "__main__":

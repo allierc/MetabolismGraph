@@ -245,21 +245,29 @@ questions: this model recovers the parameters but is not a stable simulator.
 We then asked whether a recurrent training curriculum closes the stability gap:
 the rollout horizon is grown across epochs (single-step, then $100, 200, \dots,
 1000$ integration steps, with a co-ramped learning rate and gradient clipping).
-It \emph{does} stabilise the rollout (\cref{fig:toy_recurrent}d) --- the free
-trajectory no longer diverges over the full window and the convergent-window
-Pearson rises from $0.74$ to $0.83$ --- but at a steep and instructive cost:
-rate-constant recovery \emph{collapses} (\cref{fig:toy_recurrent}c). The
-correlation between learned and true $\log_{10} k_j$ falls
-from $0.87$ to $0.07$ (raw $R^2 = 0.004$, $90\%$ outliers), and the homeostasis
-$\mathrm{MLP_{node}}$, which is correctly $\approx 0$ under single-step training,
-drifts to a spurious nonzero function. The multi-step objective admits a stable
-\emph{degenerate} solution: a wrong set of rate constants compensated by a
-spurious homeostasis term reproduces the trajectory without recovering the
-mechanism --- the same right-dynamics/wrong-parameters degeneracy seen on
-glycolysis. Stability and identifiability are therefore in tension here: the
-naive curriculum buys one by sacrificing the other, and a usable recipe must
-constrain the parameters (e.g.\ anchoring $k$ from the single-step fit) while
-ramping the horizon.
+A naive run is a cautionary tale about the metric. The free trajectory no longer
+diverges (\cref{fig:toy_recurrent}d), and the \emph{pooled} rollout Pearson even
+rises ($0.74 \to 0.83$) --- but the pooled correlation is dominated by
+\emph{between-metabolite} level differences and merely rewards staying bounded.
+Measured honestly \emph{per metabolite} (each rollout against its own true
+trajectory), fidelity \emph{collapses} from $0.47$ (single-step) to $0.18$: the
+curriculum trades the single-step model's correct-but-unstable oscillations for a
+smooth, bounded, dynamically dead trajectory that no longer reproduces the peaks.
+Rate-constant recovery collapses in step (\cref{fig:toy_recurrent}c): the
+correlation between learned and true $\log_{10} k_j$ falls from $0.87$ to $0.07$
+(raw $R^2 = 0.004$, $90\%$ outliers), and the homeostasis $\mathrm{MLP_{node}}$,
+correctly $\approx 0$ under single-step training, drifts to a spurious nonzero
+function. The multi-step objective admits a smooth \emph{degenerate} solution ---
+wrong rate constants and a spurious homeostasis term reproduce a damped trajectory
+without the mechanism --- the same right-dynamics/wrong-parameters degeneracy seen
+on glycolysis. The lesson is twofold: report \emph{per-metabolite} rollout
+fidelity (the pooled number is flattering), and recognise that the naive
+curriculum does not buy stability so much as suppress dynamics. Whether \emph{any}
+curriculum achieves a genuinely good rollout (high per-metabolite fidelity
+\emph{and} stability \emph{and} preserved $k$-recovery) is an open question we are
+addressing with a sweep of schemes --- horizon caps, learning-rate decay,
+$k$-anchoring (freezing the recovered rate constants past the single-step warmup),
+soft tail losses, and longer warmups; results pending.
 
 \begin{table}[H]
 \centering
@@ -305,29 +313,30 @@ constants but none yields a stable simulator.}
   \textbf{(d)} Free rollout of the eight highest-variance metabolites, $z$-scored
   and stacked: ground truth (green) vs.\ the learned autoregressive rollout
   (dashed black). It tracks the oscillations early and drifts until it diverges
-  at time ${\approx}124$ (red line); convergent-window rollout Pearson $0.74$.
-  Rate constants are recovered, but the single-step-trained model is not a stable
-  simulator.}
+  at time ${\approx}124$ (red line); convergent-window rollout Pearson $0.47$ per
+  metabolite ($0.74$ pooled). Rate constants are recovered, but the
+  single-step-trained model is not a stable simulator.}
   \label{fig:toy_dashboard}
 \end{figure}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{\figdir/toy_dashboard_toy_recurrent.png}
-  \caption{\textbf{Recurrent training curriculum: good rollout, bad recovery.}
+  \caption{\textbf{Naive recurrent curriculum: stable but dynamically dead.}
   Same dashboard as \cref{fig:toy_dashboard}, for a model trained with the
   horizon-growing curriculum (single-step $\to 1000$ steps). \textbf{(d)} The free
-  rollout is now \emph{stable} --- it tracks the ground truth over the full window
-  with no divergence (convergent-window Pearson $0.83$, up from $0.74$).
-  \textbf{(c)} But rate-constant recovery has \emph{collapsed}: the scatter is a
-  structureless cloud ($90\%$ outliers, raw $R^2{=}0.00$, correlation with truth
-  $0.07$ vs.\ $0.87$ single-step). \textbf{(b)} And $\mathrm{MLP_{node}}$, correctly
-  $\approx 0$ under single-step training, has drifted to a spurious nonzero
-  homeostasis. The multi-step objective is satisfied by a stable but
-  \emph{degenerate} solution --- wrong $k$ compensated by spurious homeostasis ---
-  exposing the tension between rollout stability and parameter identifiability.
-  (\textbf{(a)} $|s|{=}2$ is out-of-support extrapolation here, as in
-  \cref{fig:toy_dashboard}.)}
+  rollout no longer diverges, and the \emph{pooled} Pearson rises to $0.83$ --- but
+  per metabolite (each rollout vs.\ its own true trajectory) fidelity \emph{drops}
+  to $0.18$ (from $0.47$ single-step): the predicted traces are smooth and bounded
+  but no longer reproduce the oscillations. The pooled number is flattering because
+  it is dominated by between-metabolite level differences. \textbf{(c)} Rate-constant
+  recovery has \emph{collapsed}: a structureless cloud ($90\%$ outliers, raw
+  $R^2{=}0.00$, correlation with truth $0.07$ vs.\ $0.87$ single-step). \textbf{(b)}
+  And $\mathrm{MLP_{node}}$, correctly $\approx 0$ under single-step training, has
+  drifted to a spurious nonzero homeostasis. The multi-step objective is satisfied
+  by a smooth \emph{degenerate} solution --- wrong $k$ plus spurious homeostasis ---
+  that suppresses dynamics rather than learning them. (\textbf{(a)} $|s|{=}2$ is
+  out-of-support extrapolation here, as in \cref{fig:toy_dashboard}.)}
   \label{fig:toy_recurrent}
 \end{figure}
 

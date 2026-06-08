@@ -232,6 +232,10 @@ class TrainingConfig(BaseModel):
     coeff_tail_loss: float = 0.0            # weight for frames in [T_epoch, T_eff); 0 = hard cutoff
     ar_max_roll: int = 0                    # cap on T_eff (0 = 2*T_epoch when tail>0 else T_epoch)
     grad_clip: float = 0.0                  # max grad norm (0 = no clipping)
+    # anchor k: after the single-step warmup (epoch 0), freeze log_k (lr->0) for the
+    # rest of the curriculum so the multi-step phase cannot scramble the recovered
+    # rate constants. Tests whether stability can be bought WITHOUT losing identifiability.
+    anchor_k_after_warmup: bool = False
 
 
 class MetabolismGraphConfig(BaseModel):

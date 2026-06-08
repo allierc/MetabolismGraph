@@ -91,11 +91,13 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     ar_coeff_tail = getattr(train_config, 'coeff_tail_loss', 0.0)
     ar_max_roll = getattr(train_config, 'ar_max_roll', 0)
     ar_grad_clip = getattr(train_config, 'grad_clip', 0.0)
+    ar_anchor_k = bool(getattr(train_config, 'anchor_k_after_warmup', False))
     ar_active = len(ar_schedule) > 0
     if ar_active:
         recurrent_training = True
         print(f'[AR curriculum] n_steps_schedule={ar_schedule}, tail={ar_coeff_tail}, '
-              f'grad_clip={ar_grad_clip}, lr_schedule={ar_lr_schedule or "base"}')
+              f'grad_clip={ar_grad_clip}, lr_schedule={ar_lr_schedule or "base"}, '
+              f'anchor_k={ar_anchor_k}')
     homeostasis_training = getattr(train_config, 'homeostasis_training', False)
     skip_phase1 = getattr(train_config, 'skip_phase1', False)
     homeostasis_time_step = getattr(train_config, 'homeostasis_time_step', 32)
@@ -408,6 +410,13 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                 print(f'[AR] epoch {epoch}: T_epoch={ar_T_epoch} T_eff={ar_T_eff} lr(k,sub)={lr_e}')
             else:
                 print(f'[AR] epoch {epoch}: T_epoch={ar_T_epoch} T_eff={ar_T_eff}')
+            # anchor k: freeze log_k (lr->0) after the single-step warmup epoch, so the
+            # multi-step phase keeps the recovered rate constants instead of scrambling them.
+            if ar_anchor_k and epoch >= 1:
+                for g in optimizer.param_groups:
+                    if g.get('name') == 'k':
+                        g['lr'] = 0.0
+                print(f'[AR] epoch {epoch}: k group FROZEN (anchored from single-step warmup)')
 
         last_r2 = None
         pbar = trange(Niter, ncols=100)

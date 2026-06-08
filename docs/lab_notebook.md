@@ -596,3 +596,41 @@ HYPOTHESIS (D1): the recurrent n_steps curriculum fixes the rollout divergence.
   HYPOTHESIS (D3): the known time-varying drive enriches the trajectory and
   improves identifiability / k-recovery vs the no-stimulus baseline (0.74/0.07corr).
 - toy_stim single-step training LAUNCHED (cuda:0), mid-flight; evaluate next D3 cycle.
+
+## 2026-06-08 (cycle 5) — METRIC CORRECTION + recurrent-scheme SWEEP
+
+**Cedric caught a flattering metric.** In Fig 2d the recurrent rollout looked
+smooth and did NOT reproduce the GT oscillations, yet "rollout Pearson" was higher
+(0.83 vs 0.74). Root cause: the dashboard reported **POOLED** Pearson (all 100
+metabolites x time, ravelled), which is dominated by BETWEEN-metabolite level
+differences and just rewards staying bounded. The honest **per-metabolite** Pearson
+(each rollout vs its own true trace, then averaged):
+
+| model | pooled | **per-met** | t_div |
+|---|---|---|---|
+| single-step (Fig1) | 0.742 | **0.474** | 1240 (time 124) |
+| recurrent naive (Fig2) | 0.834 | **0.179** | 2001 (no divergence) |
+
+=> The traces are CORRECT (not a plotting bug). The naive curriculum does NOT give
+a good rollout — per-metabolite fidelity COLLAPSES 0.47->0.18: it replaces the
+single-step model's correct-but-unstable oscillations with a smooth, bounded,
+**dynamically dead** trajectory. The pooled metric hid this. (This is the
+global-vs-per-met trap already flagged in CLAUDE.md, now biting the rollout.)
+- FIXED: dashboard now reports "per-met / pooled" (per-met primary). Regenerated
+  both figures. PDF: corrected the D1 paragraph + Fig1/Fig2 captions to the honest
+  per-met numbers; Fig2 retitled "stable but dynamically dead".
+
+**Lesson (Cedric): don't conclude too fast — try MANY recurrent schemes, put in
+effort to get a TRUE good rollout** (high per-met fidelity AND stable AND k
+preserved). Diagnosis of the collapse: long free-rollout horizon + high LR lets the
+model avoid blow-up the easy way (damp everything smooth, degenerate) instead of the
+hard way (learn real dynamics). Schemes launched (eval by per-met Pearson + k-recovery):
+- S1 anchor-k: freeze log_k after the single-step warmup (new `anchor_k_after_warmup`
+  trainer flag, lr('k')->0 for epoch>=1). RUNNING.
+- S2 cap-200 / S3 cap-500: cap the training horizon (avoid the 1000-step flatness pressure).
+- S4 lr-decay: ramp k/sub LR down over the curriculum.
+- S5 tail-loss 0.5; S6 warmup-3 (3 single-step epochs); S7 kitchen-sink (anchor+cap200+lrdecay).
+- **S8 = Cedric's zebrafish recipe** (connectome-gnn-cx): 21 epochs (n_step=1 warmup
+  prepended), n_steps ramp to an 800-step PLATEAU held for ~11 epochs, LR decay
+  5e-4->5e-5. The long low-LR plateau at a moderate horizon is the likely key. RUNNING.
+- All on the 2 GPUs, <=2 jobs/GPU (two serial queues + zebra). Evaluate next cycle.

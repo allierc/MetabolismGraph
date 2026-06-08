@@ -140,7 +140,7 @@ keep at most ~2 metabolism GPU jobs at once and prefer the idle GPU.
        `cd docs && pdflatex -interaction=nonstopmode metabolism.tex >/dev/null 2>&1` ×2;
        `rm -f metabolism.aux metabolism.log metabolism.out`.
    Every figure in the PDF must come from a re-runnable `figures/<name>.py`.
-5. `git add -u docs/metabolism.tex metabolism.pdf WEEKEND_RUN.md && git add config/k_cv_*.yaml config/glyco_ar_*.yaml scripts/ 2>/dev/null; git commit -m "weekend <date>: <result>"; git push --no-verify`.
+5. `git add -u docs/metabolism.tex metabolism.pdf task.md && git add config/k_cv_*.yaml config/glyco_ar_*.yaml scripts/ 2>/dev/null; git commit -m "weekend <date>: <result>"; git push --no-verify`.
    Never stage `graphs_data/` or `log/`.
 
 ## Guardrails

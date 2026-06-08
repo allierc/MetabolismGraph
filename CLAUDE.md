@@ -56,4 +56,4 @@ homeostasis (MLP$_{node}$). Validated on synthetic data; pushing toward real dat
   font**. Colors: GT=green, predicted=black.
 - Docs are two-tier: `docs/lab_notebook.md` = raw running log (verbose, hourly);
   `docs/metabolism.tex/.pdf` = polished, semi-publishable.
-- Weekend autonomous loop: `WEEKEND_RUN.md` is the playbook; an hourly cron runs it.
+- Weekend autonomous loop: `task.md` is the playbook; an hourly cron runs it.

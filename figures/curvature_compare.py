@@ -56,6 +56,11 @@ def main():
             ("mixed_s2", "plain MLP", "a"),
             ("mixed_s2_logspace", "log-space MLP", "b")]):
         cn, out = curves(cfg)
+        # growth ratio f(c=9)/f(c=1)=f(9) (anchored at 1); true = 9^s
+        ratios = {s: float(np.interp(9.0, cn, out[s])) for s in (1, 2, 3)}
+        print(f"{cfg:22s} ({title:13s}) growth f(9)/f(1):  "
+              f"|s|=1 {ratios[1]:6.1f} (true 9) | |s|=2 {ratios[2]:7.1f} (true 81) | "
+              f"|s|=3 {ratios[3]:8.1f} (true 729)")
         for s in (1, 2, 3):
             ax[j].plot(cn, out[s], color=COLORS[s], lw=2.4, label=f"learned $|s|={s}$")
             ax[j].plot(cn, cn ** s, color=COLORS[s], lw=1.5, ls="--", alpha=.8,

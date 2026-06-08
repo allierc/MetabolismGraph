@@ -520,3 +520,46 @@ dashboard style from now on for showing off results.
   undefined refs. Convention recorded in CLAUDE.md + standing instructions so
   D1/D2/D3 results render as the same dashboard.
 - D1 (toy_recurrent) still training in background.
+
+## 2026-06-08 (cycle 3) — D2 advanced: log-space vs plain MLP on the |s|=2 toy
+
+Rotation: D1 still training (final epoch T=1000), so advanced **D2**.
+HYPOTHESIS (D2): the log-exp transform g=exp(MLP(log c,|s|)) lets MLP_sub learn the
+quadratic c^2 that the plain MLP cannot.
+
+Verified the |s|=2 toy is genuine first: `mixed_s2` stoichiometry has **93/256
+reactions with a single substrate at order 2** (true c^2 terms), 182 in `rich_s2` —
+so there IS quadratic signal to learn (unlike the all-|s|=1 toy where c^2 was
+extrapolation). All three fits (mlp / logspace / powerlaw) were already trained
+(single-epoch); this cycle = the evaluation.
+
+Curvature growth f(9)/f(1) for MLP_sub (`figures/curvature_compare.py`, reproduced
+exactly vs the prior PDF numbers — no drift):
+| order | plain MLP | log-space | true |
+|---|---|---|---|
+| c^1 | 7.9 | 8.6 | 9 |
+| c^2 | 24.4 | 32.3 | 81 |
+| c^3 | 28.0 | 56.6 | 729 |
+
+Dashboards (`figures/toy_dashboard.py mixed_s2{,_logspace}`):
+| metric | plain | log-space |
+|---|---|---|
+| raw k R² | 0.16 | 0.26 |
+| trimmed k R² | 0.86 | 0.91 |
+| outliers | 38% | 41% |
+| rollout Pearson (conv) | **0.27** | **0.76** |
+
+→ **PARTIALLY VALIDATED.** Log-space learns MORE curvature at every order and
+nearly TRIPLES the convergent-window rollout Pearson (0.27→0.76) — matching the
+shape where the data lives stabilises integration. But it still badly undershoots
+true c^2 (32 vs 81) and c^3 (57 vs 729), and both fail the 10%-outlier k-recovery
+gate (~40%). FALSIFIED the strong form ("log-space solves c^2"): the residual
+limit is **signal scarcity of high-|s| reactions** (already established: powerlaw
+g=c^a(s), which can represent any exponent exactly, also saturates a(s) at
+1.0/1.45/1.64/... vs true 1/2/3/...). The fix is a structural prior or a
+high-|s|-rich regime, not a better approximator.
+
+PDF: added the rollout-Pearson gain (0.27→0.76) to the curvature paragraph; the
+curvature figure + numbers were already there and now reproduced. Recompiled, 13pp.
+- NEXT in rotation: D3 (external time-varying stimulus in col 4, given to inverse problem).
+- D1 (toy_recurrent) finishing its final epoch; evaluate next D1 cycle.

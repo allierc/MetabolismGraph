@@ -62,6 +62,9 @@ class SimulationConfig(BaseModel):
         "additive", "multiplicative", "multiplicative_substrate",
         "multiplicative_product", "none"
     ] = "none"
+    # analytic "modulation" drive: amplitude of the per-input sinusoidal drive
+    # written into x[:,4] each frame (used when external_input_type == "modulation")
+    external_input_amplitude: float = 0.0
 
     node_value_map: Optional[str] = None
 

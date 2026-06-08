@@ -242,6 +242,24 @@ training places no constraint on multi-step stability, so the autocatalytic
 dynamics eventually blow up. Rate-constant recovery and rollout are different
 questions: this model recovers the parameters but is not a stable simulator.
 
+We then asked whether a recurrent training curriculum closes the stability gap:
+the rollout horizon is grown across epochs (single-step, then $100, 200, \dots,
+1000$ integration steps, with a co-ramped learning rate and gradient clipping).
+It \emph{does} stabilise the rollout --- the free trajectory no longer diverges
+over the full window and the convergent-window Pearson rises from $0.74$ to
+$0.83$ --- but at a steep and instructive cost: rate-constant recovery
+\emph{collapses}. The correlation between learned and true $\log_{10} k_j$ falls
+from $0.87$ to $0.07$ (raw $R^2 = 0.004$, $90\%$ outliers), and the homeostasis
+$\mathrm{MLP_{node}}$, which is correctly $\approx 0$ under single-step training,
+drifts to a spurious nonzero function. The multi-step objective admits a stable
+\emph{degenerate} solution: a wrong set of rate constants compensated by a
+spurious homeostasis term reproduces the trajectory without recovering the
+mechanism --- the same right-dynamics/wrong-parameters degeneracy seen on
+glycolysis. Stability and identifiability are therefore in tension here: the
+naive curriculum buys one by sacrificing the other, and a usable recipe must
+constrain the parameters (e.g.\ anchoring $k$ from the single-step fit) while
+ramping the horizon.
+
 \begin{table}[H]
 \centering
 \small

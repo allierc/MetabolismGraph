@@ -563,3 +563,36 @@ PDF: added the rollout-Pearson gain (0.27→0.76) to the curvature paragraph; th
 curvature figure + numbers were already there and now reproduced. Recompiled, 13pp.
 - NEXT in rotation: D3 (external time-varying stimulus in col 4, given to inverse problem).
 - D1 (toy_recurrent) finishing its final epoch; evaluate next D1 cycle.
+
+## 2026-06-08 (cycle 4) — D1 EVALUATED (curriculum = degeneracy) + D3 launched
+
+**D1 result (toy_recurrent finished, 10 epochs, T ramp 1->1000).** Evaluated via
+the dashboard + a direct corr(true,learned log_k) probe (leak-resistant).
+HYPOTHESIS (D1): the recurrent n_steps curriculum fixes the rollout divergence.
+- VERIFIED for rollout: the free trajectory **no longer diverges** over the full
+  window (no blow-up to t=200), convergent-window Pearson **0.74 -> 0.83**.
+- BUT k-recovery **COLLAPSES**: raw R²=0.004, 90% outliers; corr(true,learned
+  log_k) **0.87 -> 0.07** (learned std 0.69 vs true 0.29, mean shifted -1.5->-0.3).
+  Verified NOT a correction bug (raw corr 0.07 too). And MLP_node, correctly ~0
+  under single-step, **drifts to a spurious nonzero function** (dashboard panel b).
+- => the multi-step objective admits a STABLE DEGENERATE solution: wrong k +
+  spurious homeostasis reproduce the trajectory without the mechanism. Same
+  right-dynamics/wrong-parameters degeneracy as glycolysis. **Stability and
+  identifiability are in tension**; the naive curriculum buys one by sacrificing
+  the other. FALSIFIED the implicit "curriculum = strictly better fit".
+- Next D1 iteration (future cycle): anchor k from the single-step fit (freeze /
+  regularize log_k) while ramping the horizon, to keep recovery AND get stability.
+- Promoted to PDF: new paragraph in the toy section (the curriculum tradeoff).
+
+**D3 advanced (implemented + launched).** Added an analytic external stimulus.
+- Generator: new `external_input_type="modulation"` branch — per-input sinusoid
+  u_k(t)=A sin(2*pi f_k t + phi_k) (distinct freq/phase) written to **x[:,4]**
+  each frame, applied via `external_input_mode` (connectome convention). Added
+  `external_input_amplitude` to SimulationConfig.
+- `config/toy_stim.yaml` = k_recovery_winner + modulation: 20 inputs, amp 0.5,
+  additive, single-step (clean controlled comparison to the no-stimulus baseline).
+- Generated: col 4 carries the drive (20 active inputs, ±0.5, std 0.158);
+  `external_input rank(99%)=20` — the known drive adds 20 independent modes.
+  HYPOTHESIS (D3): the known time-varying drive enriches the trajectory and
+  improves identifiability / k-recovery vs the no-stimulus baseline (0.74/0.07corr).
+- toy_stim single-step training LAUNCHED (cuda:0), mid-flight; evaluate next D3 cycle.

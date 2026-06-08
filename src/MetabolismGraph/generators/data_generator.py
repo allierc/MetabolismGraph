@@ -108,6 +108,23 @@ def data_generate(
         im_rows = np.linspace(0, im_h - 1, n_side, dtype=int)
         im_cols = np.linspace(0, im_w - 1, n_side, dtype=int)
 
+    # analytic time-varying drive (connectome-style external stimulus in x[:,4]):
+    # a per-input-metabolite sinusoid u_k(t) = A sin(2*pi f_k t + phi_k), distinct
+    # frequencies/phases so the drive excites many modes (richer trajectory for the
+    # inverse problem). Applied via external_input_mode; saved into x[:,4] so it is a
+    # KNOWN input at train time, not learned.
+    has_modulation = external_input_type == "modulation"
+    if has_modulation:
+        n_input_metabolites = min(
+            getattr(simulation_config, 'n_input_metabolites', n_metabolites) or n_metabolites,
+            n_metabolites)
+        ei_amp = getattr(simulation_config, 'external_input_amplitude', 0.0)
+        mod_rng = np.random.RandomState(simulation_config.seed + 12345)
+        mod_freq = mod_rng.uniform(0.05, 0.5, n_input_metabolites)   # cycles / time unit
+        mod_phase = mod_rng.uniform(0.0, 2 * np.pi, n_input_metabolites)
+        print(f"external modulation drive: {n_input_metabolites} inputs, "
+              f"amp={ei_amp}, freq in [0.05,0.5], mode={simulation_config.external_input_mode}")
+
     S_np = to_numpy(S)
 
     # --- save stoichiometric data ---
@@ -189,6 +206,11 @@ def data_generate(
                 x[:n_input_metabolites, 4] = torch.tensor(
                     im_down, dtype=torch.float32, device=device
                 )
+            elif has_modulation:
+                t_real = it * delta_t
+                drive = ei_amp * np.sin(2 * np.pi * mod_freq * t_real + mod_phase)
+                x[:n_input_metabolites, 4] = torch.tensor(
+                    drive.astype(np.float32), device=device)
 
             with torch.no_grad():
                 dataset = data.Data(x=x, pos=x[:, 1:3])

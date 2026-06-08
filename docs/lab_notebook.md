@@ -35,6 +35,10 @@ falsify**. Update BOTH `docs/metabolism.pdf` (polished) and this notebook every 
 Sweep state is tracked by the dated entries below (last entry says which direction was last
 advanced; do the next in the rotation). Loop cadence: hourly.
 
+**Result figures = ONE dashboard** (Cedric, 2026-06-08): show off each fit as a single 2x2
+dashboard (`figures/toy_dashboard.py <cfg>`: a=MLP_sub, b=MLP_node, c=k-recovery, d=rollout),
+not separate figures. Config-parameterised — use it for D1/D2/D3 results in the PDF too.
+
 ---
 
 ## 2026-06-05 — weekend kickoff
@@ -501,3 +505,18 @@ external_input_mode) — so D3 has a native mechanism.
   still diverge?) + k-recovery (did the curriculum hurt parameter recovery?).
 - NEXT in rotation: D2 (generate |s|=2 toy, log-space vs plain-MLP).
 - Hourly cron re-established for the sweep.
+
+## 2026-06-08 (cycle 2) — figures merged into ONE dashboard
+
+Cedric: merge figures 1/2/3 into a single all-in-one dashboard, and use that
+dashboard style from now on for showing off results.
+- New `figures/toy_dashboard.py <cfg>` (config-parameterised): 2x2 —
+  (a) MLP_sub vs c^|s|, (b) MLP_node, (c) k-recovery scatter, (d) rollout traces.
+  Toy: raw R²=0.74 / trim 0.98 / 4% out, rollout Pearson(conv)=0.74 — matches the
+  three former figures exactly (no number changed, just consolidated).
+- PDF: replaced fig:mlp + fig:k_recovery + fig:toy_rollout with one
+  fig:toy_dashboard (full width); updated the paragraph cross-refs to panel
+  letters (a,b -> functions, c -> recovery, d -> rollout). Recompiled: 13 pp, no
+  undefined refs. Convention recorded in CLAUDE.md + standing instructions so
+  D1/D2/D3 results render as the same dashboard.
+- D1 (toy_recurrent) still training in background.

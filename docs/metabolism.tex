@@ -229,15 +229,15 @@ concentration dynamics, never a ground-truth label). The \emph{rate-constant
 recovery} $R^2$ (learned vs.\ true $\log_{10} k_j$) is $0.75 \pm 0.04$ across
 four seeds (\cref{tab:cv}); for the published seed it is raw $0.74$ over all
 $256$ reactions, or trimmed $0.98$ after excluding the $4.3\%$ ($11/256$)
-outliers, at slope $1.00$ (\cref{fig:k_recovery}). The two learned functions
-match ground truth (\cref{fig:mlp}): $\mathrm{MLP_{sub}}$ recovers the substrate
+outliers, at slope $1.00$ (\cref{fig:toy_dashboard}c). The two learned functions
+match ground truth (\cref{fig:toy_dashboard}a,b): $\mathrm{MLP_{sub}}$ recovers the substrate
 law $c^{|s|}$ and $\mathrm{MLP_{node}}$ (homeostasis) stays $\approx 0$, the
 correct value for this regime. Rollout quality is measured by the \emph{Pearson}
 correlation between the learned free autoregressive rollout and the true
 trajectory: it is high early ($0.96$ up to time $25$) and degrades as
 integration error accumulates ($0.85$ at time $50$, $0.74$ up to the divergence
 onset at time ${\approx}124$), after which the rollout diverges
-(\cref{fig:toy_rollout}). The rate constants are recovered, but single-step
+(\cref{fig:toy_dashboard}d). The rate constants are recovered, but single-step
 training places no constraint on multi-step stability, so the autocatalytic
 dynamics eventually blow up. Rate-constant recovery and rollout are different
 questions: this model recovers the parameters but is not a stable simulator.
@@ -272,41 +272,24 @@ constants but none yields a stable simulator.}
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.92\textwidth]{\figdir/mlp_k_recovery_winner.png}
-  \caption{\textbf{Toy model: the two learned functions vs.\ ground truth.}
+  \includegraphics[width=\textwidth]{\figdir/toy_dashboard.png}
+  \caption{\textbf{Toy-model results dashboard (leak-free, seed 77).}
   \textbf{(a)} $\mathrm{MLP_{sub}}(c,|s|)$ (solid) vs.\ the true power law
-  $c^{|s|}$ (dashed) for $|s|{=}1,2$, anchored at $c{=}1$ --- the substrate law
-  is recovered. \textbf{(b)} $\mathrm{MLP_{node}}(c,a_i)$ per metabolite (the
-  homeostasis term); it stays $\approx 0$ (dashed: the true zero homeostasis of
-  this regime).}
-  \label{fig:mlp}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.6\textwidth]{\figdir/k_recovery.png}
-  \caption{\textbf{Toy-model rate-constant recovery (leak-free, seed 77).}
-  Learned vs.\ true $\log_{10} k_j$ for all $256$ reactions after the
-  $\mathrm{MLP_{sub}}$ scalar ($\alpha$) correction; dashed line is identity.
-  Inliers (black) lie on the diagonal at slope $1.00$; the $11$ red points
-  ($4.3\%$) exceed the $0.3$-dex outlier threshold. Raw $R^2 = 0.74$ over all
-  reactions, trimmed $R^2 = 0.98$ excluding outliers, within the $10\%$-outlier
-  gate.}
-  \label{fig:k_recovery}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.7\textwidth]{\figdir/toy_rollout.png}
-  \caption{\textbf{Toy-model free rollout (seed 77).} The eight highest-variance
-  metabolites, $z$-scored and stacked by a vertical offset: ground truth (green)
-  vs.\ the learned free autoregressive rollout (dashed black, clipped to its
-  band). The rollout tracks the oscillations early and drifts with accumulating
-  error until it diverges at time ${\approx}124$ (red line). Rollout Pearson
-  vs.\ the true trajectory: $0.96$ (time${<}25$) $\to 0.74$ (up to divergence),
-  then $\ll 0$. The rate constants are recovered (\cref{fig:k_recovery}) but the
-  single-step-trained model is not a stable simulator.}
-  \label{fig:toy_rollout}
+  $c^{|s|}$ (dashed) for $|s|{=}1,2$, anchored at $c{=}1$: the substrate law is
+  recovered for $|s|{=}1$ (the regime the toy contains), while the $|s|{=}2$
+  curve is an out-of-support extrapolation. \textbf{(b)} $\mathrm{MLP_{node}}$
+  per metabolite (homeostasis); it stays $\approx 0$ (dashed: the true zero
+  homeostasis of this regime). \textbf{(c)} Rate-constant recovery: learned vs.\
+  true $\log_{10} k_j$ for all $256$ reactions after the $\mathrm{MLP_{sub}}$
+  scalar correction (dashed: identity, slope $1.00$); $11$ red points ($4.3\%$)
+  exceed the $0.3$-dex outlier gate, raw $R^2{=}0.74$, trimmed $R^2{=}0.98$.
+  \textbf{(d)} Free rollout of the eight highest-variance metabolites, $z$-scored
+  and stacked: ground truth (green) vs.\ the learned autoregressive rollout
+  (dashed black). It tracks the oscillations early and drifts until it diverges
+  at time ${\approx}124$ (red line); convergent-window rollout Pearson $0.74$.
+  Rate constants are recovered, but the single-step-trained model is not a stable
+  simulator.}
+  \label{fig:toy_dashboard}
 \end{figure}
 
 \section{Toward real metabolomics}

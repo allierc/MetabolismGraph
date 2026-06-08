@@ -54,6 +54,9 @@ homeostasis (MLP$_{node}$). Validated on synthetic data; pushing toward real dat
 - Figures: re-runnable script in `figures/<name>.py` (recapitulate the analysis, don't
   copy temp training plots). Panels: **bold letter top-left, no panel titles, large
   font**. Colors: GT=green, predicted=black.
+- **Results dashboard:** show off a fit as ONE 2x2 dashboard, not separate figures
+  (`figures/toy_dashboard.py <cfg>`): (a) MLP_sub vs c^|s|, (b) MLP_node, (c) k-recovery
+  scatter, (d) rollout. Config-parameterised — use it for every new result (D1/D2/D3).
 - Docs are two-tier: `docs/lab_notebook.md` = raw running log (verbose, hourly);
   `docs/metabolism.tex/.pdf` = polished, semi-publishable.
 - Weekend autonomous loop: `task.md` is the playbook; an hourly cron runs it.

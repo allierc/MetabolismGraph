@@ -310,6 +310,39 @@ the real-data comparisons.
   \label{fig:k_recovery}
 \end{figure}
 
+\paragraph{Recovery $R^2$ vs.\ rollout $R^2$ --- two different questions.}
+The recovery $R^2$ above asks whether the \emph{rate constants} are right; it
+says nothing about whether the model reproduces the \emph{trajectory} when run
+forward. These can disagree sharply. \Cref{fig:toy_rollout} free-runs the toy
+model autoregressively from frame~0 ($\hat c(t{+}1)=\hat c(t)+\Delta t\,
+f_\theta(\hat c(t))$): although the rate constants are well recovered
+(\cref{fig:k_recovery}), the rollout \emph{diverges} --- rollout $R^2 \ll 0$,
+Pearson $0.16$. The cause is that this working point is trained single-step
+($t\to t{+}1$) and the homeostatic restoring force ($\mathrm{MLP_{node}}$) is
+never learned, so integration error compounds with no damping. So for the toy:
+\emph{recovery} $R^2 = 0.75$ (parameters good) while \emph{rollout} $R^2 \ll 0$
+(dynamics unstable) --- the two metrics measure different things, and a model can
+pass one while failing the other. (This is exactly what motivates the
+autoregressive curriculum of Rung~1, which trains for stable rollout;
+\cref{fig:glyco_rollout} shows it reaches rollout $R^2 = 0.99$ \emph{globally},
+the opposite trade-off --- good rollout, but degenerate parameters.)
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth]{\figdir/toy_rollout.png}
+  \caption{\textbf{Toy-model free rollout: good parameters, unstable dynamics.}
+  Autoregressive rollout of the leak-free working point (seed 77) from frame~0.
+  \textbf{(a)} The four highest-variance metabolites: ground truth (green) vs
+  learned free rollout (dashed black), $y$-axis clipped to $1.5\times$ the true
+  range --- the rollout tracks briefly then diverges off-scale. \textbf{(b)}
+  Learned vs true concentration; rollout $R^2 \ll 0$ (the prediction explodes),
+  Pearson $0.16$. Despite recovering the rate constants
+  (\cref{fig:k_recovery}, $R^2=0.74$/$0.98$), this single-step-trained model does
+  not produce a stable trajectory. Reproduced by
+  \texttt{figures/glyco\_rollout.py k\_recovery\_winner}.}
+  \label{fig:toy_rollout}
+\end{figure}
+
 \section{Toward real metabolomics}
 \label{sec:realdata}
 
@@ -706,6 +739,9 @@ Date & Hypothesis & Experiment & Verdict \\
 2026-06-06 & a clean (fully-observed) first fit exists?
   & reactions with all participants measured
   & \emph{yes}: $164/740$ rxn fully observed \\
+2026-06-07 & does good $k$-recovery imply good rollout?
+  & toy free rollout vs recovery
+  & \textbf{\textsc{no}} (recovery 0.75, rollout $R^2{\ll}0$) \\
 \bottomrule
 \end{tabular}
 \caption{Live experiment ledger. The single-step rollout on the real

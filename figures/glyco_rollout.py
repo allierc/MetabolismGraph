@@ -48,11 +48,17 @@ def main():
     dt = config.simulation.delta_t
 
     stoich_graph = torch.load(f"graphs_data/{ds}/stoich_graph.pt", map_location=device)
-    meta = torch.load(f"graphs_data/{ds}/metadata.pt", map_location=device, weights_only=False)
-    names = meta.get("species_names", [str(i) for i in range(config.simulation.n_metabolites)])
+    meta_path = f"graphs_data/{ds}/metadata.pt"
+    if os.path.exists(meta_path):
+        names = torch.load(meta_path, map_location=device, weights_only=False).get(
+            "species_names", [str(i) for i in range(config.simulation.n_metabolites)])
+    else:
+        names = [str(i) for i in range(config.simulation.n_metabolites)]
 
     x_true = torch.tensor(np.load(f"graphs_data/{ds}/x_list_0.npy"), dtype=torch.float32)
-    stim = torch.tensor(np.load(f"graphs_data/{ds}/stimulus.npy"), dtype=torch.float32)
+    stim_path = f"graphs_data/{ds}/stimulus.npy"
+    has_stim = os.path.exists(stim_path)   # toy regimes have no external stimulus
+    stim = torch.tensor(np.load(stim_path), dtype=torch.float32) if has_stim else None
     T = min(T_ROLL, x_true.shape[0] - 1)
     c_true = to_numpy(x_true[:T + 1, :, 3])                # (T+1, N)
 
@@ -89,15 +95,16 @@ def main():
         g_r2 = 1 - np.sum((yt[ok] - yp[ok]) ** 2) / np.sum((yt[ok] - yt[ok].mean()) ** 2)
         return (np.mean(r2s), np.mean(prs), g_r2, np.corrcoef(yt[ok], yp[ok])[0, 1])
 
-    c_pred = rollout(use_stim=True)
-    c_pred_nostim = rollout(use_stim=False)
+    c_pred = rollout(use_stim=has_stim)
     m_stim = metrics(c_pred)
-    m_nostim = metrics(c_pred_nostim)
-    print(f"  WITH stimulus : per-met R2={m_stim[0]:.3f} Pearson={m_stim[1]:.3f} | "
+    print(f"  rollout: per-met R2={m_stim[0]:.3f} Pearson={m_stim[1]:.3f} | "
           f"global R2={m_stim[2]:.3f} Pearson={m_stim[3]:.3f}")
-    print(f"  NO stimulus   : per-met R2={m_nostim[0]:.3f} Pearson={m_nostim[1]:.3f} "
-          f"(should match buggy data_test)")
-    r2, pear = m_stim[0], m_stim[1]   # report the correct (with-stimulus) per-metabolite metric
+    if has_stim:   # glyco: also show the no-stimulus control (= the buggy data_test)
+        m_nostim = metrics(rollout(use_stim=False))
+        print(f"  no-stimulus control: per-met R2={m_nostim[0]:.3f} Pearson={m_nostim[1]:.3f} "
+              f"(matches buggy data_test)")
+    r2, pear = m_stim[0], m_stim[1]   # per-metabolite metric (the honest one)
+    g_r2, g_pear = m_stim[2], m_stim[3]
     tgrid = np.arange(T + 1) * dt
 
     # ---- figure: (a) example traces, (b) predicted-vs-true scatter ----
@@ -111,6 +118,7 @@ def main():
     ax[0].plot([], [], color=GT_C, lw=2, label="ground truth")
     ax[0].plot([], [], color=PRED_C, lw=1.3, ls="--", label="learned rollout")
     ax[0].set_xlabel("time"); ax[0].set_ylabel("concentration")
+    ax[0].set_ylim(0, 1.5 * float(np.nanmax(c_true)))   # clip if the rollout diverges
     ax[0].legend(loc="lower right", frameon=False); panel_label(ax[0], "a")
 
     yt, yp = c_true.ravel(), c_pred.ravel(); ok = np.isfinite(yp)
@@ -119,11 +127,17 @@ def main():
     ax[1].plot([lim_lo, lim_hi], [lim_lo, lim_hi], "--", c="gray", lw=1)
     ax[1].set_xlim(lim_lo, lim_hi); ax[1].set_ylim(lim_lo, lim_hi)
     ax[1].set_xlabel("true concentration"); ax[1].set_ylabel("learned (rollout)")
-    ax[1].text(0.97, 0.06, f"per-metabolite\nPearson = {pear:.2f}\n$R^2$ = {r2:.2f}",
-               transform=ax[1].transAxes, va="bottom", ha="right", fontsize=14)
+    fmt = lambda r: r"$\ll 0$" if r < -100 else f"{r:.2f}"
+    ax[1].text(0.97, 0.06,
+               f"per-metabolite $R^2$ = {fmt(r2)}\nglobal $R^2$ = {fmt(g_r2)}\n"
+               f"per-met Pearson = {pear:.2f}",
+               transform=ax[1].transAxes, va="bottom", ha="right", fontsize=13)
     panel_label(ax[1], "b")
 
-    out = os.path.join(ROOT, "figures/metabolism/glyco_rollout.png")
+    fname = ("glyco_rollout.png" if "glyco" in cfg_name
+             else "toy_rollout.png" if cfg_name == "k_recovery_winner"
+             else f"{cfg_name}_rollout.png")
+    out = os.path.join(ROOT, "figures/metabolism", fname)
     fig.tight_layout(); fig.savefig(out, dpi=140); plt.close(fig)
     print(f"saved {out}  ({cfg_name}, T={T})")
     print(f"  rollout Pearson={pear:.3f}  R2={r2:.3f}")

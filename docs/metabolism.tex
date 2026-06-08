@@ -245,10 +245,11 @@ questions: this model recovers the parameters but is not a stable simulator.
 We then asked whether a recurrent training curriculum closes the stability gap:
 the rollout horizon is grown across epochs (single-step, then $100, 200, \dots,
 1000$ integration steps, with a co-ramped learning rate and gradient clipping).
-It \emph{does} stabilise the rollout --- the free trajectory no longer diverges
-over the full window and the convergent-window Pearson rises from $0.74$ to
-$0.83$ --- but at a steep and instructive cost: rate-constant recovery
-\emph{collapses}. The correlation between learned and true $\log_{10} k_j$ falls
+It \emph{does} stabilise the rollout (\cref{fig:toy_recurrent}d) --- the free
+trajectory no longer diverges over the full window and the convergent-window
+Pearson rises from $0.74$ to $0.83$ --- but at a steep and instructive cost:
+rate-constant recovery \emph{collapses} (\cref{fig:toy_recurrent}c). The
+correlation between learned and true $\log_{10} k_j$ falls
 from $0.87$ to $0.07$ (raw $R^2 = 0.004$, $90\%$ outliers), and the homeostasis
 $\mathrm{MLP_{node}}$, which is correctly $\approx 0$ under single-step training,
 drifts to a spurious nonzero function. The multi-step objective admits a stable
@@ -308,6 +309,26 @@ constants but none yields a stable simulator.}
   Rate constants are recovered, but the single-step-trained model is not a stable
   simulator.}
   \label{fig:toy_dashboard}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{\figdir/toy_dashboard_toy_recurrent.png}
+  \caption{\textbf{Recurrent training curriculum: good rollout, bad recovery.}
+  Same dashboard as \cref{fig:toy_dashboard}, for a model trained with the
+  horizon-growing curriculum (single-step $\to 1000$ steps). \textbf{(d)} The free
+  rollout is now \emph{stable} --- it tracks the ground truth over the full window
+  with no divergence (convergent-window Pearson $0.83$, up from $0.74$).
+  \textbf{(c)} But rate-constant recovery has \emph{collapsed}: the scatter is a
+  structureless cloud ($90\%$ outliers, raw $R^2{=}0.00$, correlation with truth
+  $0.07$ vs.\ $0.87$ single-step). \textbf{(b)} And $\mathrm{MLP_{node}}$, correctly
+  $\approx 0$ under single-step training, has drifted to a spurious nonzero
+  homeostasis. The multi-step objective is satisfied by a stable but
+  \emph{degenerate} solution --- wrong $k$ compensated by spurious homeostasis ---
+  exposing the tension between rollout stability and parameter identifiability.
+  (\textbf{(a)} $|s|{=}2$ is out-of-support extrapolation here, as in
+  \cref{fig:toy_dashboard}.)}
+  \label{fig:toy_recurrent}
 \end{figure}
 
 \section{Toward real metabolomics}

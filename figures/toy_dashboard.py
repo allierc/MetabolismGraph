@@ -33,8 +33,9 @@ GT_C, PRED_C = "#2ca02c", "k"     # ground truth green, predicted black
 
 
 def panel(ax, L):
-    ax.text(0.02, 0.97, L, transform=ax.transAxes, fontsize=18,
-            fontweight="bold", va="top", ha="left")
+    # bold letter OUTSIDE the box, top-left, aligned across panels
+    ax.text(0.0, 1.02, L, transform=ax.transAxes, fontsize=18,
+            fontweight="bold", va="bottom", ha="left")
 
 
 def main():
@@ -82,7 +83,7 @@ def main():
     ax[1, 0].scatter(gtk[~outm], cor[~outm], s=18, c="k", alpha=.6, edgecolors="none")
     ax[1, 0].scatter(gtk[outm], cor[outm], s=18, c="#e74c3c", alpha=.7, edgecolors="none")
     ax[1, 0].set_xlabel(r"true $\log_{10} k$"); ax[1, 0].set_ylabel(r"learned $\log_{10} k$")
-    ax[1, 0].set_xlim(lo, hi); ax[1, 0].set_ylim(lo, hi); ax[1, 0].set_aspect("equal")
+    ax[1, 0].set_xlim(lo, hi); ax[1, 0].set_ylim(lo, hi)   # fill the panel like the others
     ax[1, 0].text(0.30, 0.18, f"raw $R^2$ = {raw:.2f}\ntrimmed $R^2$ = {trim:.2f}\n"
                   f"outliers {nout}/{nrx} ({pct:.0f}\\%)",
                   transform=ax[1, 0].transAxes, va="bottom", fontsize=11)

@@ -5,10 +5,33 @@ scientist: **state a hypothesis, run the experiment, record validate/falsify.**
 A clean falsification is as valuable as a positive result — log both plainly.
 The reader (Cedric) reads `docs/metabolism.pdf`; keep the hypothesis ledger there.
 
-## Two goals
-1. **Reproduce the toy-model result and quantify its robustness by CV** (multi-seed).
-2. **Build intuition on whether the approach is amenable to real data** — feasibility
-   probes on the three real datasets, not necessarily full recovery.
+## CURRENT TASK (2026-06-08): TWO-DAY TOY SWEEP, three directions
+
+Work the toy model along THREE directions; **SWEEP between them every cycle** (rotate
+D1 -> D2 -> D3 -> D1 ...) — do not get stuck on one. Scientific method (hypothesis ->
+verify -> falsify). Update PDF + notebook each cycle; **re-read both at the start of every
+cycle** (the STANDING INSTRUCTIONS block at the top of lab_notebook.md). Pick the next
+direction by looking at which was advanced in the last notebook entry.
+
+- **D1 — recurrent curriculum.** `toy_recurrent` config: n_steps_schedule
+  [1,100,200,...,1000] (epoch 1 single-step, then ramp). HYP: fixes the rollout divergence
+  (toy diverges ~time 124). Eval: `figures/glyco_rollout.py toy_recurrent` rollout Pearson
+  (convergent-window + full) vs the single-step baseline (0.74 conv / diverges full).
+- **D2 — log-exp MLP_sub on a toy WITH |s|=2.** First generate a toy variant with genuine
+  |s|=2 reactions (cycle_fraction<1, flux_limit=true; check the |s| histogram is stable),
+  then train plain-MLP vs `substrate_func_type=logspace`. HYP: log-space learns c^2.
+  Eval: `figures/k_recovery.py` (raw/trimmed/outliers, 10% rule) + the |s|=2 curvature
+  growth (true 9/81; plain-MLP collapses to ~linear) via the curvature probe.
+- **D3 — external time-varying stimulus, given to the inverse problem.** Mirror
+  connectome-gnn: **column 4 of x = stimulus** (same convention; Metabolism_Propagation
+  already reads `external_input = x[:,4]` with `external_input_mode`). Add a time-varying
+  drive to a few metabolites in the generator (affecting the GT trajectory), save it in
+  x_list col 4, and feed it as a KNOWN input at train time. HYP: improves convergence /
+  identifiability. Eval: k-recovery R² + rollout Pearson vs no-stimulus baseline.
+
+Guardrails specific to this task: keep the single-step `k_recovery_winner` path untouched;
+AR changes stay opt-in (n_steps_schedule); never claim a result before the leak-resistant
+k-recovery check; real biology has no GT but the TOY does — always validate against GT.
 
 ## Environment & station
 - `PYTHON=/workspace/.conda_envs/neural-graph-linux/bin/python`; run from `/workspace/MetabolismGraph`.

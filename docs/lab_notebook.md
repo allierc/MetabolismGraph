@@ -10,6 +10,33 @@ honest about failures, and note the *decision* taken.
 
 ---
 
+## STANDING INSTRUCTIONS — read at EVERY checkpoint (Cedric, 2026-06-08, 2-day toy effort)
+
+Work the **toy model** along THREE directions for two days. **SWEEP between them** each
+cycle (rotate D1 -> D2 -> D3 -> D1 ...) so we don't get stuck and we see the same problem
+from different perspectives. Scientific method throughout: **hypothesis -> verify ->
+falsify**. Update BOTH `docs/metabolism.pdf` (polished) and this notebook every cycle.
+**Re-read this notebook AND the PDF at the start of every checkpoint.**
+
+- **D1 — recurrent training curriculum.** n_steps schedule: epoch 1 = single-step (t->t+1,
+  n_steps=1, as now), then 100, 200, 300, ... up to 1000 (the curriculum used for the
+  glycolysis kinetic model). HYPOTHESIS: fixes the rollout divergence (toy currently
+  diverges at time~124). Metric: rollout Pearson (convergent-window + full).
+- **D2 — log-exp transform for MLP_sub.** The toy is all |s|=1, so first generate a toy
+  variant WITH genuine |s|=2 reactions (Cedric's call), then apply the log-space substrate
+  transform (as used for glycolysis). HYPOTHESIS: log-space lets MLP_sub learn the quadratic
+  c^2. Metric: MLP_sub |s|=2 curvature (growth->81) + k-recovery R²/outliers.
+- **D3 — add an external time-varying STIMULUS to the training data**, given to the inverse
+  problem (not learned). Mirror connectome-gnn: column 4 of x = stimulus (same convention
+  here; Metabolism_Propagation already reads external_input = x[:,4] with external_input_mode).
+  HYPOTHESIS: an external drive improves convergence/identifiability. Metric: k-recovery R²
+  + rollout Pearson vs no-stimulus baseline.
+
+Sweep state is tracked by the dated entries below (last entry says which direction was last
+advanced; do the next in the rotation). Loop cadence: hourly.
+
+---
+
 ## 2026-06-05 — weekend kickoff
 
 **Goal.** (1) Reproduce the toy-model rate-constant recovery and quantify its
@@ -458,3 +485,19 @@ is a correctness requirement, not a preference -> needs Cedric's domain check of
 STATE: recipe + format ready; one command from a dataset once (i)-(iii) are set. Holding
 on execution. 5th idle cycle. (Recommended pausing the cron last cycle.)
 - 2026-06-06 (hourly): PAUSED the hourly cron (job 1a6ded85) after 6 idle cycles. Work complete (synthetic science closed; Rung-3 fully scoped + build-recipe ready). No value in further idle spinning; recommended pausing twice. Loop easily resumable on Cedric's word. Final state pushed.
+
+## 2026-06-08 — TWO-DAY TOY SWEEP kicked off (D1 launched)
+
+Set up the 3-direction sweep (standing instructions above). Studied connectome-gnn
+stimulus handling for D3: it uses **column 4 = stimulus** (neuron_state.py), and
+MetabolismGraph already mirrors this (Metabolism_Propagation reads external_input=x[:,4],
+external_input_mode) — so D3 has a native mechanism.
+- **D1 LAUNCHED**: config/toy_recurrent.yaml = k_recovery_winner data + AR curriculum
+  n_steps_schedule [1,100,200,...,1000], 10 epochs, batch 4, aug 1, grad_clip 1.0,
+  tail_loss 0. Smoke OK ([AR] epoch 0: T_epoch=1, single-step as requested; no crash).
+  HYP: the curriculum trains for multi-step stability -> fixes the rollout divergence
+  (single-step baseline: rollout Pearson 0.74 convergent-window, then diverges at time~124).
+  Eval next D1 cycle: figures/glyco_rollout.py toy_recurrent (rollout Pearson + does it
+  still diverge?) + k-recovery (did the curriculum hurt parameter recovery?).
+- NEXT in rotation: D2 (generate |s|=2 toy, log-space vs plain-MLP).
+- Hourly cron re-established for the sweep.

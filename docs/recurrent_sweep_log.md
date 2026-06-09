@@ -96,3 +96,9 @@ Levers that were inconclusive/negative (see lab_notebook 2026-06-09 summary): (1
 curriculum alone — 8 schemes all degenerate; (2) n_runs 1/3/10 — noisy + budget-confounded;
 (3) log-exp for c^2 — no |s|=2 signal. Pivot: recurrent WITH stimulus (the missing anchor) +
 10 runs/test. Tests: toy_stim10_{single,naive,zebra,cap200} on toy_stim10_data (held-out run 10).
+
+### progress 2026-06-09 ~11:00
+D1+D3 (recurrent + stimulus + 10 runs) all 4 mid-training: single ~71% of its epoch,
+cap200/naive/zebra on epoch 0 of their schedules. GPUs full (95-97%). Nothing finished to
+evaluate yet; cron 252bb6e2 will eval each on completion (in-sample per-met + k-recovery +
+held-out run 10). No free slots, so no new launches this cycle.

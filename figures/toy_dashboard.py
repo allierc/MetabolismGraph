@@ -121,13 +121,24 @@ def main():
         ax[1, 1].plot(tg, (g - mu) / sd + off, color=GT_C, lw=1.3)
         ax[1, 1].plot(tg, np.clip((p - mu) / sd, -0.45 * SEP, 0.45 * SEP) + off,
                       color=PRED_C, lw=1, ls="--")
+    # overlay the GIVEN external stimulus (col 4) above the metabolites, z-scored,
+    # in orange (same convention as the glycolysis rollout figure): a known input.
+    STIM_C = "#ff7f0e"; n_met = len(sel); top = n_met * SEP
+    stim_tv = to_numpy(xt[:T + 1, :, 4])
+    sidx = [j for j in range(stim_tv.shape[1]) if np.nanstd(stim_tv[:, j]) > 1e-9]
+    for kk, j in enumerate(sidx[:6]):                 # up to 6 stimulus channels
+        sgn = stim_tv[:, j]; mu, sd = np.nanmean(sgn), np.nanstd(sgn) + 1e-9
+        ax[1, 1].plot(tg, (sgn - mu) / sd + (n_met + kk) * SEP, color=STIM_C, lw=0.9)
+    if sidx:
+        ax[1, 1].plot([], [], color=STIM_C, lw=0.9, label="stimulus (given)")
+        top = (n_met + min(len(sidx), 6)) * SEP
     if tdiv <= T:
         ax[1, 1].axvline(tdiv * dt, color="#cc0000", ls=":", lw=1.2)
     ax[1, 1].plot([], [], color=GT_C, lw=1.3, label="ground truth")
     ax[1, 1].plot([], [], color=PRED_C, lw=1, ls="--", label="rollout")
     ax[1, 1].set_xlabel("time"); ax[1, 1].set_yticks([])
     ax[1, 1].set_ylabel("$z$-scored conc. (offset)")
-    ax[1, 1].set_ylim(-SEP, len(sel) * SEP)
+    ax[1, 1].set_ylim(-SEP, top + SEP)
     ax[1, 1].legend(loc="lower right", frameon=False)
     ax[1, 1].text(0.97, 0.97, f"Pearson: {pe_pm:.2f} per-met / {pe:.2f} pooled",
                   transform=ax[1, 1].transAxes, va="top", ha="right", fontsize=11)

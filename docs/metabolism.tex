@@ -340,6 +340,38 @@ constants but none yields a stable simulator.}
   \label{fig:toy_recurrent}
 \end{figure}
 
+A different lever closes the stability gap where the curriculum could not:
+supplying a known \emph{external stimulus}. The toy is autonomous, and a long
+autonomous rollout of a linear oscillatory system collapses to a damped solution
+under any multi-step objective (above). Feeding a known time-varying drive to a
+subset of metabolites at every rollout step --- the boundary-input convention used
+by the calcium models --- changes the picture. With the drive supplied and ten
+distinct driven trajectories for training, even \emph{single-step} training yields
+a rollout that is stable over the full window (no divergence) while preserving
+rate-constant recovery ($R^2 = 0.78$), and it stays bounded on a held-out
+trajectory with a different drive (\cref{fig:toy_stim}). The external input anchors
+the dynamics the way it does in the connectome models. Per-metabolite fidelity
+($0.33$) does not yet exceed the stimulus-free early-window value ($0.47$), but the
+stimulus model holds that fidelity across the \emph{entire} trajectory rather than
+only up to divergence; whether the curriculum, now anchored by the drive, lifts it
+further without the degeneracy is under test.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{\figdir/toy_dashboard_toy_stim10_single.png}
+  \caption{\textbf{An external stimulus anchors the rollout.} Same dashboard, for
+  single-step training on ten trajectories driven by a known time-varying stimulus
+  (orange in \textbf{d}, the given input, plotted as in the glycolysis figure).
+  \textbf{(d)}~The free rollout (black) is now stable over the full window with no
+  divergence (contrast \cref{fig:toy_dashboard}d, which diverges at $t{\approx}124$,
+  and \cref{fig:toy_recurrent}d's degeneracy); per-metabolite Pearson $0.33$.
+  \textbf{(c)}~Rate-constant recovery is preserved ($R^2 = 0.78$, $4\%$ outliers)
+  --- the stimulus stabilises the rollout \emph{without} the parameter collapse the
+  curriculum caused. On a held-out trajectory with a different drive the rollout
+  stays bounded (per-metabolite $0.20$).}
+  \label{fig:toy_stim}
+\end{figure}
+
 \section{Toward real metabolomics}
 \label{sec:realdata}
 

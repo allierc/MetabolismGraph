@@ -56,3 +56,37 @@ add ~1.5–2×. Capped schemes ~20–40 min; full-1000 ~2–3 h; zebra 800-plate
 
 ## Results & decisions (appended each cycle)
 <!-- cron appends dated rows + the running BEST per-met scheme here -->
+
+## RESULTS — Wave 1 complete (2026-06-09 ~09:00, evaluated manually; cron was offline overnight)
+
+Baselines: **single-step per-met=0.47, kR²=0.74, diverges@t1240** | **log-space single-step per-met=0.32, kR²=0.89, STABLE**
+
+| scheme | per-met | pooled | k raw R² | %out | t_div | verdict |
+|---|---|---|---|---|---|---|
+| single-step (baseline) | **0.47** | 0.74 | **0.74** | 4 | 1240 | best per-met + k, but diverges |
+| log-space single-step | 0.32 | 0.79 | **0.89** | 2 | stable | best STABLE option, best k |
+| S-naive recurrent | 0.18 | 0.83 | 0.00 | 90 | stable | degenerate |
+| S1 anchor-k | 0.09 | 0.03 | 0.00 | 99 | 1476 | FAILED |
+| S2 cap-200 | 0.23 | 0.18 | 0.07 | 84 | 645 | best of recurrent, still ≪ baseline |
+| S3 cap-500 | 0.21 | 0.62 | 0.04 | 84 | stable | degenerate |
+| S4 lr-decay | 0.21 | 0.71 | 0.00 | 80 | stable | degenerate |
+| S5 tail-loss | 0.22 | 0.78 | 0.00 | 76 | stable | degenerate |
+| S6 warmup-3 | 0.18 | 0.45 | 0.02 | 73 | stable | degenerate |
+| S7 kitchen-sink | 0.10 | 0.02 | 0.00 | 100 | stable | FAILED |
+| S8 zebrafish 800-plateau | 0.11 | 0.05 | 0.00 | 100 | stable | FAILED |
+
+**CONCLUSION: no recurrent scheme works on this toy.** All 8 (incl. the gentle zebrafish recipe)
+collapse to the smooth-degenerate regime: per-met 0.09–0.23 (≪ single-step 0.47) AND k-recovery
+destroyed (raw R² 0.00–0.07, 73–100% outliers). Trend: the schemes that stay bounded (t_div=2001)
+have the WORST k — "stability = degeneracy" here. The least-curriculum scheme (cap-200, which still
+diverges) is the least-bad, i.e. closer to single-step is better.
+
+**KEY HYPOTHESIS (why it fails here but works for zebrafish/CX): the toy has NO external stimulus.**
+The toy is an autonomous LINEAR system (all |s|=1 → dc/dt=Mc); a long autonomous rollout is dominated
+by leading eigenvalues, so the multi-step loss finds a damped (stable) solution that kills the
+oscillations and frees k to drift. In zebrafish/CX the curriculum works because a strong external
+drive PINS the dynamics every step. => The recurrent curriculum likely needs the D3 stimulus to anchor
+it. NEXT: combine D1+D3 (recurrent training WITH the external drive), not more stimulus-free variants.
+
+**Best STABLE model so far = log-space single-step** (per-met 0.32, k 0.89, no divergence) — NOT a
+recurrent scheme. The "true good rollout" (per-met>0.47 AND stable AND k preserved) was NOT achieved.

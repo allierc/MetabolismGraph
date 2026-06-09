@@ -100,6 +100,7 @@ def main():
         x = xt[0].clone(); cp[0] = to_numpy(x[:, 3])
         for t in range(T):
             s_ = stim[t] if has_stim else None
+            x[:, 4] = xt[t, :, 4]          # feed the GIVEN external drive (col 4) at step t
             pr = model(pyg_Data(x=x.clone(), pos=x[:, 1:3]), stimulus=s_)
             x[:, 3:4] = x[:, 3:4] + dt * pr.reshape(-1, 1); cp[t + 1] = to_numpy(x[:, 3])
     thr = 5 * np.nanmax(np.abs(ctru)); dv = np.nanmax(np.abs(cp), axis=1) > thr

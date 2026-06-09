@@ -119,11 +119,9 @@ def data_generate(
             getattr(simulation_config, 'n_input_metabolites', n_metabolites) or n_metabolites,
             n_metabolites)
         ei_amp = getattr(simulation_config, 'external_input_amplitude', 0.0)
-        mod_rng = np.random.RandomState(simulation_config.seed + 12345)
-        mod_freq = mod_rng.uniform(0.05, 0.5, n_input_metabolites)   # cycles / time unit
-        mod_phase = mod_rng.uniform(0.0, 2 * np.pi, n_input_metabolites)
         print(f"external modulation drive: {n_input_metabolites} inputs, "
-              f"amp={ei_amp}, freq in [0.05,0.5], mode={simulation_config.external_input_mode}")
+              f"amp={ei_amp}, freq in [0.05,0.5], mode={simulation_config.external_input_mode} "
+              f"(distinct freq/phase PER RUN for trajectory diversity)")
 
     S_np = to_numpy(S)
 
@@ -194,6 +192,14 @@ def data_generate(
                 n_metabolites, device, mode='random',
                 seed=simulation_config.seed + run, c_min=c_min, c_max=c_max,
             )
+
+        # per-run modulation drive: distinct frequencies/phases each run so the 10
+        # runs carry GENUINELY different external trajectories (the drive anchors the
+        # rollout AND diversifies identifiability across runs).
+        if has_modulation:
+            mod_rng = np.random.RandomState(simulation_config.seed + 12345 + run * 97)
+            mod_freq = mod_rng.uniform(0.05, 0.5, n_input_metabolites)   # cycles / time unit
+            mod_phase = mod_rng.uniform(0.0, 2 * np.pi, n_input_metabolites)
 
         for it in trange(simulation_config.start_frame, n_frames + 1, ncols=100):
 

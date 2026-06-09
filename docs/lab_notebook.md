@@ -674,3 +674,32 @@ k-recovery + in-sample rollout (dashboard) AND held-out run-11 rollout (glyco_ro
 <cfg> toy_holdout_run11). Hypothesis: more diverse runs raise the effective rank seen in
 training -> better k-recovery and/or a stable, generalizing rollout. Baseline: 1 run = k R2 0.75,
 rollout diverges. Generation done (12 runs), held-out staged, toy_1run training now. Eval next cycle.
+
+## 2026-06-09 — SUMMARY: levers tested with inconclusive / negative results
+
+Three levers were tried to get a TRUE good rollout (per-met Pearson > single-step's 0.47,
+stable, k preserved) on the toy. None succeeded on the stimulus-free toy:
+
+1. **Recurrent training curriculum (D1) — NEGATIVE, conclusive.** 8 schemes (naive 1->1000,
+   horizon caps 200/500, LR-decay, soft tail, 3x warmup, anchor-k, kitchen-sink, and Cedric's
+   zebrafish 800-plateau). ALL collapse to a smooth-degenerate fixed point: per-met 0.09-0.23
+   (vs 0.47 single-step) AND k-recovery destroyed (raw R^2 0.00-0.07, 73-100% outliers). The
+   more stable a scheme (no divergence), the WORSE its k -> "stability = degeneracy". Likely
+   cause: the toy is an AUTONOMOUS linear system (all |s|=1, dc/dt=Mc) with no external drive
+   to anchor a long rollout, so the multi-step loss damps the oscillations.
+
+2. **Number of runs (1/3/10) — INCONCLUSIVE (confounded).** k-recovery 0.85/0.72/0.80 (non-
+   monotonic); held-out rollout poor for all. But the training BUDGET was held fixed, so more
+   runs = less training/run (the 3-run case looks undertrained). Not a clean test; needs the
+   budget scaled with n_runs to conclude.
+
+3. **log-exp transform to learn c^2 (panel a) — NEGATIVE, expected.** The toy has zero |s|=2
+   data, so no parameterization can produce c^2. (Log-space DID help k-recovery 0.74->0.89 and
+   stability, just not the quadratic.)
+
+DECISION (Cedric): the evidence points to the missing external drive, so pivot to **recurrent
+training WITH the external stimulus, 10 runs per test** (D1+D3 combined). Launched:
+toy_stim10_data (11 runs, per-run modulation drive; run 10 held out) + 4 tests on 10 runs each
+(single-step control, naive recurrent, zebrafish recipe, cap-200). Fixed the rollout eval to
+FEED the given drive (col 4) at each step (was frozen at frame 0) and made the drive vary per
+run. Eval by per-met Pearson + k-recovery + held-out run 10.

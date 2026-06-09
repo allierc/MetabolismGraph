@@ -90,3 +90,9 @@ it. NEXT: combine D1+D3 (recurrent training WITH the external drive), not more s
 
 **Best STABLE model so far = log-space single-step** (per-met 0.32, k 0.89, no divergence) — NOT a
 recurrent scheme. The "true good rollout" (per-met>0.47 AND stable AND k preserved) was NOT achieved.
+
+## PIVOT (2026-06-09): recurrent + external stimulus + 10 runs (D1+D3)
+Levers that were inconclusive/negative (see lab_notebook 2026-06-09 summary): (1) recurrent
+curriculum alone — 8 schemes all degenerate; (2) n_runs 1/3/10 — noisy + budget-confounded;
+(3) log-exp for c^2 — no |s|=2 signal. Pivot: recurrent WITH stimulus (the missing anchor) +
+10 runs/test. Tests: toy_stim10_{single,naive,zebra,cap200} on toy_stim10_data (held-out run 10).

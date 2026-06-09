@@ -102,3 +102,17 @@ D1+D3 (recurrent + stimulus + 10 runs) all 4 mid-training: single ~71% of its ep
 cap200/naive/zebra on epoch 0 of their schedules. GPUs full (95-97%). Nothing finished to
 evaluate yet; cron 252bb6e2 will eval each on completion (in-sample per-met + k-recovery +
 held-out run 10). No free slots, so no new launches this cycle.
+
+### D1+D3 first result (2026-06-09 ~11:23): single-step + stimulus + 10 runs (control)
+| eval | k raw R2 | %out | per-met | pooled | t_div |
+|---|---|---|---|---|---|
+| in-sample | 0.78 | 4 | 0.33 | 0.71 | 2001 (STABLE) |
+| held-out run 10 | 0.78 | 4 | 0.20 | 0.44 | 2001 (STABLE) |
+vs stimulus-free single-step baseline: k 0.74, per-met 0.47 (only to divergence @1240).
+=> The external stimulus ANCHORS the rollout: single-step is now STABLE over the full window
+(no divergence) AND k-recovery PRESERVED (0.78) -- unlike all stimulus-free recurrent schemes
+(which destroyed k). Held-out stays bounded too (per-met 0.20). Per-met fidelity not yet >0.47,
+but that baseline number is only pre-divergence; the stimulus version holds 0.33 over the FULL
+trajectory + generalizes. Better simulator, not yet better tracker. Recurrent+stimulus
+(cap200/naive/zebra, still on epoch 0) is the real test -- does the curriculum now lift per-met
+WITHOUT the degeneracy, since the drive anchors it?

@@ -40,6 +40,8 @@ def panel(ax, L):
 
 def main():
     cfg = sys.argv[1] if len(sys.argv) > 1 else "k_recovery_winner"
+    # optional 2nd arg = a held-out dataset to roll the model out on (model from <cfg>)
+    eval_ds = sys.argv[2] if len(sys.argv) > 2 else None
     dev = "cpu"
     config, model, gt, log_dir, ckpt = load_model(cfg, dev)
     N = config.simulation.n_metabolites
@@ -90,7 +92,7 @@ def main():
     panel(ax[1, 0], "c")
 
     # ---- (d) free rollout ----
-    ds = config.dataset; dt = config.simulation.delta_t
+    ds = eval_ds if eval_ds else config.dataset; dt = config.simulation.delta_t
     xt = torch.tensor(np.load(f"graphs_data/{ds}/x_list_0.npy"), dtype=torch.float32)
     sp = f"graphs_data/{ds}/stimulus.npy"; has_stim = os.path.exists(sp)
     stim = torch.tensor(np.load(sp), dtype=torch.float32) if has_stim else None
@@ -132,7 +134,8 @@ def main():
     panel(ax[1, 1], "d")
 
     fig.tight_layout()
-    fname = "toy_dashboard.png" if cfg == "k_recovery_winner" else f"toy_dashboard_{cfg}.png"
+    tag = f"toy_dashboard_{cfg}" if cfg != "k_recovery_winner" else "toy_dashboard"
+    fname = f"{tag}_heldout.png" if eval_ds else f"{tag}.png"
     out_path = os.path.join(ROOT, "figures/metabolism", fname)
     fig.savefig(out_path, dpi=140); plt.close(fig)
     print(f"saved {out_path}: raw R2={raw:.3f} trim={trim:.3f} {pct:.0f}% out | "

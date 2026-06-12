@@ -420,8 +420,10 @@ the trimmed $R^2$ holds at $0.98$--$0.99$ with $5$--$6\%$ outliers (raw $R^2$
 fluctuates $0.60$--$0.78$, within single-draw seed variation), and at $\sigma = 0.07$
 it \emph{collapses} ($95\%$ outliers) as the process noise corrupts the trajectory
 itself. (iii)~The deterministic model trained on the noisy data partially reproduces
-the noise-free dynamics it never saw cleanly (\cref{fig:toy_noise}c,d) but --- like
-every single-step model here --- does not become a faithful long-horizon simulator.
+the noise-free dynamics it never saw cleanly (\cref{fig:toy_noise}, top row: the
+black prediction stays smooth while the green ground truth it is scored against grows
+visibly noisier with $\sigma$) but --- like every single-step model here --- does not
+become a faithful long-horizon simulator.
 The lever is benign on this toy because, with $S$ given, $k$ is \emph{already}
 identifiable at $\sigma = 0$ (\cref{fig:toy_dashboard}); there is no $k$-degeneracy
 left for noise to break. Reproducing the connectome-inference benefit in our setting
@@ -434,16 +436,19 @@ we leave to future work.
   \caption{\textbf{Companion to \cref{fig:toy_dashboard}: intrinsic-noise sweep.}
   Process noise $\sigma$ injected into the toy generator (an SDE forcing term);
   single-step training on the noisy trajectory, evaluated against the noise-free
-  twin (same network/seed). \textbf{(a)}~$k$-recovery vs.\ $\sigma$: trimmed $R^2$
+  twin (same network/seed). \textbf{Top row:} free rollout at three noise levels
+  (noise-free, low, high) --- the ground truth (green) it is scored against grows
+  visibly noisier with $\sigma$, while the model's prediction (black) stays smooth;
+  it recovers the deterministic dynamics it never observed cleanly, but full-window
+  per-metabolite fidelity stays modest and breaks down once the trajectory itself is
+  corrupted ($\sigma = 0.07$). \textbf{(a)}~$k$-recovery vs.\ $\sigma$: trimmed $R^2$
   (blue) holds at $\approx 0.98$ with $5$--$6\%$ outliers (red) for $\sigma \le
-  0.05$, then collapses at $\sigma = 0.07$ ($95\%$ outliers); raw $R^2$ (black)
-  stays within the seed-variation band. \textbf{(b)}~Free-rollout per-metabolite
-  Pearson vs.\ $\sigma$, against the noise-free GT (green) and the noisy GT (gray):
-  the deterministic rollout matches the clean dynamics at least as well as the noisy
-  data it trained on. \textbf{(c)}~The noisy training trajectories the model was fit
-  on ($\sigma = 0.05$). \textbf{(d)}~Model rollout (dashed black) vs.\ the noise-free
-  ground truth (green) at $\sigma = 0.05$: it recovers the deterministic dynamics it
-  never observed cleanly, though full-window fidelity remains modest.}
+  0.05$, then collapses at $\sigma = 0.07$ ($95\%$ outliers); raw $R^2$ (black) stays
+  within the seed-variation band. \textbf{(b)}~Rollout per-metabolite Pearson vs.\
+  $\sigma$, against the noise-free GT (green) and the noisy GT (gray). \textbf{(c)}~
+  Activity rank vs.\ $\sigma$: the injected noise does diversify the data
+  ($35 \to 47$), but on this $S$-given toy that diversity is not needed to identify
+  $k$.}
   \label{fig:toy_noise}
 \end{figure}
 

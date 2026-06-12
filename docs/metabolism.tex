@@ -354,7 +354,23 @@ the dynamics the way it does in the connectome models. Per-metabolite fidelity
 ($0.33$) does not yet exceed the stimulus-free early-window value ($0.47$), but the
 stimulus model holds that fidelity across the \emph{entire} trajectory rather than
 only up to divergence; whether the curriculum, now anchored by the drive, lifts it
-further without the degeneracy is under test.
+further without the degeneracy was then tested directly, by running the
+stimulus-driven \emph{curriculum} (three horizon schedules, each to a fixed $12$\,h
+compute budget; \cref{fig:toy_stim_rec}). The answer is negative: the curriculum does
+not improve on single-step training. Among the three schedules the best $k$-recovery
+comes from the \emph{capped} horizon (cap-$100$): the rollout stays stable and
+dynamically alive over the full window (per-metabolite Pearson $0.31$), so the
+stimulus does prevent the dead-collapse that the stimulus-free curriculum suffered
+(per-metabolite $\le 0.23$, $k$ destroyed). But the rollout fidelity ($0.31$) merely
+matches single-step training ($0.33$, \cref{fig:toy_stim}) rather than exceeding it,
+\emph{and} rate-constant recovery degrades --- from $R^2 = 0.78$ / $4\%$ outliers
+(single-step) to $R^2 = 0.44$ / $14\%$ outliers, now failing the $\le 10\%$ gate. The
+uncapped and zebrafish-style schedules are worse still on $k$ ($32\%$ and $84\%$
+outliers). The earlier warm-up reading of a high $k$-recovery held only at the short
+horizon; once training actually reaches a multi-step horizon the curriculum erodes
+$k$, exactly the stability/identifiability tension of \cref{fig:toy_recurrent},
+merely softened (not removed) by the drive. \textbf{Single-step training with the
+external stimulus remains the best toy configuration.}
 
 \begin{figure}[H]
   \centering
@@ -370,6 +386,65 @@ further without the degeneracy is under test.
   curriculum caused. On a held-out trajectory with a different drive the rollout
   stays bounded (per-metabolite $0.20$).}
   \label{fig:toy_stim}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{\figdir/toy_dashboard_toy_stim10_cap200.png}
+  \caption{\textbf{The recurrent curriculum, even anchored by the stimulus, does not
+  beat single-step training.} Best of three stimulus-driven curriculum schedules (the
+  capped cap-$100$ horizon, trained to a $12$\,h budget). \textbf{(d)}~The free rollout
+  (black) under the given drive (orange) is stable over the full window with no
+  divergence and tracks the ground-truth oscillations (green), but per-metabolite
+  Pearson is only $0.31$ --- matching, not exceeding, single-step training
+  (\cref{fig:toy_stim}, $0.33$). \textbf{(c)}~Rate-constant recovery has degraded to
+  $R^2 = 0.44$ (trimmed $0.92$) with $14\%$ outliers (red), above the $\le 10\%$ gate
+  and well below the single-step value ($0.78$, $4\%$); \textbf{(b)}~$\mlpnode$ also
+  drifts to a spurious nonzero function. The stimulus prevents the dead-collapse of the
+  stimulus-free curriculum but the multi-step objective still trades away $k$
+  identifiability for no rollout gain.}
+  \label{fig:toy_stim_rec}
+\end{figure}
+
+\textbf{Intrinsic noise as an identifiability lever.} A companion experiment tests
+a result reported for connectome-constrained circuit inference --- that per-unit
+\emph{intrinsic} (process) noise, stochastic forcing \emph{inside} the dynamics
+(distinct from measurement noise on the observations), breaks identifiability
+degeneracies. We added an Euler--Maruyama noise term $\sigma\,\xi_i(t)$ to the toy
+generator and swept $\sigma$ (\cref{fig:toy_noise}), training single-step on the
+\emph{noisy} trajectory and evaluating against the matched \emph{noise-free} twin
+(same network and seed). Three findings. (i)~The injected noise does diversify the
+data: activity rank rises monotonically with $\sigma$ ($35 \to 47$). (ii)~But
+rate-constant recovery is merely \emph{robust}, not improved: for $\sigma \le 0.05$
+the trimmed $R^2$ holds at $0.98$--$0.99$ with $5$--$6\%$ outliers (raw $R^2$
+fluctuates $0.60$--$0.78$, within single-draw seed variation), and at $\sigma = 0.07$
+it \emph{collapses} ($95\%$ outliers) as the process noise corrupts the trajectory
+itself. (iii)~The deterministic model trained on the noisy data partially reproduces
+the noise-free dynamics it never saw cleanly (\cref{fig:toy_noise}c,d) but --- like
+every single-step model here --- does not become a faithful long-horizon simulator.
+The lever is benign on this toy because, with $S$ given, $k$ is \emph{already}
+identifiable at $\sigma = 0$ (\cref{fig:toy_dashboard}); there is no $k$-degeneracy
+left for noise to break. Reproducing the connectome-inference benefit in our setting
+would therefore require a genuinely $k$-degenerate regime (e.g.\ $S$ unknown), which
+we leave to future work.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{\figdir/toy_noise_sweep.png}
+  \caption{\textbf{Companion to \cref{fig:toy_dashboard}: intrinsic-noise sweep.}
+  Process noise $\sigma$ injected into the toy generator (an SDE forcing term);
+  single-step training on the noisy trajectory, evaluated against the noise-free
+  twin (same network/seed). \textbf{(a)}~$k$-recovery vs.\ $\sigma$: trimmed $R^2$
+  (blue) holds at $\approx 0.98$ with $5$--$6\%$ outliers (red) for $\sigma \le
+  0.05$, then collapses at $\sigma = 0.07$ ($95\%$ outliers); raw $R^2$ (black)
+  stays within the seed-variation band. \textbf{(b)}~Free-rollout per-metabolite
+  Pearson vs.\ $\sigma$, against the noise-free GT (green) and the noisy GT (gray):
+  the deterministic rollout matches the clean dynamics at least as well as the noisy
+  data it trained on. \textbf{(c)}~The noisy training trajectories the model was fit
+  on ($\sigma = 0.05$). \textbf{(d)}~Model rollout (dashed black) vs.\ the noise-free
+  ground truth (green) at $\sigma = 0.05$: it recovers the deterministic dynamics it
+  never observed cleanly, though full-window fidelity remains modest.}
+  \label{fig:toy_noise}
 \end{figure}
 
 \section{Toward real metabolomics}

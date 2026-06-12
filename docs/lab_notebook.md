@@ -703,3 +703,141 @@ toy_stim10_data (11 runs, per-run modulation drive; run 10 held out) + 4 tests o
 (single-step control, naive recurrent, zebrafish recipe, cap-200). Fixed the rollout eval to
 FEED the given drive (col 4) at each step (was frozen at frame 0) and made the drive vary per
 run. Eval by per-met Pearson + k-recovery + held-out run 10.
+
+## 2026-06-10 — PRELIMINARY read of recurrent+stimulus (mid-training, Cedric asked)
+
+The recurrent+stimulus runs are still training (single-step control finished Jun 9 and is
+already in the PDF as fig:toy_stim; naive/cap200/zebra all alive on GPU but only ~1-2 of
+10/10/21 epochs after 1d9h — slow because the long sequential rollout dominates). Ran the
+dashboard on the **current mid-training checkpoints** of the two furthest-along (cap200, naive)
+for an early signal. NUMBERS ARE PROVISIONAL.
+
+| run (mid-training ~1-2/10 ep) | k-recovery raw R2 | trim / %out | rollout per-met Pearson | stable? |
+|---|---|---|---|---|
+| **cap200** (horizon capped at 200) | **0.80** | 0.97 / 3% | **0.30** | yes, no divergence, traces alive |
+| naive (uncapped ramp 1->500) | 0.00 | 0.00 / 0% | nan (dead flat) | stable but dynamically dead |
+
+- **cap200 is the FIRST recurrent scheme to PRESERVE k** (0.80, ~ the single-step+stim 0.78)
+  while staying stable AND alive (panel d tracks the GT oscillations under the drive). Every
+  stimulus-free recurrent scheme destroyed k (R2 0.00-0.07). => the external drive anchors k
+  under recurrent training **provided the horizon is capped**. Rollout per-met 0.30 still below
+  single-step's 0.47, but it's only 1-2 epochs in and may climb.
+- **naive (uncapped) still collapses** to the dead degenerate fixed point (k destroyed, rollout
+  flat; pooled=1.00 is the flat-trace artifact, per-met nan). Stimulus alone is NOT enough; the
+  long uncapped horizon still drives the smooth-degenerate collapse.
+- Dashboards saved: figures/metabolism/toy_dashboard_toy_stim10_{cap200,naive}.png.
+- PDF: added a provisional sentence to the fig:toy_stim paragraph (mid-training caveat flagged).
+- NOTE (device): the 3 jobs were NOT on CPU — they hold cuda:0 (cap200) / cuda:1 (naive+zebra,
+  oversubscribed). 99% CPU is the sequential python rollout loop, not a fallback. Slowness is
+  inherent to the long unrolled horizon, not the device. zebra not evaluated (epoch 1/21, too early).
+
+### Optimization: torch.compile the rollout dx/dt core, then kill + relaunch (Cedric)
+
+Root cause of the slowness: the AR rollout calls the model once per step on a TINY graph, so it's
+CPU-launch-bound (hundreds of tiny kernels/step launched from python). The time loop is
+autoregressive => CANNOT be vectorized away (true data dependency); the lever is per-step launch
+overhead. The model.forward is plain tensor ops (cat/MLP/index_add_/softplus), NOT PyG
+MessagePassing => very torch.compile-friendly.
+
+Changes (live in the editable install):
+- Metabolism_Propagation: extracted forward body into `compute_dxdt(x, stimulus)` (pure tensors,
+  no pyg_Data wrapper); forward() now delegates to it. Numerically identical.
+- graph_trainer: build `dxdt_core = torch.compile(model.compute_dxdt, dynamic=False)` when
+  `training.compile_rollout` and cuda; route all 3 hot-loop forwards (AR / recurrent / single-step)
+  through it, dropping the per-step pyg_Data rebuild + redundant x.clone().
+- config: new `TrainingConfig.compile_rollout` (default false); set true in cap200/naive/zebra.
+
+Verified before relaunch (cuda:0):
+- forward vs compute_dxdt, eager vs compiled: max|diff| = 6e-8 (float32 roundoff) — identical.
+- fwd+bwd benchmark (the real training cost): eager->compile-default = 378->243 ms @T=200 (1.55x),
+  1575->809 ms @T=500 (1.95x). Win GROWS with horizon (good for zebra-800/naive-500).
+- mode="reduce-overhead" (CUDA graphs) is CATASTROPHIC here (23s/72s) — recaptures every step
+  because the rollout allocates a fresh x each step. Use default mode.
+
+Killed the 3 CPU-launch-bound jobs (PIDs 3209235-37; backed up their best ckpts to
+/tmp/prelaunch_*_best.pt) and relaunched optimized: cap200+naive on cuda:0, zebra (heaviest,
+800-plateau) alone on cuda:1. compile engaged on all 3, no errors, ~50 it/s in the T=1 warmup.
+Code changes NOT yet committed.
+
+### 12h-bounded redesign (Cedric: "make versions that last 12h max")
+
+Predicting the high-horizon iteration cost is too unreliable to hit a 12h target by tuning
+iteration counts (per-iter time grows ~linearly with rollout horizon, but fixed python overhead
+dominates at low T => no clean scaling law). So added a HARD wall-clock time-box plus compressed
+the configs to front-load the useful horizon:
+- graph_trainer: new `TrainingConfig.max_train_hours` (0=off). When >0, the iteration loop saves a
+  final checkpoint (best_model_{epoch}_{N}.pt + best_model_{epoch}.pt + loss.pt) and returns as
+  soon as elapsed > budget. Guarantees a bounded run regardless of horizon cost.
+- compressed all 3 configs: data_augmentation_loop 5500->600 (Niter 396000->43200, ~9x smaller);
+  schedules front-loaded so they REACH the cap horizon in the first ~few epochs and hold:
+  cap200 [1,50,100,200x5] (8 ep), naive [1,100,300,500x5] (8 ep), zebra [1,100,300,500,800x4] (8 ep,
+  lr decay trimmed to 8). All max_train_hours=12.
+- GPU: cap200 (PRIMARY, the only scheme that preserved k) ALONE on cuda:0 for full throughput;
+  naive+zebra share cuda:1 (secondary; naive already known to collapse).
+Killed the previous optimized jobs (491408/485/586), relaunched 12h-boxed (pids 768291/364/465).
+compile engaged, ~60 it/s at T=1, Niter=43200. Each run is now guaranteed <=12h; the time-box
+stops mid-curriculum if needed but the front-loaded schedule ensures it trained at the cap first.
+Eval at ~12h via toy_dashboard.py on the latest checkpoint. Code still NOT committed.
+
+## 2026-06-11 — 12h-boxed recurrent+stimulus FINISHED + evaluated (NEGATIVE) + PDF fig
+
+All 3 time-boxed runs hit the 12h budget cleanly (time-box worked) and stopped with checkpoints.
+12h only bought training up to a T=100 horizon (none reached their caps: 200/500/800). Dashboard
+eval (toy_dashboard.py, latest checkpoint):
+
+| run | k raw R2 | trimmed | %out | rollout per-met | pooled | stable |
+|---|---|---|---|---|---|---|
+| cap200 (cap-100) | 0.44 | 0.92 | 14% | 0.31 | 0.77 | yes |
+| naive | 0.53 | 0.89 | 32% | 0.39 | 0.81 | yes |
+| zebra | 0.28 | 0.28 | 84% | 0.26 | 0.70 | yes |
+
+BEST = cap200 (best k-recovery, closest to the <=10% outlier gate; the scheme the narrative
+centers on). VERDICT (negative): the stimulus-anchored curriculum does NOT beat single-step+
+stimulus. cap200 rollout per-met 0.31 only MATCHES single-step's 0.33 (no gain), while k-recovery
+DEGRADES from 0.78/4%out to 0.44/14%out (now FAILS the <=10% gate). The earlier "k=0.80"
+preliminary read was at the warmup/short horizon; once training reaches T=100 the curriculum
+erodes k -- the stability/identifiability tension persists, only softened by the drive (not
+removed). The stimulus DOES prevent the dead-collapse the stimulus-free curriculum suffered
+(per-met <=0.23, k destroyed), but that's the only win.
+
+=> Single-step + external stimulus remains the best toy configuration.
+
+PDF: replaced the provisional "encouraging" sentence with the completed negative verdict; added
+fig:toy_stim_rec (cap200 dashboard) after fig:toy_stim. Compiles, 18pp. Code still NOT committed
+(trainer/model/config: compute_dxdt split, torch.compile rollout, max_train_hours time-box).
+
+## 2026-06-11 (eve) — INTRINSIC-NOISE sweep DONE + companion figure in PDF
+
+Tested the flyvis "intrinsic noise breaks identifiability degeneracy" lever on the toy.
+Swept noise_model_level (SDE process noise in generation) on k_recovery_winner (single-step,
+S given), sigma in {0,0.01,0.02,0.03,0.05,0.07}, full Fig-1 budget. Eval: k-recovery (authoritative
+k_recovery.py) + rollout vs the noise-free twin (toy_noise_000, same seed=42).
+
+| sigma | k raw R2 | trim | %out | rank99 | rollout per-met (vs clean) |
+|---|---|---|---|---|---|
+| 0.00 | 0.766 | 0.979 | 6% | 35 | 0.22 |
+| 0.01 | 0.783 | 0.988 | 5% | 37 | 0.06 |
+| 0.02 | 0.597 | 0.989 | 6% | 39 | 0.31 |
+| 0.03 | 0.642 | 0.990 | 6% | 40 | 0.06 |
+| 0.05 | 0.758 | 0.987 | 5% | 46 | 0.13 |
+| 0.07 | 0.322 | 0.322 | 95% | 47 | 0.01 |
+
+VERDICT (honest, skeptical): intrinsic noise is BENIGN here, not a fix.
+(i) data diversity DOES rise (rank 35->47 monotonic). (ii) but k-recovery is merely ROBUST: trimmed
+R2 0.98-0.99 / 5-6% out for sigma<=0.05 (raw R2 0.60-0.78 = within seed-draw noise, no clean gain);
+sigma=0.07 COLLAPSES (95% out) as the noise corrupts the trajectory. (iii) deterministic model trained
+on noisy data partially recovers the noise-free dynamics (panels c,d) but stays a poor long-horizon
+simulator. WHY benign: with S given, k is ALREADY identifiable at sigma=0 (k_recovery_winner=0.77) so
+there's NO k-degeneracy for noise to break -- unlike flyvis where noise broke a WEIGHT degeneracy.
+A real test of the flyvis mechanism needs a k-degenerate regime (S unknown) -> future work.
+
+GOTCHA caught: my first toy_noise_sweep.py k_metrics computed raw R2 differently from the
+authoritative figures/k_recovery.py (gave 0.54 baseline vs true 0.77). Refactored to call
+_plot_rate_constants_comparison directly -> numbers now match. (Always cross-check a reimplemented
+metric against the authoritative one.)
+
+PDF: added fig:toy_noise (companion to Fig 1) + paragraph "Intrinsic noise as an identifiability
+lever" at end of toy section. Compiles, 19pp. Panels: (a) k-recovery vs sigma, (b) rollout per-met vs
+sigma (clean vs noisy GT), (c) noisy training data, (d) rollout vs noise-free GT. Configs
+toy_noise_{000..007}, script figures/toy_noise_sweep.py. sigma>=0.1 diverges (excluded). Code +
+docs still uncommitted.

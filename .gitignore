@@ -10,3 +10,6 @@ log/
 
 /.quarto/
 papers/
+docs/*.aux
+docs/*.log
+docs/*.out

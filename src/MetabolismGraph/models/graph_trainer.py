@@ -92,6 +92,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     ar_max_roll = getattr(train_config, 'ar_max_roll', 0)
     ar_grad_clip = getattr(train_config, 'grad_clip', 0.0)
     ar_anchor_k = bool(getattr(train_config, 'anchor_k_after_warmup', False))
+    max_train_hours = float(getattr(train_config, 'max_train_hours', 0.0))
     ar_active = len(ar_schedule) > 0
     if ar_active:
         recurrent_training = True
@@ -339,6 +340,17 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     n_total_params = sum(p.numel() for g in param_groups for p in g['params'])
     model.train()
 
+    # --- optional torch.compile of the per-step dx/dt core. The rollout loop is
+    #     CPU-launch-bound (hundreds of tiny kernels per step on a small graph);
+    #     fusing them is the main speed lever. Numerically identical to eager. ---
+    compile_rollout = bool(getattr(train_config, 'compile_rollout', False))
+    if compile_rollout and str(device).startswith('cuda'):
+        dxdt_core = torch.compile(model.compute_dxdt, dynamic=False)
+        print('[compile] rollout dx/dt core compiled (torch.compile, dynamic=False)')
+        logger.info('torch.compile enabled for rollout dx/dt core')
+    else:
+        dxdt_core = model.compute_dxdt
+
     # --- S regularization coefficients ---
     coeff_S_L1 = train_config.coeff_S_L1
     coeff_S_integer = getattr(train_config, 'coeff_S_integer', 0.0)
@@ -422,6 +434,22 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
         pbar = trange(Niter, ncols=100)
         for N in pbar:
 
+            # hard wall-clock time-box: save a final checkpoint and stop.
+            if max_train_hours > 0 and (time.time() - training_start_time) > max_train_hours * 3600:
+                print(f'\n[time-box] {max_train_hours}h budget reached at epoch {epoch}, '
+                      f'iter {N} (T_eff={ar_T_eff if ar_active else time_step}); '
+                      f'saving final checkpoint and stopping')
+                logger.info(f'time-box {max_train_hours}h reached at epoch {epoch} iter {N}')
+                for _name in (f'best_model_with_{n_runs - 1}_graphs_{epoch}_{N}.pt',
+                              f'best_model_with_{n_runs - 1}_graphs_{epoch}.pt'):
+                    torch.save(
+                        {'model_state_dict': model.state_dict(),
+                         'optimizer_state_dict': optimizer.state_dict()},
+                        os.path.join(log_dir, 'models', _name),
+                    )
+                torch.save(list_loss, os.path.join(log_dir, 'loss.pt'))
+                return
+
             optimizer.zero_grad()
             if optimizer_f is not None:
                 optimizer_f.zero_grad()
@@ -492,8 +520,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                     wsum = 0.0
                     for step in range(ar_T_eff):
                         stim_step = stimulus_data[k + step] if stimulus_data is not None else None
-                        dataset = pyg_Data(x=x.clone(), pos=x[:, 1:3])
-                        pred = model(dataset, stimulus=stim_step)
+                        pred = dxdt_core(x, stim_step)
                         pred_c = pred_c + delta_t * pred.squeeze()
                         if noise_recurrent_level > 0:
                             pred_c = pred_c + noise_recurrent_level * torch.randn_like(pred_c)
@@ -517,8 +544,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                     for step in range(time_step):
                         stim_step = stimulus_data[k + step] if stimulus_data is not None else None
                         # forward pass
-                        dataset = pyg_Data(x=x.clone(), pos=x[:, 1:3])
-                        pred = model(dataset, stimulus=stim_step)
+                        pred = dxdt_core(x, stim_step)
 
                         # update concentration: c_new = c_old + delta_t * dx/dt + noise
                         pred_c = pred_c + delta_t * pred.squeeze()
@@ -538,8 +564,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                     y = y_list[run][k] / ynorm  # already on GPU
 
                     # forward pass (bipartite graph is internal to model)
-                    dataset = pyg_Data(x=x, pos=x[:, 1:3])
-                    pred = model(dataset, stimulus=stim_k)
+                    pred = dxdt_core(x, stim_k)
 
                     # prediction loss
                     loss = loss + (pred.squeeze() - y.squeeze()).norm(2)

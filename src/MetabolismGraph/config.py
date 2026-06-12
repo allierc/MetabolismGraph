@@ -237,6 +237,16 @@ class TrainingConfig(BaseModel):
     # rate constants. Tests whether stability can be bought WITHOUT losing identifiability.
     anchor_k_after_warmup: bool = False
 
+    # torch.compile the per-step dx/dt core to fuse the many tiny kernels of the
+    # autoregressive rollout (the loop is CPU-launch-bound on the small graph).
+    # Numerically identical to the eager path (same ops, just fused). cuda only.
+    compile_rollout: bool = False
+
+    # hard wall-clock budget (hours). When > 0, training saves a final checkpoint
+    # and stops as soon as the elapsed time exceeds it (guarantees a bounded run
+    # regardless of the rollout-horizon cost). 0 = no limit.
+    max_train_hours: float = 0.0
+
 
 class MetabolismGraphConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")

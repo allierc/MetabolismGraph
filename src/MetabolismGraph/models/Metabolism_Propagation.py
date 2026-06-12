@@ -234,7 +234,12 @@ class Metabolism_Propagation(nn.Module):
         -------
         dxdt : Tensor (n_met, 1)
         """
-        x = data.x
+        return self.compute_dxdt(data.x, stimulus)
+
+    def compute_dxdt(self, x, stimulus=None):
+        """Pure-tensor dx/dt core (no pyg_Data wrapper) so the autoregressive
+        rollout can call it directly and torch.compile can fuse the kernels.
+        Numerically identical to forward()."""
         concentrations = x[:, 3]
         external_input = x[:, 4]
 

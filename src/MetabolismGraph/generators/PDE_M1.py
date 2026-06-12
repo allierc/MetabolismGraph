@@ -87,6 +87,8 @@ class PDE_M1(nn.Module):
         log_k = torch.empty(n_rxn)
         log_k.uniform_(log_k_min, log_k_max)  # k in [10^min, 10^max]
         self.log_k = nn.Parameter(log_k)
+        # intrinsic reaction-rate noise (generator-only; see config.noise_rate_level)
+        self.rate_noise_level = getattr(config.simulation, 'noise_rate_level', 0.0)
 
         # store stoichiometric graph (fixed, not learned)
         (met_sub, rxn_sub, sto_sub) = stoich_graph['sub']
@@ -148,6 +150,10 @@ class PDE_M1(nn.Module):
 
         # compute reaction rates
         k = torch.pow(10.0, self.log_k)
+        # stoichiometrically-sound intrinsic noise: fluctuate each reaction's RATE
+        # (enzyme-activity noise) -> noisy flux, but S still conserves mass every step.
+        if self.rate_noise_level > 0:
+            k = k * (1.0 + self.rate_noise_level * torch.randn_like(k)).clamp(min=0.0)
 
         if self.use_mass_action:
             # True mass-action kinetics: v_j = k_j * Π_{substrates} c_i^|s_ij|

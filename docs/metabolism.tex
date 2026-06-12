@@ -406,14 +406,18 @@ external stimulus remains the best toy configuration.}
   \label{fig:toy_stim_rec}
 \end{figure}
 
-\textbf{Intrinsic noise as an identifiability lever.} A companion experiment tests
-a result reported for connectome-constrained circuit inference --- that per-unit
-\emph{intrinsic} (process) noise, stochastic forcing \emph{inside} the dynamics
-(distinct from measurement noise on the observations), breaks identifiability
-degeneracies. We added an Euler--Maruyama noise term $\sigma\,\xi_i(t)$ to the toy
-generator and swept $\sigma$ (\cref{fig:toy_noise}), training single-step on the
-\emph{noisy} trajectory and evaluating against the matched \emph{noise-free} twin
-(same network and seed). Three findings. (i)~The injected noise does diversify the
+\textbf{Intrinsic noise as an identifiability lever --- and the right form for a
+conserved system.} Stochastic forcing \emph{inside} the dynamics (distinct from
+measurement noise on the observations) can diversify a trajectory and, in a
+degenerate problem, help break identifiability. But the \emph{form} of the noise
+matters when the state obeys a conservation law. The obvious choice --- an additive
+term $\sigma\,\xi_i(t)$ on the concentrations themselves, i.e.\ integrating the
+stochastic differential equation $dc = f(c)\,dt + \sigma\,dW$ by its Euler step --- is
+stoichiometrically \emph{unsound}: it injects or removes mass that no reaction
+produced, violating conservation, so it can only corrupt the trajectory rather than
+realise a physical one. We swept it regardless (\cref{fig:toy_noise}), training
+single-step on the \emph{noisy} trajectory and evaluating against the matched
+\emph{noise-free} twin (same network and seed). Three findings. (i)~The injected noise does diversify the
 data: activity rank rises monotonically with $\sigma$ ($35 \to 47$). (ii)~But
 rate-constant recovery is merely \emph{robust}, not improved: for $\sigma \le 0.05$
 the trimmed $R^2$ holds at $0.98$--$0.99$ with $5$--$6\%$ outliers (raw $R^2$
@@ -424,11 +428,15 @@ the noise-free dynamics it never saw cleanly (\cref{fig:toy_noise}, top row: the
 black prediction stays smooth while the green ground truth it is scored against grows
 visibly noisier with $\sigma$) but --- like every single-step model here --- does not
 become a faithful long-horizon simulator.
-The lever is benign on this toy because, with $S$ given, $k$ is \emph{already}
-identifiable at $\sigma = 0$ (\cref{fig:toy_dashboard}); there is no $k$-degeneracy
-left for noise to break. Reproducing the connectome-inference benefit in our setting
-would therefore require a genuinely $k$-degenerate regime (e.g.\ $S$ unknown), which
-we leave to future work.
+The stoichiometrically sound alternative perturbs the reaction \emph{rates} rather
+than the state --- $k_j(t) = k_j\,(1 + \sigma\,\xi_j(t))$, a fluctuation in enzyme
+activity. Each reaction then still conserves mass through $S$ and only its flux
+varies, so every trajectory stays physical (sub-$10\%$ mass drift) while the data
+diversify as much as before (activity rank $35 \to 50$ at $\sigma = 0.3$). Ultimately,
+however, both noise forms are benign for \emph{recovery} on this toy: with $S$ given,
+$k$ is \emph{already} identifiable at $\sigma = 0$ (\cref{fig:toy_dashboard}), so
+there is no degeneracy left for either to break. The lever would matter only in a
+genuinely $k$-degenerate regime (e.g.\ $S$ unknown), which we leave to future work.
 
 \begin{figure}[H]
   \centering

@@ -42,6 +42,12 @@ class SimulationConfig(BaseModel):
     kinograph_range: float = 1.0  # range around baseline for vmin/vmax
 
     noise_model_level: float = 0.0
+    # stoichiometrically-SOUND intrinsic noise: multiplicative fluctuation on the
+    # reaction RATES k_j(t)=k_j*(1+sigma*xi) (enzyme-activity noise). Unlike
+    # noise_model_level (which perturbs concentrations and violates mass conservation),
+    # this only varies the flux, so every trajectory stays physical. The true mirror
+    # of the flyvis circuit-parameter noise lever. Applied in the GENERATOR only.
+    noise_rate_level: float = 0.0
 
     # homeostatic dynamics: prevents equilibration by pulling concentrations toward baseline
     # dc/dt += -homeostatic_strength * (c - c_baseline)

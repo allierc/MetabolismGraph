@@ -68,6 +68,9 @@ class PDE_MichaelisMenten(nn.Module):
         self.device = device
 
         self.flux_limit_enabled = getattr(config.simulation, 'flux_limit', True)
+        # additive external metabolite SOURCE drive (open-system exchange flux read from
+        # x[:,4]); keeps the network off its closed-system fixed point -> raises activity rank
+        self.external_input_mode = getattr(config.simulation, 'external_input_mode', 'none')
 
         # substrate_func (MLP_sub): input=2 (c, |s|), output=msg_dim
         sub_sizes = [2] + [hidden_sub] * (n_layers_sub - 1) + [msg_dim]
@@ -211,6 +214,11 @@ class PDE_MichaelisMenten(nn.Module):
         contrib = self.sto_all * v[self.rxn_all]
         dxdt = torch.zeros(self.n_met, dtype=contrib.dtype, device=contrib.device)
         dxdt.index_add_(0, self.met_all, contrib)
+
+        # additive external metabolite source (open-system drive in x[:,4]); a known input
+        # that holds the network off steady state and raises the activity rank
+        if self.external_input_mode == "additive":
+            dxdt = dxdt + x[:, 4]
 
         # homeostatic term
         if self.homeostatic_strength > 0 or self.n_metabolite_types > 1:

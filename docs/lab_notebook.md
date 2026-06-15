@@ -892,3 +892,18 @@ its most extreme form. Cause: rank-2 fast-settling closed-network dynamics carry
 information to constrain 71/120 Vmax. Monotonic identifiability-vs-rank ladder now complete:
 toy rank-50 -> k R²=0.74 (works); glycolysis rank-5 -> 73% fail; real closed topology rank-2
 -> 100% fail. Promoting to PDF.
+
+## 2026-06-15 — PHASE 1 (stimulus -> activity rank) DONE
+Diagnosis confirmed (Cedric): Fig 10 traces settle to steady state (rank ~2) -> rollout 0.99
+is trivial (predict flat) and the inverse problem is starved. Fix = inject external metabolite
+SOURCE to hold the net off its fixed point. Added additive external drive (x[:,4]) to
+PDE_MichaelisMenten (was unused). Linear-algebra: inverse problem linear in params (A theta=b);
+never-varying metabolite -> null column -> unidentifiable. Linearised dc/dt=Jc+Bu: autonomous
+collapses to slow eigenmodes (rank~2); driven trajectory spans controllability subspace
+span{B,JB,...} -> rank grows with #driven (m) and freq richness.
+RANK SWEEP (scripts/rank_sweep.py, fig:stim_rank): activity rank ~ #driven metabolites, on BOTH
+e_coli (72) and yeast (208):
+  m=0 -> rank 2-3 | m=5 -> 7 | m=10 -> 12 | m=20 -> 19-21 | m=40 -> 30-32 | all -> 40-47
+=> GOAL (a) rank>20 achievable: drive m>=20-40 metabolites. PDF note + fig added.
+NEXT (Phase 2): generate stimulus-driven data (m=40) for e_coli/yeast, train S-given, check
+rollout + Vmax/k recovery improve with rank.

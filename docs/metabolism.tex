@@ -702,6 +702,39 @@ switch of Rung~3 --- to raise the rank.
   \label{fig:rung_real}
 \end{figure}
 
+\paragraph{Raising identifiability: drive the network off steady state.}
+The failure above is a \emph{data} problem, and it has a precise linear-algebra reading.
+With $\mathbf{S}$ given, recovering the kinetics is \emph{linear in the parameters},
+$\mathbf{A}\,\boldsymbol{\theta}=\mathbf{b}$, where each row is a measured $dc/dt$ and the
+column multiplying a reaction's rate constant is built from its substrate concentrations
+over time. If a metabolite never varies (a network at steady state), its columns are
+constant or zero --- null and sloppy directions in $\mathbf{A}$ --- and those parameters are
+unidentifiable. Equivalently, linearising the dynamics as $\dot c = J c + B\,u(t)$, an
+\emph{autonomous} trajectory ($u{=}0$) collapses into the few slowest eigenmodes (activity
+rank ${\approx}2$), whereas an external source $u$ on $m$ metabolites drives the trajectory
+into the controllability subspace $\mathrm{span}\{B, JB, J^2B,\dots\}$, whose dimension grows
+with $m$ and with the spectral richness of $u$. We therefore inject a known multi-frequency
+metabolite source (an additive open-system term $u_i(t)$, the analogue of the glycolysis
+boundary stimulus) on a subset of metabolites and sweep its breadth. The activity rank rises
+\emph{linearly} with the number of driven metabolites --- rank ${\approx}m$ --- on both real
+topologies (\cref{fig:stim_rank}): from the rank-${\approx}2$ closed steady state to rank
+$19$--$21$ at $m{=}20$ and ${\approx}30$ at $m{=}40$, clearing the rank-$20$ target.
+Information content, not network size, is the lever; the next step trains on these
+high-rank, stimulus-driven trajectories.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.62\textwidth]{\figdir/stimulus_rank.png}
+  \caption{\textbf{An external metabolite source raises the activity rank
+  ${\approx}$ linearly.} Activity rank (99\%) of the simulated trajectory vs the number
+  of metabolites carrying a known multi-frequency source drive, for \emph{E.\ coli} core
+  ($72$ met) and the yeast-GEM subgraph ($208$ met) under imposed MM kinetics. Closed
+  ($0$ driven) networks sit at rank ${\approx}2$; driving $m$ metabolites gives rank
+  ${\approx}m$ (dashed identity), crossing the rank-$20$ identifiability target at
+  $m{\approx}20$. The drive is the data-side prerequisite for recovering kinetics.}
+  \label{fig:stim_rank}
+\end{figure}
+
 \begin{table}[H]
 \centering
 \small

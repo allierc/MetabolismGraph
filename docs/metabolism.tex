@@ -301,12 +301,12 @@ constants but none yields a stable simulator.}
   \centering
   \includegraphics[width=\textwidth]{\figdir/toy_dashboard.png}
   \caption{\textbf{Toy-model results dashboard (leak-free, seed 77).}
-  \textbf{(a)} $\mathrm{MLP_{sub}}(c,|s|)$ (solid) vs.\ the true power law
+  \textbf{(a)} $\mathrm{MLP_{node}}$ per metabolite (homeostasis); it stays
+  $\approx 0$ (dashed: the true zero homeostasis of this regime). \textbf{(b)}
+  $\mathrm{MLP_{sub}}(c,|s|)$ (solid) vs.\ the true power law
   $c^{|s|}$ (dashed) for $|s|{=}1,2$, anchored at $c{=}1$: the substrate law is
   recovered for $|s|{=}1$ (the regime the toy contains), while the $|s|{=}2$
-  curve is an out-of-support extrapolation. \textbf{(b)} $\mathrm{MLP_{node}}$
-  per metabolite (homeostasis); it stays $\approx 0$ (dashed: the true zero
-  homeostasis of this regime). \textbf{(c)} Rate-constant recovery: learned vs.\
+  curve is an out-of-support extrapolation. \textbf{(c)} Rate-constant recovery: learned vs.\
   true $\log_{10} k_j$ for all $256$ reactions after the $\mathrm{MLP_{sub}}$
   scalar correction (dashed: identity, slope $1.00$); $11$ red points ($4.3\%$)
   exceed the $0.3$-dex outlier gate, raw $R^2{=}0.74$, trimmed $R^2{=}0.98$.
@@ -331,11 +331,11 @@ constants but none yields a stable simulator.}
   but no longer reproduce the oscillations. The pooled number is flattering because
   it is dominated by between-metabolite level differences. \textbf{(c)} Rate-constant
   recovery has \emph{collapsed}: a structureless cloud ($90\%$ outliers, raw
-  $R^2{=}0.00$, correlation with truth $0.07$ vs.\ $0.87$ single-step). \textbf{(b)}
+  $R^2{=}0.00$, correlation with truth $0.07$ vs.\ $0.87$ single-step). \textbf{(a)}
   And $\mathrm{MLP_{node}}$, correctly $\approx 0$ under single-step training, has
   drifted to a spurious nonzero homeostasis. The multi-step objective is satisfied
   by a smooth \emph{degenerate} solution --- wrong $k$ plus spurious homeostasis ---
-  that suppresses dynamics rather than learning them. (\textbf{(a)} $|s|{=}2$ is
+  that suppresses dynamics rather than learning them. (\textbf{(b)} $|s|{=}2$ is
   out-of-support extrapolation here, as in \cref{fig:toy_dashboard}.)}
   \label{fig:toy_recurrent}
 \end{figure}
@@ -399,7 +399,7 @@ external stimulus remains the best toy configuration.}
   Pearson is only $0.31$ --- matching, not exceeding, single-step training
   (\cref{fig:toy_stim}, $0.33$). \textbf{(c)}~Rate-constant recovery has degraded to
   $R^2 = 0.44$ (trimmed $0.92$) with $14\%$ outliers (red), above the $\le 10\%$ gate
-  and well below the single-step value ($0.78$, $4\%$); \textbf{(b)}~$\mlpnode$ also
+  and well below the single-step value ($0.78$, $4\%$); \textbf{(a)}~$\mlpnode$ also
   drifts to a spurious nonzero function. The stimulus prevents the dead-collapse of the
   stimulus-free curriculum but the multi-step objective still trades away $k$
   identifiability for no rollout gain.}
@@ -410,35 +410,23 @@ external stimulus remains the best toy configuration.}
 conserved system.} Stochastic forcing \emph{inside} the dynamics (distinct from
 measurement noise on the observations) can diversify a trajectory and, in a
 degenerate problem, help break identifiability. But the \emph{form} of the noise
-matters when the state obeys a conservation law. The obvious choice --- an additive
-term $\sigma\,\xi_i(t)$ on the concentrations themselves, i.e.\ integrating the
-stochastic differential equation $dc = f(c)\,dt + \sigma\,dW$ by its Euler step --- is
+matters when the state obeys a conservation law. Adding an additive term
+$\sigma\,\xi_i(t)$ directly to the concentrations --- the Euler step of the
+stochastic differential equation $dc = f(c)\,dt + \sigma\,dW$ --- is
 stoichiometrically \emph{unsound}: it injects or removes mass that no reaction
-produced, violating conservation, so it can only corrupt the trajectory rather than
-realise a physical one. We swept it regardless (\cref{fig:toy_noise}), training
-single-step on the \emph{noisy} trajectory and evaluating against the matched
-\emph{noise-free} twin (same network and seed). Three findings. (i)~The injected noise does diversify the
-data: activity rank rises monotonically with $\sigma$ ($35 \to 47$). (ii)~But
-rate-constant recovery is merely \emph{robust}, not improved: for $\sigma \le 0.05$
-the trimmed $R^2$ holds at $0.98$--$0.99$ with $5$--$6\%$ outliers (raw $R^2$
-fluctuates $0.60$--$0.78$, within single-draw seed variation), and at $\sigma = 0.07$
-it \emph{collapses} ($95\%$ outliers) as the process noise corrupts the trajectory
-itself. (iii)~The deterministic model trained on the noisy data partially reproduces
-the noise-free dynamics it never saw cleanly (\cref{fig:toy_noise}, top row: the
-black prediction stays smooth while the green ground truth it is scored against grows
-visibly noisier with $\sigma$) but --- like every single-step model here --- does not
-become a faithful long-horizon simulator.
-The stoichiometrically sound alternative perturbs the reaction \emph{rates} rather
-than the state --- $k_j(t) = k_j\,(1 + \sigma\,\xi_j(t))$, a fluctuation in enzyme
-activity. Each reaction then still conserves mass through $S$ and only its flux
-varies, so every trajectory stays physical (sub-$10\%$ mass drift) while the data
-diversify as much as before (activity rank $35 \to 50$ at $\sigma = 0.3$). Trained
-single-step on the rate-noisy data, $k$-recovery tells the same story as the additive
-form: \emph{benign then harmful}. At low noise it is unchanged from $\sigma = 0$
-($\sigma = 0.1$: trimmed $R^2 = 0.96$, $4.7\%$ outliers --- the raw $R^2$ of $0.85$
-sits inside the cross-seed band, with no gain in the bulk fit), and it degrades
-monotonically as the noise grows ($\sigma = 0.3$: $21\%$ outliers; $\sigma = 0.5$:
-$60\%$). So getting the noise \emph{physically right} does not change the outcome:
+produced, so we do not use it. The sound alternative perturbs the reaction
+\emph{rates}: $k_j(t) = k_j\,(1 + \sigma\,\xi_j(t))$, a fluctuation in enzyme
+activity. Each reaction still conserves mass through $S$ and only its flux varies, so
+every trajectory stays physical (sub-$10\%$ mass drift) while the data diversify
+(activity rank $35 \to 50$ at $\sigma = 0.3$). The rollout sweep
+(\cref{fig:toy_knoise}) shows the effect directly: as $\sigma$ grows the simulated
+ground truth becomes visibly jagged while the deterministic model rolls out smoothly,
+recovering the underlying clean dynamics from noisy data at low noise. But for
+\emph{recovery} the rate noise is \emph{benign then harmful}: at $\sigma = 0.1$ it is
+unchanged from $\sigma = 0$ (trimmed $R^2 = 0.96$, $4.7\%$ outliers; the raw
+$R^2 = 0.85$ sits inside the cross-seed band), then degrades monotonically
+($\sigma = 0.3$: $21\%$ outliers; $\sigma = 0.5$: $60\%$, as the noise corrupts the
+trajectory itself). So getting the noise physically right does not change the outcome:
 with $S$ given, $k$ is \emph{already} identifiable at $\sigma = 0$
 (\cref{fig:toy_dashboard}), so there is no degeneracy left for any noise to break.
 The lever would matter only in a genuinely $k$-degenerate regime (e.g.\ $S$ unknown),
@@ -446,24 +434,18 @@ which we leave to future work.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{\figdir/toy_noise_sweep.png}
-  \caption{\textbf{Companion to \cref{fig:toy_dashboard}: intrinsic-noise sweep.}
-  Process noise $\sigma$ injected into the toy generator (an SDE forcing term);
-  single-step training on the noisy trajectory, evaluated against the noise-free
-  twin (same network/seed). \textbf{(a--c)}~Top row: free rollout at three noise
-  levels (noise-free, low, high) --- the ground truth (green) it is scored against
-  grows visibly noisier with $\sigma$, while the model's prediction (black) stays
-  smooth; it recovers the deterministic dynamics it never observed cleanly, but
-  full-window per-metabolite fidelity stays modest and breaks down once the
-  trajectory itself is corrupted ($\sigma = 0.07$). \textbf{(d)}~$k$-recovery vs.\
-  $\sigma$: trimmed $R^2$ (blue) holds at $\approx 0.98$ with $5$--$6\%$ outliers
-  (red) for $\sigma \le 0.05$, then collapses at $\sigma = 0.07$ ($95\%$ outliers);
-  raw $R^2$ (black) stays within the seed-variation band. \textbf{(e)}~Rollout
-  per-metabolite Pearson vs.\ $\sigma$, against the noise-free GT (green) and the
-  noisy GT (gray). \textbf{(f)}~Activity rank vs.\ $\sigma$: the injected noise does
-  diversify the data ($35 \to 47$), but on this $S$-given toy that diversity is not
-  needed to identify $k$.}
-  \label{fig:toy_noise}
+  \includegraphics[width=\textwidth]{\figdir/toy_knoise_rollout.png}
+  \caption{\textbf{Stoichiometrically-sound rate-noise sweep (rollout traces).}
+  Intrinsic noise applied to the reaction \emph{rates}, $k_j(1+\sigma_k\xi)$
+  (enzyme-activity fluctuation; mass-conserving), at four levels. Each panel shows the
+  noisy simulated ground truth (green) and the trained model's deterministic free
+  rollout (black), $z$-scored and stacked, with the leak-resistant $k$-recovery $R^2$
+  and per-metabolite rollout Pearson annotated. As $\sigma_k$ grows the simulation
+  becomes visibly jagged while the model rollout stays smooth; $k$-recovery is
+  unchanged at $\sigma_k = 0.1$ and then degrades ($21\%$ then $60\%$ outliers),
+  confirming that on this $S$-given toy the (sound) noise neither helps nor is needed
+  to identify $k$.}
+  \label{fig:toy_knoise}
 \end{figure}
 
 \section{Toward real metabolomics}
@@ -568,46 +550,47 @@ so training loss is not a proxy for either.)
   \label{fig:glyco_recovery}
 \end{figure}
 
-\paragraph{Can $\mathrm{MLP_{sub}}$ learn the kinetic curvature?}
-A natural suspect for the recovery failures is that the MLP cannot represent the
-substrate power law $c^{|s|}$. On the synthetic toy this is untestable --- that
-network is $100\%$ $|s|{=}1$ (linear), so any probe at $|s|{\ge}2$ is untrained
-extrapolation. We therefore built a controlled regime (the $|s|{\ge}2$ regime: $31\%$
-of substrate edges with $|s|{\ge}2$) and compared a plain MLP against the
-log-space parameterisation $g=\exp(\mathrm{MLP}(\log c, |s|))$
-(\cref{fig:curvature}). Two things hold. First, \emph{with} genuine $|s|{\ge}2$
-signal the MLP now learns \emph{some} curvature (the toy could not), and log-space
-learns more: the growth of $\mathrm{MLP_{sub}}$ over $c\in[1,9]$ reaches
-$24\!\to\!32$ for $c^2$ (true $81$) and $33\!\to\!75$ for $c^4$ (true $6561$),
-plain $\to$ log-space. So curvature \emph{does} matter and log-space helps. Second,
-\emph{both still badly undershoot} the higher powers, and both fail the
-$10\%$-outlier gate on this regime (raw $k$ $R^2 = 0.16$ plain vs $0.26$
-log-space; ${\sim}40\%$ outliers). The clearest gain from log-space is dynamical
-rather than in parameter recovery: the convergent-window rollout Pearson rises
-from $0.27$ (plain) to $0.76$ (log-space), because matching the curvature where
-the data lives stabilises the integration even when the steep exponents are not
-fully recovered. Representing $c^2$--$c^4$ over a wide range
-remains hard for either parameterisation --- a real but partial fix.
+\paragraph{Does $\mathrm{MLP_{sub}}$ learn the glycolysis kinetics, and does the
+log-exp form help?} A natural suspect for the recovery failure is that
+$\mathrm{MLP_{sub}}$ cannot represent the substrate kinetics. Unlike the synthetic
+power-law toy, glycolysis is Michaelis--Menten: the substrate law \emph{saturates},
+$[c/(K_m{+}c)]^{|s|}$, rather than growing as $c^{|s|}$. We compare the learned
+$\mathrm{MLP_{sub}}$ against that MM truth for the plain MLP and the log-space
+parameterisation $g=\exp(\mathrm{MLP}(\log c, |s|))$ (\cref{fig:glyco_sub}).
+Representation is \emph{not} the bottleneck for the well-populated orders: $|s|{=}1$
+($15$ reactions) is tracked by both forms, and $|s|{=}2$ ($13$ reactions) is partly
+captured (plain) or mildly undershot (log-space). Only $|s|{=}4$ --- a \emph{single}
+reaction --- is unconstrained, where the plain MLP extrapolates wildly and log-space
+flattens: with one example there is no signal to fit it (the same
+scarcity-of-high-order-reactions limit discussed below). Crucially, the log-exp form
+does \emph{not} rescue Rung~1: $V_{\max}$ recovery is $R^2 = 0.00$ (plain) and $0.04$
+(log-space), both failing outright. The exponential ansatz, which added curvature on
+the power-law toy, is mismatched to a \emph{saturating} law; and in any case the
+limiting factor is not how $\mathrm{MLP_{sub}}$ is parameterised but the
+Michaelis--Menten identifiability degeneracy ($V_{\max}$ and $K_m$ trade off) --- the
+substrate function can be represented, yet the rate constants are not recovered.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{\figdir/curvature_compare.png}
-  \caption{\textbf{Curvature recovery on a regime with $|s|{\ge}2$
-  (the $|s|{\ge}2$ regime).} Learned $\mathrm{MLP_{sub}}(c,|s|)$ (solid) vs the true
-  power law $c^{|s|}$ (dashed) for $|s|{=}1,2,4$ (the substrate orders that occur in
-  glycolysis; there are no $|s|{=}3$ reactions), log $y$-axis, anchored at
-  $c{=}1$. \textbf{(a)} plain MLP, \textbf{(b)} log-space MLP. Both track $c^1$;
-  both bend upward for $c^2,c^4$ now that the data contains such reactions, with
-  log-space bending more --- but both fall well short of the true $c^2$ (and far
-  short of $c^4$).}
-  \label{fig:curvature}
+  \includegraphics[width=\textwidth]{\figdir/glyco_sub_compare.png}
+  \caption{\textbf{Rung 1: does $\mathrm{MLP_{sub}}$ learn the glycolysis substrate
+  kinetics?} Learned $\mathrm{MLP_{sub}}(c,|s|)$ (solid) vs the true Michaelis--Menten
+  law $[c/(K_m{+}c)]^{|s|}$ (dashed; saturating, not a power law) for the glycolysis
+  substrate orders $|s|{=}1,2,4$, log $y$-axis, anchored at $c{=}1$. \textbf{(a)} plain
+  MLP, \textbf{(b)} log-space MLP. The well-populated $|s|{=}1$ (and largely $|s|{=}2$)
+  shapes are captured; $|s|{=}4$ is a single reaction and unconstrained (plain blows
+  up, log-space flattens). Either way $V_{\max}$ recovery fails ($R^2 = 0.00$ plain /
+  $0.04$ log-space), so the substrate-function form is not the limiting factor.}
+  \label{fig:glyco_sub}
 \end{figure}
 
-\paragraph{The limit is signal, not capacity.} Two further controls localise the
-residual failure. (i)~Training on four diverse trajectories instead of one
-barely helps (outliers $37.5\%\!\to\!32\%$), so it is not a data-volume /
-identifiability-by-replication problem. (ii)~A \emph{structured} substrate
-function $g=c^{a(|s|)}$ --- which can represent any exponent \emph{exactly} ---
+\paragraph{The limit is signal, not capacity.} Two controls on a synthetic
+$|s|{\ge}2$ regime (where the substrate orders, unlike glycolysis's one $|s|{=}4$
+reaction, are populated enough to test) localise the residual failure. (i)~Training
+on four diverse trajectories instead of one barely helps (outliers
+$37.5\%\!\to\!32\%$), so it is not a data-volume / identifiability-by-replication
+problem. (ii)~A \emph{structured} substrate function $g=c^{a(|s|)}$ --- which can
+represent any exponent \emph{exactly} ---
 still fails (outliers $30.9\%$): its learned exponent map saturates at
 $a(s){=}1.0, 1.45, 1.64, 1.71, 1.73, 1.75$ for $s{=}1{\dots}6$, against the true
 $1,2,3,4,5,6$. It nails $a(1)$ ($499$ reactions) but never reaches the high

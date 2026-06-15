@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """
 Toy-model results DASHBOARD — one figure summarising a fit:
-  (a) MLP_sub vs the true substrate law c^|s|
-  (b) MLP_node vs the true homeostasis
+  (a) MLP_node vs the true homeostasis
+  (b) MLP_sub vs the true substrate law c^|s|
   (c) rate-constant recovery: learned vs true log10 k (outliers red, raw/trimmed/%)
   (d) free rollout: z-scored stacked traces, ground truth (green) vs rollout (black),
       with the divergence marker and convergent-window rollout Pearson.
@@ -55,12 +55,12 @@ def main():
             sv = torch.full((200, 1), float(s))
             o = model.substrate_func(torch.cat([c.unsqueeze(-1), sv], -1))
             f = to_numpy(o.norm(dim=-1) if o.ndim > 1 else o.abs()); f = f / np.interp(1.0, cn, f)
-            ax[0, 0].plot(cn, f, color=col, lw=2.2, label=f"learned $|s|={s}$")
-            ax[0, 0].plot(cn, cn ** s, color=col, lw=1.4, ls="--", label=f"$c^{s}$ (true)")
-    ax[0, 0].set_xlabel("concentration $c$")
-    ax[0, 0].set_ylabel(r"$\mathrm{MLP_{sub}}$  (anchored $c{=}1$)")
-    ax[0, 0].legend(loc="upper left", frameon=False, bbox_to_anchor=(0.06, 0.96))
-    panel(ax[0, 0], "a")
+            ax[0, 1].plot(cn, f, color=col, lw=2.2, label=f"learned $|s|={s}$")
+            ax[0, 1].plot(cn, cn ** s, color=col, lw=1.4, ls="--", label=f"$c^{s}$ (true)")
+    ax[0, 1].set_xlabel("concentration $c$")
+    ax[0, 1].set_ylabel(r"$\mathrm{MLP_{sub}}$  (anchored $c{=}1$)")
+    ax[0, 1].legend(loc="upper left", frameon=False, bbox_to_anchor=(0.06, 0.96))
+    panel(ax[0, 1], "b")
 
     # ---- (b) MLP_node (homeostasis) ----
     with torch.no_grad():
@@ -68,10 +68,10 @@ def main():
         for i in range(0, N, max(1, N // 12)):
             ai = a[i:i + 1].repeat(len(c), 1) if a is not None else torch.zeros(len(c), 0)
             h = model.node_func(torch.cat([c.unsqueeze(-1), ai], -1)).squeeze(-1)
-            ax[0, 1].plot(cn, to_numpy(h), color=PRED_C, lw=1, alpha=.5)
-    ax[0, 1].axhline(0, color=GT_C, lw=1.6, ls="--", label="true homeostasis")
-    ax[0, 1].set_xlabel("concentration $c$"); ax[0, 1].set_ylabel(r"$\mathrm{MLP_{node}}$")
-    ax[0, 1].legend(loc="upper right", frameon=False); panel(ax[0, 1], "b")
+            ax[0, 0].plot(cn, to_numpy(h), color=PRED_C, lw=1, alpha=.5)
+    ax[0, 0].axhline(0, color=GT_C, lw=1.6, ls="--", label="true homeostasis")
+    ax[0, 0].set_xlabel("concentration $c$"); ax[0, 0].set_ylabel(r"$\mathrm{MLP_{node}}$")
+    ax[0, 0].legend(loc="upper right", frameon=False); panel(ax[0, 0], "a")
 
     # ---- (c) rate-constant recovery ----
     raw, trim, nout, slope = _plot_rate_constants_comparison(

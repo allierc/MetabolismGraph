@@ -869,3 +869,14 @@ in-memory but didn't persist it to the config. Fixed: set n_metabolites/n_reacti
 topology sizes (ecoli 72/71, yeast 208/120) in the configs. Relaunched both; now genuinely
 training (past GT-load), checkpoints landing (best_model_with_3_graphs_*), 3h time-box. Evaluate
 Vmax-recovery + per-met rollout on completion (cron ae73821c).
+
+### 2026-06-15 (eval cycle 2) — Rung 2/3 PRELIMINARY (mid-training, epoch ~30-35/40)
+Both still training (under the 3h box); preliminary Vmax-recovery on the latest checkpoints:
+- ecoli_core_mm (rank-2): Vmax raw R²=0.02, 71/71 (100%) outliers, slope -0.34 -> FAIL
+- yeast_central_mm (rank-2): Vmax raw R²=0.00, 120/120 (100%) outliers, slope -0.10 -> FAIL
+=> Complete degeneracy, even worse than glycolysis (73% out). Emerging monotonic story:
+identifiability tracks DYNAMICAL RANK -- toy rank-50 oscillatory recovers k (0.74);
+glycolysis rank-5 partially fails (73%); real CLOSED metabolic topologies relax to steady
+state fast (rank-2) and carry far too little information to constrain 71/120 Vmax -> 100% fail.
+NOT final (a few epochs left); next cycle does the final eval + PDF promotion. Held back from
+the PDF until trainings complete.

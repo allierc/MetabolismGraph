@@ -432,11 +432,17 @@ The stoichiometrically sound alternative perturbs the reaction \emph{rates} rath
 than the state --- $k_j(t) = k_j\,(1 + \sigma\,\xi_j(t))$, a fluctuation in enzyme
 activity. Each reaction then still conserves mass through $S$ and only its flux
 varies, so every trajectory stays physical (sub-$10\%$ mass drift) while the data
-diversify as much as before (activity rank $35 \to 50$ at $\sigma = 0.3$). Ultimately,
-however, both noise forms are benign for \emph{recovery} on this toy: with $S$ given,
-$k$ is \emph{already} identifiable at $\sigma = 0$ (\cref{fig:toy_dashboard}), so
-there is no degeneracy left for either to break. The lever would matter only in a
-genuinely $k$-degenerate regime (e.g.\ $S$ unknown), which we leave to future work.
+diversify as much as before (activity rank $35 \to 50$ at $\sigma = 0.3$). Trained
+single-step on the rate-noisy data, $k$-recovery tells the same story as the additive
+form: \emph{benign then harmful}. At low noise it is unchanged from $\sigma = 0$
+($\sigma = 0.1$: trimmed $R^2 = 0.96$, $4.7\%$ outliers --- the raw $R^2$ of $0.85$
+sits inside the cross-seed band, with no gain in the bulk fit), and it degrades
+monotonically as the noise grows ($\sigma = 0.3$: $21\%$ outliers; $\sigma = 0.5$:
+$60\%$). So getting the noise \emph{physically right} does not change the outcome:
+with $S$ given, $k$ is \emph{already} identifiable at $\sigma = 0$
+(\cref{fig:toy_dashboard}), so there is no degeneracy left for any noise to break.
+The lever would matter only in a genuinely $k$-degenerate regime (e.g.\ $S$ unknown),
+which we leave to future work.
 
 \begin{figure}[H]
   \centering

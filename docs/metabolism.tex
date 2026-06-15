@@ -484,7 +484,13 @@ separating dynamic from boundary species it gives $20$ internal metabolites
 ($+9$ fixed boundary species), $30$ reactions including iso-enzymes (three
 hexokinase, three pyruvate-decarboxylase, three glyceraldehyde-3-phosphate
 variants), with real stoichiometry $\mathbf{S}$ and measured initial
-concentrations. Crucially the rate laws are \emph{not} mass-action: they
+concentrations. The stoichiometry is sparse ($77$ nonzero entries) and almost
+entirely unit-valued --- coefficients are $\pm 1$ ($40$ negative, $35$ positive)
+with a single $-2$ and a single $-3$ --- but, unlike the all-$|s|{=}1$ toy, it is
+genuinely \emph{multi-substrate}: of the $30$ reactions $15$ are first-order in
+substrate, $13$ are second-order ($|s|{=}2$), and one is fourth-order, so there is
+real kinetic curvature to recover. Crucially the rate laws are \emph{not}
+mass-action: they
 mix reversible/irreversible Michaelis--Menten, Hill, and allosteric forms,
 so $v_j = V_{\max,j}\prod_k\!\big[c_k/(K_{m,kj}+c_k)\big]^{|S_{kj}|}$ rather
 than a power law. This is the cleanest available ground truth: known

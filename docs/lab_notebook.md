@@ -940,3 +940,17 @@ necessary-not-sufficient on both. NOT blindly raising rank (already 38; diagnose
 DECISIVE DIAGNOSTIC: ecoli_core_stim_constkm = same topology + stimulus (rank-38) but CONSTANT Km
 (log_km_min=log_km_max=0, all reactions Km=1) -> a shared MLP_sub CAN represent a single saturation
 shape. If Vmax now recovers, per-reaction Km heterogeneity is the confirmed bottleneck (not rank).
+
+### 2026-06-15 (Phase 2 eval 3) — constant-Km FALSIFIES the per-reaction-Km hypothesis
+ecoli_core_stim_constkm (CONSTANT Km, rank-37): Vmax raw R²=0.001, 100% out (FAIL) -- SAME as
+per-reaction-Km. So Km heterogeneity is NOT the bottleneck. Reframed diagnosis from two facts:
+(1) MM fails regardless of Km (per-rxn AND const, 100% out); (2) mass-action + the SAME additive
+drive RECOVERED (toy_stim10: k R²=0.78). => the killer is MM SATURATION, and ACTIVITY RANK (38)
+is the WRONG metric. The drive inflates the CONCENTRATION rank, but identifiability = rank of the
+design matrix A (columns = per-reaction flux contributions S_.j * v_j(t)). When the aggressive
+drive (amp 1.0) pushes c into saturation (c up to ~6x Km -> sigma~0.85, v~=Vmax constant), A's
+columns flatten/collinear -> Vmax unidentifiable despite high activity rank. This is the
+neurips-style design-matrix null-space, masked by the activity-rank proxy.
+TEST launched: ecoli_core_stim_lowamp = constant-Km + GENTLER drive (amp 0.3) to keep c near/below
+Km (sub-saturation, v varies with c) -- does less saturation restore Vmax identifiability?
+PRINCIPLED next step: compute A's singular spectrum directly (true identifiability measure).

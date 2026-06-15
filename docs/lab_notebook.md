@@ -880,3 +880,15 @@ glycolysis rank-5 partially fails (73%); real CLOSED metabolic topologies relax 
 state fast (rank-2) and carry far too little information to constrain 71/120 Vmax -> 100% fail.
 NOT final (a few epochs left); next cycle does the final eval + PDF promotion. Held back from
 the PDF until trainings complete.
+
+### 2026-06-15 (eval cycle 3) — Rung 2/3 FINAL (both finished, 40 epochs)
+| scheme | topology | Vmax raw/trim R² | %out | per-met Pearson | pooled | rank |
+|---|---|---|---|---|---|---|
+| ecoli_core_mm | e_coli_core 72x71 | 0.02 / 0.02 | 100% | 0.55 | 0.99 | 2 |
+| yeast_central_mm | yeast-GEM subgraph 208x120 | 0.00 / 0.00 | 100% | 0.58 | 0.99 | 2 |
+VERDICT: complete Vmax degeneracy on BOTH real topologies. Rollout looks plausible (pooled
+0.99, per-met 0.55-0.58) but Vmax recovery is 100% outliers / R²~0 -- the glycolysis trap in
+its most extreme form. Cause: rank-2 fast-settling closed-network dynamics carry too little
+information to constrain 71/120 Vmax. Monotonic identifiability-vs-rank ladder now complete:
+toy rank-50 -> k R²=0.74 (works); glycolysis rank-5 -> 73% fail; real closed topology rank-2
+-> 100% fail. Promoting to PDF.

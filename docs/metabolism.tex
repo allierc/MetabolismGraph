@@ -667,6 +667,41 @@ and substantial method development (saturating kinetics, honest homeostasis,
 incomplete-network handling, relative-concentration rescaling) still
 required before any real-data claim.
 
+\paragraph{Identifiability on a real network topology (imposed kinetics).}
+Short of full real data, we can already probe the identifiability question on \emph{real}
+metabolic topology by imposing synthetic Michaelis--Menten kinetics (random $V_{\max}/K_m$,
+hence known ground truth) on the real stoichiometry $\mathbf{S}$ of two networks:
+\emph{E.\ coli} core ($72$ metabolites, $71$ enzymatic reactions after dropping
+biomass/exchange pseudo-reactions) and a cytosolic central-carbon subgraph of yeast-GEM
+($208$ metabolites, $120$ reactions). With $\mathbf{S}$ given the model reproduces the
+dynamics --- pooled rollout Pearson $0.99$, per-metabolite $0.55$ (\emph{E.\ coli}) and
+$0.58$ (yeast) --- yet recovers \emph{none} of the kinetics: $V_{\max}$ recovery is
+$R^2 \approx 0$ with $100\%$ of reactions outside the $0.3$-dex gate, on \emph{both} networks
+(\cref{fig:rung_real}). This is the glycolysis degeneracy in its most extreme form, and the
+cause is dynamical, not structural: these closed networks relax to a steady state within a few
+frames, so their trajectories have activity rank ${\approx}2$ --- far below the synthetic toy
+(rank $50$, oscillatory, where $k$ \emph{is} recovered at $R^2 = 0.74$) or even glycolysis
+(rank $5$, $73\%$ outliers). Identifiability therefore tracks the \emph{information content of
+the dynamics}, not the size of the network or the method: a closed metabolic subnetwork at
+steady state is information-starved. Recovering kinetics on real topology will require dynamics
+that hold the system \emph{off} its fixed point --- a sustained external drive, or the nutrient
+switch of Rung~3 --- to raise the rank.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.84\textwidth]{\figdir/toy_dashboard_ecoli_core_mm.png}\\[3pt]
+  \includegraphics[width=0.84\textwidth]{\figdir/toy_dashboard_yeast_central_mm.png}
+  \caption{\textbf{Identifiability on real topology with imposed MM kinetics.} Top:
+  \emph{E.\ coli} core ($72{\times}71$); bottom: yeast-GEM cytosolic subgraph ($208{\times}120$).
+  Real stoichiometry, synthetic Michaelis--Menten kinetics (so $V_{\max}/K_m$ are known ground
+  truth), $\mathbf{S}$ given. Each dashboard: \textbf{(a)} $\mlpnode$, \textbf{(b)} $\mlpsub$,
+  \textbf{(c)} $V_{\max}$ recovery, \textbf{(d)} free rollout. The rollout is plausible (pooled
+  Pearson $0.99$, per-metabolite $0.55$--$0.58$) but $V_{\max}$ recovery is total failure
+  ($R^2 \approx 0$, $100\%$ outliers) --- the closed networks settle to steady state (activity
+  rank ${\approx}2$), carrying too little information to constrain the kinetics.}
+  \label{fig:rung_real}
+\end{figure}
+
 \begin{table}[H]
 \centering
 \small
@@ -677,8 +712,9 @@ Target & Network / kinetics & Ground truth & Status \\
 Synthetic $k_j$ (S given) & random / mass-action & $k_j$ known & \textbf{works}, $R^2{\approx}0.87$ \\
 Synthetic homeostasis & random / mass-action & $\lambda_i$ known & open (single-step blind) \\
 Rung 1: yeast glycolysis & real / MM+Hill & $V_{\max},K_m$ known & rollout in-sample; $V_{\max}$ R$^2{\approx}0$ (degenerate) \\
-Rung 2: yeast-GEM subset & real / none (FBA) & none & not started \\
-Rung 3: real \emph{E.\ coli} & inferred / unknown & none & data in hand; not ingested \\
+Real topology (\emph{E.\ coli} core) & real S / imposed MM & $V_{\max}$ known & $V_{\max}$ R$^2{\approx}0$, $100\%$ out (rank-2 degenerate) \\
+Real topology (yeast-GEM subgraph) & real S / imposed MM & $V_{\max}$ known & $V_{\max}$ R$^2{\approx}0$, $100\%$ out (rank-2 degenerate) \\
+Rung 3: real \emph{E.\ coli} data & inferred / unknown & none & data in hand; not ingested \\
 \bottomrule
 \end{tabular}
 \caption{Where each target stands. Only the first row is a validated,

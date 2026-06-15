@@ -147,7 +147,7 @@ def main():
         off = k * SEP
         ax.plot(tgrid, (gt - mu) / sd + off, color=GT_C, lw=1.6)
         ax.plot(tgrid, np.clip((pr - mu) / sd, -0.45 * SEP, 0.45 * SEP) + off,
-                color=PRED_C, lw=1.1, ls="--")
+                color=PRED_C, lw=1.0)
         ax.text(tgrid[0], off + 0.4 * SEP, f" {names[i]}", fontsize=10,
                 color="0.4", va="center", ha="left")
     # overlay the GIVEN external stimulus (boundary drive) above the metabolites,
@@ -166,7 +166,7 @@ def main():
             ax.plot([], [], color=STIM_C, lw=1.3, label="stimulus (given input)")
             top = (n_met + len(sidx)) * SEP
     ax.plot([], [], color=GT_C, lw=1.6, label="ground truth")
-    ax.plot([], [], color=PRED_C, lw=1.1, ls="--", label="learned rollout")
+    ax.plot([], [], color=PRED_C, lw=1.0, label="learned rollout")
     if t_div <= T:   # mark divergence onset
         ax.axvline(t_div * dt, color="#cc0000", ls=":", lw=1.2)
         ax.text(t_div * dt, top, " diverges", color="#cc0000",

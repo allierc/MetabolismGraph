@@ -860,3 +860,12 @@ k-recovery (matches the PDF's "S-given on realistic topology" rung).
   networks relax to steady state fast -> low dynamical information, same as glycolysis). So
   expect k-recovery to be challenged/degenerate; that itself is the finding for real closed
   topologies. Trainings running; evaluate Vmax-recovery + rollout on completion.
+
+### 2026-06-15 (eval cycle) — Rung 2/3 crash fixed, relaunched
+First launch crashed AT STARTUP (no training, no data lost): config files still had
+n_reactions=30 (inherited from glyco_ar_base) while the GT models have 71 (e_coli) / 120
+(yeast) reactions -> gt_model.load_state_dict size mismatch. The generator overrode the size
+in-memory but didn't persist it to the config. Fixed: set n_metabolites/n_reactions to the real
+topology sizes (ecoli 72/71, yeast 208/120) in the configs. Relaunched both; now genuinely
+training (past GT-load), checkpoints landing (best_model_with_3_graphs_*), 3h time-box. Evaluate
+Vmax-recovery + per-met rollout on completion (cron ae73821c).

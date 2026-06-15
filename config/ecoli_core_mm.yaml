@@ -3,8 +3,8 @@ description: 'Rung 3: real E. coli core topology (72 met x ~71 rxn) + imposed MM
 dataset: ecoli_core_mm
 simulation:
   sbml_t_end: 420.0
-  n_metabolites: 20
-  n_reactions: 30
+  n_metabolites: 72
+  n_reactions: 71
   max_metabolites_per_reaction: 4
   n_frames: 4000
   delta_t: 0.035

@@ -76,6 +76,11 @@ class SimulationConfig(BaseModel):
 
     # SBML model import: generate data from an external SBML file instead of synthetic
     sbml_file: Optional[str] = None  # path to SBML .xml file (relative to repo root)
+    # impose synthetic kinetics on a REAL FBA network TOPOLOGY (no kinetics needed):
+    # parse S from this SBML, keep genuine enzymatic reactions, then the generator model
+    # imposes random Vmax/Km (=ground truth) -> testable k-recovery on real topology.
+    topology_sbml: Optional[str] = None       # path to an FBA SBML (e.g. e_coli_core.xml)
+    topology_subgraph_reactions: int = 0      # >0: extract a connected central-carbon subgraph of this size (genome-scale models)
     sbml_t_end: float = 100.0  # simulation end time (SBML time units)
 
     # Michaelis-Menten kinetics: v = Vmax * Π [c/(Km+c)]^|s|

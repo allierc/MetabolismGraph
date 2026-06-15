@@ -63,12 +63,28 @@ def data_generate(
     os.makedirs(f'{folder}/Fig/', exist_ok=True)
 
     # --- build stoichiometric graph ---
-    cycle_fraction = getattr(simulation_config, 'cycle_fraction', 0.0)
-    cycle_length = getattr(simulation_config, 'cycle_length', 4)
-    stoich_graph, S = init_reaction(
-        n_metabolites, n_reactions, max_met_per_rxn, device, seed=simulation_config.seed,
-        cycle_fraction=cycle_fraction, cycle_length=cycle_length,
-    )
+    topology_sbml = getattr(simulation_config, 'topology_sbml', None)
+    if topology_sbml:
+        # REAL FBA network topology (kinetics imposed by the model below = ground truth)
+        from MetabolismGraph.generators.sbml_topology import parse_fba_sbml, central_carbon_subgraph
+        n_sub = getattr(simulation_config, 'topology_subgraph_reactions', 0)
+        if n_sub and n_sub > 0:
+            stoich_graph, S, sp_names, rxn_names = central_carbon_subgraph(
+                topology_sbml, max_reactions=n_sub, device=device)
+        else:
+            stoich_graph, S, sp_names, rxn_names = parse_fba_sbml(topology_sbml, device=device)
+        n_metabolites, n_reactions = S.shape[0], S.shape[1]
+        simulation_config.n_metabolites = n_metabolites
+        simulation_config.n_reactions = n_reactions
+        print(f"loaded REAL topology {topology_sbml}: {n_metabolites} metabolites, "
+              f"{n_reactions} reactions (imposing synthetic kinetics)")
+    else:
+        cycle_fraction = getattr(simulation_config, 'cycle_fraction', 0.0)
+        cycle_length = getattr(simulation_config, 'cycle_length', 4)
+        stoich_graph, S = init_reaction(
+            n_metabolites, n_reactions, max_met_per_rxn, device, seed=simulation_config.seed,
+            cycle_fraction=cycle_fraction, cycle_length=cycle_length,
+        )
 
     # --- initial concentrations ---
     c_min = getattr(simulation_config, 'concentration_min', 2.5)

@@ -841,3 +841,22 @@ lever" at end of toy section. Compiles, 19pp. Panels: (a) k-recovery vs sigma, (
 sigma (clean vs noisy GT), (c) noisy training data, (d) rollout vs noise-free GT. Configs
 toy_noise_{000..007}, script figures/toy_noise_sweep.py. sigma>=0.1 diverges (excluded). Code +
 docs still uncommitted.
+
+## 2026-06-15 — RUNG 2/3 launched: real topology + imposed MM kinetics (S given)
+
+Cedric: continue the paper autonomously, cuda:0=Rung 2, cuda:1=Rung 3, with checkpoints.
+Blocker found: yeast-GEM / iJO1366 / e_coli_core are FBA models with ZERO kinetic laws
+(can't simulate dynamics, no GT k); SBML libs (cobra/libsbml/roadrunner) all unavailable.
+Resolution (Cedric's pick): impose synthetic MM kinetics on the REAL topology -> GT-bearing
+k-recovery (matches the PDF's "S-given on realistic topology" rung).
+- NEW: library-free FBA-SBML topology loader (src/.../generators/sbml_topology.py): parse S
+  from raw XML, drop biomass/exchange/lumped pseudo-reactions (|s|<=4), cytosolic central-carbon
+  subgraph for genome-scale. Generator hook `topology_sbml`. MM model imposes random Vmax/Km = GT.
+- ecoli_core_mm (cuda:1, "Rung 3"): e_coli_core 72 met x 71 rxn (orders 1-4).
+- yeast_central_mm (cuda:0, "Rung 2"): yeast-GEM cytosolic subgraph 208 met x 120 rxn (orders 1-4).
+- Both: S-given (freeze_stoichiometry), single-step, n_runs=4 (diverse ICs), **3h time-box +
+  checkpoints every Niter/20** so a stuck/long run is never empty-handed.
+- Generation STABLE (mass-conserving, finite, bounded) but **activity rank only ~2** (closed
+  networks relax to steady state fast -> low dynamical information, same as glycolysis). So
+  expect k-recovery to be challenged/degenerate; that itself is the finding for real closed
+  topologies. Trainings running; evaluate Vmax-recovery + rollout on completion.

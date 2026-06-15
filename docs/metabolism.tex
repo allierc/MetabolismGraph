@@ -727,12 +727,27 @@ high-rank, stimulus-driven trajectories.
   \includegraphics[width=0.62\textwidth]{\figdir/stimulus_rank.png}
   \caption{\textbf{An external metabolite source raises the activity rank
   ${\approx}$ linearly.} Activity rank (99\%) of the simulated trajectory vs the number
-  of metabolites carrying a known multi-frequency source drive, for \emph{E.\ coli} core
-  ($72$ met) and the yeast-GEM subgraph ($208$ met) under imposed MM kinetics. Closed
-  ($0$ driven) networks sit at rank ${\approx}2$; driving $m$ metabolites gives rank
-  ${\approx}m$ (dashed identity), crossing the rank-$20$ identifiability target at
-  $m{\approx}20$. The drive is the data-side prerequisite for recovering kinetics.}
+  of metabolites carrying a known multi-frequency source drive, for all three rungs
+  under imposed MM kinetics: Rung~1 glycolysis ($20$ met), Rung~3 \emph{E.\ coli} core
+  ($72$ met), Rung~2 yeast-GEM subgraph ($208$ met). Closed ($0$ driven) networks sit at
+  rank ${\approx}2$; driving $m$ metabolites gives rank ${\approx}m$ (dashed identity) on
+  all three, crossing the rank-$20$ identifiability target at $m{\approx}20$. The drive is
+  the data-side prerequisite for recovering kinetics.}
   \label{fig:stim_rank}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{\figdir/model_traces.png}
+  \caption{\textbf{Free-rollout traces under the external drive, one panel per rung.}
+  Eight highest-variance metabolites, $z$-scored and stacked: ground truth (green) vs the
+  trained model's free rollout (black). \textbf{(a)} Rung~1 glycolysis (settles to steady
+  state); \textbf{(b)} Rung~3 \emph{E.\ coli} core and \textbf{(c)} Rung~2 yeast-GEM
+  subgraph, both with the $m{=}40$ metabolite source (rank $38$): the drive holds the
+  networks in sustained, information-rich oscillation rather than a fixed point. The rollout
+  tracks the driven dynamics (per-metabolite Pearson $0.58$--$0.59$); recovering the
+  \emph{kinetics} from them is the open step (cf.\ \cref{fig:stim_rank}).}
+  \label{fig:model_traces}
 \end{figure}
 
 \begin{table}[H]

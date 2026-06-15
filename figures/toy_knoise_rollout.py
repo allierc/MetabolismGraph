@@ -13,6 +13,8 @@ import os, sys
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
+import matplotlib as _mpl
+_mpl.rcParams["axes.spines.top"] = False; _mpl.rcParams["axes.spines.right"] = False  # bare x/y axes
 import matplotlib.pyplot as plt
 import torch
 from torch_geometric.data import Data as pyg_Data
@@ -75,7 +77,7 @@ def main():
         ax[j].set_title(rf"$\sigma_k={sigma}$", fontsize=14, loc="center")
         ax[j].text(0.97, 0.015, f"$k$ $R^2$={raw:.2f}, {100*nout/nrx:.0f}\\% out\nper-met $r$={pm:.2f}",
                    transform=ax[j].transAxes, va="bottom", ha="right", fontsize=10)
-        ax[j].set_xlabel("time (frames)"); ax[j].set_yticks([])
+        ax[j].set_xlabel("time (frames)"); ax[j].set_yticks([]); ax[j].spines["left"].set_visible(False)
         panel(ax[j], "abcd"[j])
     ax[0].plot([], [], color=GT_C, lw=1.6, label="noisy simulation (GT)")
     ax[0].plot([], [], color=PRED_C, lw=1.0, label="model rollout")

@@ -24,6 +24,8 @@ import os, re
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
+import matplotlib as _mpl
+_mpl.rcParams["axes.spines.top"] = False; _mpl.rcParams["axes.spines.right"] = False  # bare x/y axes
 import matplotlib.pyplot as plt
 import openpyxl
 

@@ -18,6 +18,8 @@ import os, sys, glob
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
+import matplotlib as _mpl
+_mpl.rcParams["axes.spines.top"] = False; _mpl.rcParams["axes.spines.right"] = False  # bare x/y axes
 import matplotlib.pyplot as plt
 import torch
 from torch_geometric.data import Data as pyg_Data
@@ -174,7 +176,7 @@ def main():
     ax.text(0.985, 0.985, f"rollout Pearson (per-metabolite) = {pear:.2f}\n"
             f"per-metabolite $R^2$ = {r2:.2f}  (global Pearson {g_pear:.2f})",
             transform=ax.transAxes, va="top", ha="right", fontsize=11)
-    ax.set_xlabel("time"); ax.set_yticks([])
+    ax.set_xlabel("time"); ax.set_yticks([]); ax.spines["left"].set_visible(False)
     ax.set_ylabel("$z$-scored concentration  (offset per metabolite)")
     ax.set_ylim(-SEP, top + SEP)
     ax.legend(loc="lower right", frameon=False)

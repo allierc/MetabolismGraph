@@ -12,6 +12,8 @@ import os, sys
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
+import matplotlib as _mpl
+_mpl.rcParams["axes.spines.top"] = False; _mpl.rcParams["axes.spines.right"] = False  # bare x/y axes
 import matplotlib.pyplot as plt
 import torch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
@@ -29,12 +31,19 @@ plt.rcParams.update({"font.size": 13, "axes.labelsize": 15, "legend.fontsize": 1
 def sweep(cfg_name, n_inputs):
     config = MetabolismGraphConfig.from_yaml(f"config/{cfg_name}.yaml")
     config.simulation.external_input_mode = "additive"
-    topo = config.simulation.topology_sbml
+    topo = getattr(config.simulation, "topology_sbml", None)
     nsub = getattr(config.simulation, "topology_subgraph_reactions", 0)
-    if nsub and nsub > 0:
+    if topo and nsub and nsub > 0:
         sg, S, *_ = central_carbon_subgraph(topo, max_reactions=nsub, device="cpu")
-    else:
+    elif topo:
         sg, S, *_ = parse_fba_sbml(topo, device="cpu")
+    else:
+        # no topology SBML (e.g. glycolysis): load the saved stoich_graph + dense S.
+        # Drop its own boundary stimulus so it uses the SAME additive drive as the others.
+        sg = torch.load(f"graphs_data/{config.dataset}/stoich_graph.pt", map_location="cpu")
+        sg = dict(sg); sg["stimulus_sub"] = None
+        S = torch.load(f"graphs_data/{config.dataset}/stoichiometry.pt", map_location="cpu")
+        S = S if torch.is_tensor(S) else torch.tensor(S)
     n_met = S.shape[0]
     config.simulation.n_metabolites, config.simulation.n_reactions = S.shape
     torch.manual_seed(0)
@@ -51,8 +60,9 @@ def sweep(cfg_name, n_inputs):
 def main():
     n_inputs = [0, 5, 10, 20, 40, 80]
     fig, ax = plt.subplots(figsize=(7.5, 6))
-    for cfg, lab, col in [("ecoli_core_mm", "E. coli core (72 met)", "#d62728"),
-                          ("yeast_central_mm", "yeast-GEM subgraph (208 met)", "#1f77b4")]:
+    for cfg, lab, col in [("glyco_ar_base", "Rung 1: yeast glycolysis (20 met)", "#2ca02c"),
+                          ("ecoli_core_mm", "Rung 3: E. coli core (72 met)", "#d62728"),
+                          ("yeast_central_mm", "Rung 2: yeast-GEM subgraph (208 met)", "#1f77b4")]:
         n_met, ranks = sweep(cfg, n_inputs)
         xs = [min(ni, n_met) for ni in n_inputs]
         ax.plot(xs, ranks, "o-", color=col, lw=2, label=lab)

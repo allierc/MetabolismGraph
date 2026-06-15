@@ -15,6 +15,8 @@ import os, sys
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
+import matplotlib as _mpl
+_mpl.rcParams["axes.spines.top"] = False; _mpl.rcParams["axes.spines.right"] = False  # bare x/y axes
 import matplotlib.pyplot as plt
 import torch
 from torch_geometric.data import Data as pyg_Data
@@ -136,7 +138,7 @@ def main():
         ax[1, 1].axvline(tdiv * dt, color="#cc0000", ls=":", lw=1.2)
     ax[1, 1].plot([], [], color=GT_C, lw=1.3, label="ground truth")
     ax[1, 1].plot([], [], color=PRED_C, lw=1, ls="--", label="rollout")
-    ax[1, 1].set_xlabel("time"); ax[1, 1].set_yticks([])
+    ax[1, 1].set_xlabel("time"); ax[1, 1].set_yticks([]); ax[1, 1].spines["left"].set_visible(False)
     ax[1, 1].set_ylabel("$z$-scored conc. (offset)")
     ax[1, 1].set_ylim(-SEP, top + SEP)
     ax[1, 1].legend(loc="lower right", frameon=False)

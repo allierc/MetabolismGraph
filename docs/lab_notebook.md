@@ -932,3 +932,11 @@ stimulus. CAVEAT: this MA run generated at rank-3 (mass-action redistributes the
 slow modes; the MM nonlinearity is what spread it to rank-38), so it's confounded -- a clean MA
 test needs a higher-rank MA drive. Next cycle: evaluate MA + yeast, then decide the real
 iteration (give the model PER-EDGE Km capacity, vs accept the shared-MLP_sub representational limit).
+
+### 2026-06-15 (Phase 2 eval 2) — yeast confirms; launching the decisive Km test
+yeast_central_stim (rank 38): Vmax raw R²=0.03, 120/120 (100%) out (FAIL); rollout per-met 0.58
+/ pooled 0.81. So BOTH real-topology MM nets at rank-38 -> 100% Vmax-degenerate. Rank confirmed
+necessary-not-sufficient on both. NOT blindly raising rank (already 38; diagnosed representational).
+DECISIVE DIAGNOSTIC: ecoli_core_stim_constkm = same topology + stimulus (rank-38) but CONSTANT Km
+(log_km_min=log_km_max=0, all reactions Km=1) -> a shared MLP_sub CAN represent a single saturation
+shape. If Vmax now recovers, per-reaction Km heterogeneity is the confirmed bottleneck (not rank).

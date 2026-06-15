@@ -907,3 +907,11 @@ e_coli (72) and yeast (208):
 => GOAL (a) rank>20 achievable: drive m>=20-40 metabolites. PDF note + fig added.
 NEXT (Phase 2): generate stimulus-driven data (m=40) for e_coli/yeast, train S-given, check
 rollout + Vmax/k recovery improve with rank.
+
+## 2026-06-15 — PHASE 2 launched: train on stimulus-driven (rank-38) data
+Generated stimulus-driven datasets (external_input_type=modulation, additive, m=40 driven
+metabolites, amp=1.0, per-run freq/phase): ecoli_core_stim (72x71) and yeast_central_stim
+(208x120), BOTH activity rank99=38 (vs rank-2 closed -> goal (a) rank>20 cleared). Launched
+S-given single-step training on both, time-boxed 4h + checkpoints (ecoli cuda:1, yeast cuda:0).
+QUESTION: does the rank-38 stimulus-driven data lift Vmax-recovery out of the 100%-degenerate
+regime (and rollout to >0.7-0.8)? If not, iterate Phase 1 (raise rank further / change drive).

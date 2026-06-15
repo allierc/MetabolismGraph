@@ -954,3 +954,21 @@ neurips-style design-matrix null-space, masked by the activity-rank proxy.
 TEST launched: ecoli_core_stim_lowamp = constant-Km + GENTLER drive (amp 0.3) to keep c near/below
 Km (sub-saturation, v varies with c) -- does less saturation restore Vmax identifiability?
 PRINCIPLED next step: compute A's singular spectrum directly (true identifiability measure).
+
+### 2026-06-15 (Phase 2 eval 4) — design-matrix analysis: activity-rank is NOT the MM lever; LSQ confounded by flux-limiting
+Built scripts/design_matrix.py (neurips-style A theta = b, A[(i,t),j]=S_ij*phi_j(c)). Findings:
+- lowamp (gentler amp 0.3, sub-saturation): Vmax still 100% out (R2 0.01) -> saturation-AMPLITUDE
+  hypothesis also FALSIFIED.
+- Gram-matrix rank of A is FULL (71/71) for MM at BOTH rank-38 (driven, cond 28) AND rank-2
+  (undriven, cond 108), 0 null directions. So by the *linear* measure, activity rank is
+  IRRELEVANT to MM Vmax identifiability -- rank-2 already "full rank". (Contrast: the
+  mass-action toy that RECOVERS has a rank-DEFICIENT A, 9 nulls, cond 1e30.) => design-matrix
+  rank does NOT predict GNN success; the rank/stimulus program was not the MM lever.
+- BUT the decisive LSQ solve (theta from A theta=b, GT shape given) FAILS: R2=-1.5 (driven),
+  -3.0 (undriven), ~30% of Vmax come out negative. CAUSE: flux-limiting. The generated c hits 0
+  (c_min=0.00), so the simulator CLAMPS fluxes -> v != Vmax*phi(c) -> dynamics NONLINEAR in Vmax
+  -> the linear A (and its "full rank") is MISSPECIFIED. So I cannot claim well-posed vs ill-posed
+  from this; the linear analysis is confounded by flux_limit.
+HONEST STATE: (1) activity rank is not the MM lever (both ranks fail, Km + amplitude ruled out);
+(2) the clean linear identifiability test needs flux_limit OFF (or c kept away from 0) -- pending,
+and risky (MM may blow up without clamping). NOT promoting to PDF until the confound is resolved.

@@ -472,9 +472,14 @@ with a single $-2$ and a single $-3$ --- but, unlike the all-$|s|{=}1$ toy, it i
 genuinely \emph{multi-substrate}: of the $30$ reactions $15$ are first-order in
 substrate, $13$ are second-order ($|s|{=}2$), and one is fourth-order, so there is
 real kinetic curvature to recover. Crucially the rate laws are \emph{not}
-mass-action: they
-mix reversible/irreversible Michaelis--Menten, Hill, and allosteric forms,
-so $v_j = V_{\max,j}\prod_k\!\big[c_k/(K_{m,kj}+c_k)\big]^{|S_{kj}|}$ rather
+mass-action but \emph{Michaelis--Menten} (MM), the saturating enzyme-kinetic law
+$v = V_{\max}\,c/(K_m+c)$: the reaction velocity rises with substrate and plateaus,
+where $V_{\max}$ (the \emph{maximal velocity}, set by enzyme amount and turnover) is
+the per-reaction rate constant to be recovered --- the MM analogue of the
+mass-action $k_j$ --- and $K_m$ (the \emph{half-saturation constant}) is the
+substrate concentration at which $v = V_{\max}/2$. Glycolysis mixes
+reversible/irreversible MM, Hill, and allosteric forms, so
+$v_j = V_{\max,j}\prod_k\!\big[c_k/(K_{m,kj}+c_k)\big]^{|S_{kj}|}$ rather
 than a power law. This is the cleanest available ground truth: known
 $V_{\max}$/$K_m$ let us score parameter recovery directly. \emph{Status:}
 the SBML import, $\mathbf{S}$ extraction, and a Michaelis--Menten simulator

@@ -104,7 +104,9 @@ def main():
                edgecolors="none", label="inlier", zorder=2)
     ax.scatter(gt_log_k[outlier], corrected[outlier], s=26, c="#e74c3c", alpha=.75,
                edgecolors="none", label=f"outlier (>{OUTLIER_THRESHOLD} dex)", zorder=3)
-    ax.set_xlabel(r"true $\log_{10} k_j$"); ax.set_ylabel(r"learned $\log_{10} k_j$")
+    # Michaelis--Menten models recover V_max (stored in log_k); mass-action recovers k_j
+    plab = r"V_{\max}" if "MichaelisMenten" in config.graph_model.model_name else "k_j"
+    ax.set_xlabel(rf"true $\log_{{10}} {plab}$"); ax.set_ylabel(rf"learned $\log_{{10}} {plab}$")
     ax.set_xlim(lo, hi); ax.set_ylim(lo, hi); ax.set_aspect("equal")
     ax.legend(loc="lower right", frameon=False)
 

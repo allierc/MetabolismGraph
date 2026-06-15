@@ -126,7 +126,7 @@ def main():
     sig = np.array(sig)
     import matplotlib.gridspec as gridspec
     fig = plt.figure(figsize=(15, 9.5))
-    gs = gridspec.GridSpec(2, 3, height_ratios=[1.35, 1.0], hspace=0.32, wspace=0.22)
+    gs = gridspec.GridSpec(2, 3, height_ratios=[1.35, 1.0], hspace=0.38, wspace=0.40)
 
     # ---- TOP ROW: per-noise-level rollout columns ----
     # noisy GT (green, jaggier as sigma grows) overlaid with the model rollout (black).
@@ -147,14 +147,11 @@ def main():
                          color=PRED_C, lw=0.6)
             axt.text(0.97, 0.015, rf"per-met $r={pm_by_tag.get(tag, float('nan')):.2f}$",
                      transform=axt.transAxes, va="bottom", ha="right", fontsize=11)
-        axt.set_title(DISPLAY_TITLES[tag], fontsize=15, fontweight="bold", loc="left")
+        axt.set_title(DISPLAY_TITLES[tag], fontsize=13, loc="center")
+        panel(axt, "abc"[col])
         axt.set_xlabel("time (frames)"); axt.set_yticks([])
         if col == 0:
             axt.set_ylabel("$z$-scored conc. (offset)")
-    # shared legend (top center, like the reference)
-    fig.legend(handles=[plt.Line2D([], [], color=GT_C, lw=2.4, label="ground truth (noisy)"),
-                        plt.Line2D([], [], color=PRED_C, lw=1.2, label="model rollout (prediction)")],
-               loc="upper center", ncol=2, frameon=False, fontsize=12, bbox_to_anchor=(0.5, 1.0))
 
     # ---- BOTTOM ROW: the quantitative sweep ----
     # (a) k-recovery vs noise
@@ -167,7 +164,7 @@ def main():
     axb.plot(sig, kout, "^:", color="#d62728", lw=1.4)
     axb.axhline(HARD_RULE_PCT, color="#d62728", ls=":", lw=1, alpha=0.5)
     axb.set_ylabel("% outliers", color="#d62728"); axb.tick_params(axis="y", colors="#d62728")
-    panel(axa, "a")
+    panel(axa, "d")
 
     # (b) rollout per-met Pearson vs noise (vs noise-free GT green, vs noisy GT gray)
     axc = fig.add_subplot(gs[1, 1])
@@ -175,13 +172,13 @@ def main():
     axc.plot(sig, pm_noisy, "o--", color=NOISY_C, lw=1.8, label="vs noisy GT")
     axc.set_xlabel(r"intrinsic noise $\sigma$"); axc.set_ylabel("rollout per-met Pearson")
     axc.legend(loc="upper right", frameon=False)
-    panel(axc, "b")
+    panel(axc, "e")
 
     # (c) activity rank vs noise (data diversity rises -- the degeneracy-breaking signature)
     axd = fig.add_subplot(gs[1, 2])
     axd.plot(sig, rk, "o-", color="k", lw=2)
     axd.set_xlabel(r"intrinsic noise $\sigma$"); axd.set_ylabel("activity rank (99%)")
-    panel(axd, "c")
+    panel(axd, "f")
 
     out = os.path.join(ROOT, "figures/metabolism/toy_noise_sweep.png")
     fig.savefig(out, dpi=140, bbox_inches="tight"); plt.close(fig)

@@ -29,7 +29,7 @@ from MetabolismGraph.utils import to_numpy
 
 plt.rcParams.update({"font.size": 14, "axes.labelsize": 16,
                      "xtick.labelsize": 13, "ytick.labelsize": 13, "legend.fontsize": 12})
-COLORS = {1: "#1f77b4", 2: "#d62728", 3: "#2ca02c"}
+COLORS = {1: "#1f77b4", 2: "#d62728", 4: "#2ca02c"}   # glycolysis orders: 1, 2, 4 (no 3)
 
 
 def panel_label(ax, letter):
@@ -42,7 +42,7 @@ def curves(cfg):
     c = torch.linspace(0.05, 9.0, 200); cn = to_numpy(c)
     out = {}
     with torch.no_grad():
-        for s in (1, 2, 3):
+        for s in (1, 2, 4):
             sv = torch.full((200, 1), float(s))
             o = m.substrate_func(torch.cat([c.unsqueeze(-1), sv], dim=-1))
             f = to_numpy(o.norm(dim=-1) if o.ndim > 1 else o.abs())
@@ -57,11 +57,11 @@ def main():
             ("mixed_s2_logspace", "log-space MLP", "b")]):
         cn, out = curves(cfg)
         # growth ratio f(c=9)/f(c=1)=f(9) (anchored at 1); true = 9^s
-        ratios = {s: float(np.interp(9.0, cn, out[s])) for s in (1, 2, 3)}
+        ratios = {s: float(np.interp(9.0, cn, out[s])) for s in (1, 2, 4)}
         print(f"{cfg:22s} ({title:13s}) growth f(9)/f(1):  "
               f"|s|=1 {ratios[1]:6.1f} (true 9) | |s|=2 {ratios[2]:7.1f} (true 81) | "
-              f"|s|=3 {ratios[3]:8.1f} (true 729)")
-        for s in (1, 2, 3):
+              f"|s|=4 {ratios[4]:9.1f} (true 6561)")
+        for s in (1, 2, 4):
             ax[j].plot(cn, out[s], color=COLORS[s], lw=2.4, label=f"learned $|s|={s}$")
             ax[j].plot(cn, cn ** s, color=COLORS[s], lw=1.5, ls="--", alpha=.8,
                        label=f"$c^{{{s}}}$ (true)")

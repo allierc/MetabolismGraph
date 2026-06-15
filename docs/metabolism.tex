@@ -450,19 +450,19 @@ which we leave to future work.
   \caption{\textbf{Companion to \cref{fig:toy_dashboard}: intrinsic-noise sweep.}
   Process noise $\sigma$ injected into the toy generator (an SDE forcing term);
   single-step training on the noisy trajectory, evaluated against the noise-free
-  twin (same network/seed). \textbf{Top row:} free rollout at three noise levels
-  (noise-free, low, high) --- the ground truth (green) it is scored against grows
-  visibly noisier with $\sigma$, while the model's prediction (black) stays smooth;
-  it recovers the deterministic dynamics it never observed cleanly, but full-window
-  per-metabolite fidelity stays modest and breaks down once the trajectory itself is
-  corrupted ($\sigma = 0.07$). \textbf{(a)}~$k$-recovery vs.\ $\sigma$: trimmed $R^2$
-  (blue) holds at $\approx 0.98$ with $5$--$6\%$ outliers (red) for $\sigma \le
-  0.05$, then collapses at $\sigma = 0.07$ ($95\%$ outliers); raw $R^2$ (black) stays
-  within the seed-variation band. \textbf{(b)}~Rollout per-metabolite Pearson vs.\
-  $\sigma$, against the noise-free GT (green) and the noisy GT (gray). \textbf{(c)}~
-  Activity rank vs.\ $\sigma$: the injected noise does diversify the data
-  ($35 \to 47$), but on this $S$-given toy that diversity is not needed to identify
-  $k$.}
+  twin (same network/seed). \textbf{(a--c)}~Top row: free rollout at three noise
+  levels (noise-free, low, high) --- the ground truth (green) it is scored against
+  grows visibly noisier with $\sigma$, while the model's prediction (black) stays
+  smooth; it recovers the deterministic dynamics it never observed cleanly, but
+  full-window per-metabolite fidelity stays modest and breaks down once the
+  trajectory itself is corrupted ($\sigma = 0.07$). \textbf{(d)}~$k$-recovery vs.\
+  $\sigma$: trimmed $R^2$ (blue) holds at $\approx 0.98$ with $5$--$6\%$ outliers
+  (red) for $\sigma \le 0.05$, then collapses at $\sigma = 0.07$ ($95\%$ outliers);
+  raw $R^2$ (black) stays within the seed-variation band. \textbf{(e)}~Rollout
+  per-metabolite Pearson vs.\ $\sigma$, against the noise-free GT (green) and the
+  noisy GT (gray). \textbf{(f)}~Activity rank vs.\ $\sigma$: the injected noise does
+  diversify the data ($35 \to 47$), but on this $S$-given toy that diversity is not
+  needed to identify $k$.}
   \label{fig:toy_noise}
 \end{figure}
 
@@ -578,7 +578,7 @@ log-space parameterisation $g=\exp(\mathrm{MLP}(\log c, |s|))$
 (\cref{fig:curvature}). Two things hold. First, \emph{with} genuine $|s|{\ge}2$
 signal the MLP now learns \emph{some} curvature (the toy could not), and log-space
 learns more: the growth of $\mathrm{MLP_{sub}}$ over $c\in[1,9]$ reaches
-$24\!\to\!32$ for $c^2$ (true $81$) and $28\!\to\!57$ for $c^3$ (true $729$),
+$24\!\to\!32$ for $c^2$ (true $81$) and $33\!\to\!75$ for $c^4$ (true $6561$),
 plain $\to$ log-space. So curvature \emph{does} matter and log-space helps. Second,
 \emph{both still badly undershoot} the higher powers, and both fail the
 $10\%$-outlier gate on this regime (raw $k$ $R^2 = 0.16$ plain vs $0.26$
@@ -586,7 +586,7 @@ log-space; ${\sim}40\%$ outliers). The clearest gain from log-space is dynamical
 rather than in parameter recovery: the convergent-window rollout Pearson rises
 from $0.27$ (plain) to $0.76$ (log-space), because matching the curvature where
 the data lives stabilises the integration even when the steep exponents are not
-fully recovered. Representing $c^3$--$c^4$ over a wide range
+fully recovered. Representing $c^2$--$c^4$ over a wide range
 remains hard for either parameterisation --- a real but partial fix.
 
 \begin{figure}[H]
@@ -594,11 +594,12 @@ remains hard for either parameterisation --- a real but partial fix.
   \includegraphics[width=\textwidth]{\figdir/curvature_compare.png}
   \caption{\textbf{Curvature recovery on a regime with $|s|{\ge}2$
   (the $|s|{\ge}2$ regime).} Learned $\mathrm{MLP_{sub}}(c,|s|)$ (solid) vs the true
-  power law $c^{|s|}$ (dashed) for $|s|{=}1,2,3$, log $y$-axis, anchored at
+  power law $c^{|s|}$ (dashed) for $|s|{=}1,2,4$ (the substrate orders that occur in
+  glycolysis; there are no $|s|{=}3$ reactions), log $y$-axis, anchored at
   $c{=}1$. \textbf{(a)} plain MLP, \textbf{(b)} log-space MLP. Both track $c^1$;
-  both bend upward for $c^2,c^3$ now that the data contains such reactions, with
+  both bend upward for $c^2,c^4$ now that the data contains such reactions, with
   log-space bending more --- but both fall well short of the true $c^2$ (and far
-  short of $c^3$).}
+  short of $c^4$).}
   \label{fig:curvature}
 \end{figure}
 

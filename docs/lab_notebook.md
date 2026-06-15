@@ -915,3 +915,20 @@ metabolites, amp=1.0, per-run freq/phase): ecoli_core_stim (72x71) and yeast_cen
 S-given single-step training on both, time-boxed 4h + checkpoints (ecoli cuda:1, yeast cuda:0).
 QUESTION: does the rank-38 stimulus-driven data lift Vmax-recovery out of the 100%-degenerate
 regime (and rollout to >0.7-0.8)? If not, iterate Phase 1 (raise rank further / change drive).
+
+### 2026-06-15 (Phase 2 eval 1) — rank-38 stimulus did NOT break MM degeneracy
+ecoli_core_stim (rank 38, m=40 driven): Vmax raw R²=0.04, 100% outliers (FAIL); rollout per-met
+0.59 / pooled 0.79. yeast_central_stim still training (epoch 38).
+=> Activity rank>20 (goal a) is NECESSARY but NOT SUFFICIENT. Diagnostics rule out the obvious:
+concentrations span Km (c[0,5.8] med 0.99 vs Km[0.32,3.14] med 1.07 -> MM curve exercised), and
+the drive is moderate (|u|~0.64 vs fluxes 0.3-10 -> not drive-dominated).
+LEADING HYPOTHESIS: representational, not informational. The GNN's substrate function
+MLP_sub(c,|s|) is SHARED across reactions, but real MM has a different Km PER REACTION; a shared
+saturation shape can't capture per-reaction Km, so per-reaction Vmax absorbs the mismatch and
+stays degenerate -- regardless of data rank. The toy recovered k because mass-action has no
+per-reaction shape heterogeneity. This also explains glycolysis (per-reaction Km, 73% out).
+DIAGNOSTIC running: ecoli_core_stim_ma = same topology + MASS-ACTION (no per-reaction Km) +
+stimulus. CAVEAT: this MA run generated at rank-3 (mass-action redistributes the drive into few
+slow modes; the MM nonlinearity is what spread it to rank-38), so it's confounded -- a clean MA
+test needs a higher-rank MA drive. Next cycle: evaluate MA + yeast, then decide the real
+iteration (give the model PER-EDGE Km capacity, vs accept the shared-MLP_sub representational limit).

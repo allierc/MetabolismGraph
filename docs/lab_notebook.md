@@ -972,3 +972,16 @@ Built scripts/design_matrix.py (neurips-style A theta = b, A[(i,t),j]=S_ij*phi_j
 HONEST STATE: (1) activity rank is not the MM lever (both ranks fail, Km + amplitude ruled out);
 (2) the clean linear identifiability test needs flux_limit OFF (or c kept away from 0) -- pending,
 and risky (MM may blow up without clamping). NOT promoting to PDF until the confound is resolved.
+
+### 2026-06-15 (Phase 2 eval 5) — SMOKING GUN: homeostatic_strength=1.0 dominates the dynamics
+RETRACTION: my hand-built design-matrix tool is buggy (can't reconstruct dc/dt, residual ~1
+even with homeostatic term) -> its "full rank" claims (last 2 cycles) are UNVERIFIED, disregard.
+BUT debugging it surfaced the real lead: the generator adds a homeostatic term -lambda*(c-c_base)
+with lambda=1 (homeostatic_strength=1.0, inherited from glyco_ar_base). Its magnitude DOMINATES:
+||homeo||=1317 vs ||reactions S.v||=360 vs ||drive||=85 -> homeostasis is 4x the reaction signal.
+CORRELATION (clean): the toy that RECOVERS k (0.74) has homeostatic_strength=0 (disabled);
+ALL failing MM runs (glyco, ecoli, yeast, all variants) have homeostatic_strength=1.0. So the
+dominant homeostatic relaxation (a) forces the settling/low-rank AND (b) masks the reaction
+fluxes that carry Vmax -> Vmax unrecoverable. This was a CONFIG ARTIFACT all along.
+DECISIVE TEST: ecoli_core_stim_nohomeo = ecoli_core_stim with homeostatic_strength=0 (reactions
++ drive drive the dynamics). If Vmax now recovers -> homeostatic dominance was the culprit.

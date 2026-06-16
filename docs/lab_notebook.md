@@ -985,3 +985,18 @@ dominant homeostatic relaxation (a) forces the settling/low-rank AND (b) masks t
 fluxes that carry Vmax -> Vmax unrecoverable. This was a CONFIG ARTIFACT all along.
 DECISIVE TEST: ecoli_core_stim_nohomeo = ecoli_core_stim with homeostatic_strength=0 (reactions
 + drive drive the dynamics). If Vmax now recovers -> homeostatic dominance was the culprit.
+
+### 2026-06-15 (eval 5 cont.) — homeostasis-off ALSO fails; data-side levers EXHAUSTED
+ecoli_core_stim_nohomeo (homeo=0): c BLEW UP to 97, rank back to 2 -> homeostasis was STABILIZING
+the open-system drive, not just masking. Killed (blow-up data). 
+CONSOLIDATED HONEST STATUS: MM Vmax recovery on REAL metabolic topology is robustly hard. Every
+data-side lever tried fails (100% outliers / R2~0): rank-2 closed | rank-38 driven | per-rxn Km |
+const Km | amp 1.0 | amp 0.3 | flux-limit off | homeostasis on (dominates 4x) | homeostasis off
+(blows up). Only MASS-ACTION recovers (toy 0.74, toy+stim 0.78) -- robust to all knobs, so the
+split is mass-action vs MM. My hand-built design-matrix tool is BUGGY (cannot reconstruct dc/dt,
+residual ~1) so the linear identifiability question is NOT cleanly answered; a correct analysis
+needs the GT model's actual flux/Jacobian (model.forward), not a hand reimplementation.
+RECOMMENDATION: stop the blind data-variant iteration. Either (1) rebuild the identifiability
+analysis correctly from the model Jacobian, or (2) consolidate the (clean, important) negative
+result for the paper: stimulus restores activity rank but MM kinetics on real topology remain
+unrecovered by this GNN -- needs steer.

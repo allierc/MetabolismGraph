@@ -1,0 +1,72 @@
+description: Rung 1 (glycolysis topology, 20 met x 30 rxn) + imposed MM + REAL-DATA-LIKE
+  OU drive
+dataset: glyco_topo_ou
+simulation:
+  sbml_t_end: 420.0
+  n_metabolites: 20
+  n_reactions: 30
+  max_metabolites_per_reaction: 4
+  n_frames: 4000
+  delta_t: 0.035
+  start_frame: 0
+  seed: 42
+  log_k_min: -0.5
+  log_k_max: 1.0
+  log_km_min: -0.5
+  log_km_max: 0.5
+  use_mass_action: false
+  flux_limit: true
+  homeostatic_strength: 1.0
+  baseline_mode: initial
+  baseline_concentration: 1.0
+  circadian_amplitude: 0.0
+  circadian_period: 1440
+  concentration_min: 0.2
+  concentration_max: 3.0
+  external_input_type: ou
+  external_input_mode: additive
+  n_input_metabolites: 12
+  external_input_amplitude: 0.6
+  external_input_phi: 0.98
+  topology_from_dataset: glycolysis_yeast
+graph_model:
+  model_name: PDE_MichaelisMenten
+  prediction: first_derivative
+  output_size_sub: 1
+  hidden_dim_sub: 64
+  n_layers_sub: 3
+  hidden_dim_node: 64
+  n_layers_node: 3
+  aggr_type: mul
+  update_type: none
+plotting:
+  colormap: tab20
+training:
+  n_epochs: 40
+  n_runs: 4
+  device: cuda:0
+  batch_size: 4
+  seed: 42
+  data_augmentation_loop: 1
+  learning_rate_start: 0.001
+  learning_rate_k: 0.005
+  learning_rate_node: 0.001
+  learning_rate_sub: 0.0005
+  freeze_stoichiometry: true
+  learning_rate_S_start: 0.0
+  coeff_S_L1: 0.0
+  coeff_S_integer: 0.0
+  coeff_mass_conservation: 0.0
+  coeff_MLP_sub_diff: 5
+  coeff_MLP_node_L1: 1.0
+  coeff_MLP_sub_norm: 0.0
+  coeff_k_floor: 0.0
+  k_floor_threshold: -3.0
+  recurrent_training: false
+  time_step: 1
+  n_steps_schedule: []
+  coeff_tail_loss: 0.05
+  ar_max_roll: 300
+  grad_clip: 1.0
+  noise_recurrent_level: 0.01
+  max_train_hours: 3.0

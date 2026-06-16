@@ -1018,3 +1018,19 @@ mass-action, failing for saturating MM (the MLP_sub/Vmax factorisation isn't pin
 (yeast design-matrix residual 0.32 -> flux-limit clamping invalidates its linear A; e_coli is the
 clean case the conclusion rests on.) FIX is model-side: e.g. LSQ Vmax solve given the learned
 shape, or shape/scale constraints -- NOT more data/rank. RESOLVES the rung-2/3 + stimulus arc.
+
+### 2026-06-16 — Realistic (OU/non-oscillatory) stimulus retry, rungs 1–3
+User: retry GNN on rungs 1–3 with a stimulus CLOSER TO THE REAL E. COLI DATA, not an obvious
+oscillation. Real metabolome is smooth/aperiodic/low-frequency (lag-1 autocorr 0.37), so the
+prior multi-sinusoid drive is unrealistic. Replaced it with an Ornstein-Uhlenbeck / AR(1) drive
+(external_input_type="ou", phi=0.98): smooth, autocorrelated, aperiodic. Added additive injection
+in PDE_MichaelisMenten (x[:,4]) + the OU branch in data_generator + topology_from_dataset (reuse
+an existing dataset's stoichiometry, drop its boundary stimulus) so rung-1 glycolysis topology can
+also take the external drive.
+Generated 3 OU datasets (all finite, smooth/aperiodic — lag-1 autocorr ~0.999, lag-30 ~0.75):
+  - rung 1  glyco_topo_ou     (20 met × 30 rxn, glycolysis topology)  activity rank99=13
+  - rung 2  ecoli_core_ou     (72 met × 71 rxn, e_coli core)          activity rank99=37
+  - rung 3  yeast_central_ou  (208 met × 120 rxn, yeast central)      activity rank99=38
+Launched all 3 GNN trainings (time-boxed 4h + checkpointed). Eval pending; expectation per the
+RESOLVED learnability finding (eval 6): rank is ample but MM Vmax stays GNN-unlearnable regardless
+of stimulus realism — this run tests that the failure is stimulus-shape-invariant (OU vs sinusoid).

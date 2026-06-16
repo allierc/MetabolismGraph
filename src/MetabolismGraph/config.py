@@ -63,7 +63,7 @@ class SimulationConfig(BaseModel):
     circadian_period: float = 1440.0  # T in frames (1440 = 24h if delta_t=1min)
 
     # external input configuration
-    external_input_type: Literal["none", "visual", "modulation"] = "none"
+    external_input_type: Literal["none", "visual", "modulation", "ou"] = "none"
     external_input_mode: Literal[
         "additive", "multiplicative", "multiplicative_substrate",
         "multiplicative_product", "none"
@@ -71,6 +71,9 @@ class SimulationConfig(BaseModel):
     # analytic "modulation" drive: amplitude of the per-input sinusoidal drive
     # written into x[:,4] each frame (used when external_input_type == "modulation")
     external_input_amplitude: float = 0.0
+    # for external_input_type="ou": AR(1)/Ornstein-Uhlenbeck per-step correlation (smooth,
+    # aperiodic, low-frequency drive matching the real metabolome's structure -- not a sinusoid)
+    external_input_phi: float = 0.98
 
     node_value_map: Optional[str] = None
 
@@ -80,7 +83,8 @@ class SimulationConfig(BaseModel):
     # parse S from this SBML, keep genuine enzymatic reactions, then the generator model
     # imposes random Vmax/Km (=ground truth) -> testable k-recovery on real topology.
     topology_sbml: Optional[str] = None       # path to an FBA SBML (e.g. e_coli_core.xml)
-    topology_subgraph_reactions: int = 0      # >0: extract a connected central-carbon subgraph of this size (genome-scale models)
+    topology_subgraph_reactions: int = 0  # >0: extract a connected central-carbon subgraph of this size (genome-scale models)
+    topology_from_dataset: Optional[str] = None  # reuse an existing dataset's stoichiometry + impose synthetic kinetics
     sbml_t_end: float = 100.0  # simulation end time (SBML time units)
 
     # Michaelis-Menten kinetics: v = Vmax * Π [c/(Km+c)]^|s|

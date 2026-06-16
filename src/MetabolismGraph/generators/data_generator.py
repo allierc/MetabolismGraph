@@ -64,7 +64,21 @@ def data_generate(
 
     # --- build stoichiometric graph ---
     topology_sbml = getattr(simulation_config, 'topology_sbml', None)
-    if topology_sbml:
+    topology_from_dataset = getattr(simulation_config, 'topology_from_dataset', None)
+    if topology_from_dataset:
+        # reuse the stoichiometry of an existing dataset (e.g. glycolysis) + impose synthetic
+        # kinetics; drop its own boundary stimulus so the external drive is the only input
+        stoich_graph = torch.load(f'graphs_data/{topology_from_dataset}/stoich_graph.pt',
+                                  map_location=device)
+        stoich_graph = dict(stoich_graph); stoich_graph['stimulus_sub'] = None
+        S = torch.load(f'graphs_data/{topology_from_dataset}/stoichiometry.pt', map_location=device)
+        S = S if torch.is_tensor(S) else torch.tensor(S)
+        n_metabolites, n_reactions = S.shape[0], S.shape[1]
+        simulation_config.n_metabolites = n_metabolites
+        simulation_config.n_reactions = n_reactions
+        print(f"loaded topology from dataset {topology_from_dataset}: {n_metabolites} metabolites, "
+              f"{n_reactions} reactions (imposing synthetic kinetics)")
+    elif topology_sbml:
         # REAL FBA network topology (kinetics imposed by the model below = ground truth)
         from MetabolismGraph.generators.sbml_topology import parse_fba_sbml, central_carbon_subgraph
         n_sub = getattr(simulation_config, 'topology_subgraph_reactions', 0)
@@ -129,15 +143,17 @@ def data_generate(
     # frequencies/phases so the drive excites many modes (richer trajectory for the
     # inverse problem). Applied via external_input_mode; saved into x[:,4] so it is a
     # KNOWN input at train time, not learned.
-    has_modulation = external_input_type == "modulation"
+    is_ou = external_input_type == "ou"
+    has_modulation = external_input_type == "modulation" or is_ou
     if has_modulation:
         n_input_metabolites = min(
             getattr(simulation_config, 'n_input_metabolites', n_metabolites) or n_metabolites,
             n_metabolites)
         ei_amp = getattr(simulation_config, 'external_input_amplitude', 0.0)
-        print(f"external modulation drive: {n_input_metabolites} inputs, "
-              f"amp={ei_amp}, freq in [0.05,0.5], mode={simulation_config.external_input_mode} "
-              f"(distinct freq/phase PER RUN for trajectory diversity)")
+        ou_phi = float(getattr(simulation_config, 'external_input_phi', 0.98))  # AR(1) per-step corr
+        kind = "OU/AR(1) smooth aperiodic (real-metabolome-like)" if is_ou else "multi-frequency sinusoid"
+        print(f"external {kind} drive: {n_input_metabolites} inputs, amp={ei_amp}, "
+              f"mode={simulation_config.external_input_mode}")
 
     S_np = to_numpy(S)
 
@@ -216,6 +232,7 @@ def data_generate(
             mod_rng = np.random.RandomState(simulation_config.seed + 12345 + run * 97)
             mod_freq = mod_rng.uniform(0.05, 0.5, n_input_metabolites)   # cycles / time unit
             mod_phase = mod_rng.uniform(0.0, 2 * np.pi, n_input_metabolites)
+            ou_state = np.zeros(n_input_metabolites, dtype=np.float32)   # AR(1)/OU state
 
         for it in trange(simulation_config.start_frame, n_frames + 1, ncols=100):
 
@@ -229,8 +246,15 @@ def data_generate(
                     im_down, dtype=torch.float32, device=device
                 )
             elif has_modulation:
-                t_real = it * delta_t
-                drive = ei_amp * np.sin(2 * np.pi * mod_freq * t_real + mod_phase)
+                if is_ou:
+                    # AR(1)/Ornstein-Uhlenbeck: smooth, aperiodic, autocorrelated drift
+                    # (matches the real metabolome's low-frequency structure -- no oscillation)
+                    ou_state = ou_phi * ou_state + np.sqrt(1.0 - ou_phi ** 2) * \
+                        mod_rng.standard_normal(n_input_metabolites).astype(np.float32)
+                    drive = ei_amp * ou_state
+                else:
+                    t_real = it * delta_t
+                    drive = ei_amp * np.sin(2 * np.pi * mod_freq * t_real + mod_phase)
                 x[:n_input_metabolites, 4] = torch.tensor(
                     drive.astype(np.float32), device=device)
 

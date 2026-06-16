@@ -631,15 +631,39 @@ companion \emph{B.\ subtilis} and \emph{Y.\ lipolytica} sets are included.
 Each ion carries a KEGG annotation ($444$ distinct KEGG IDs for
 \emph{E.\ coli}), though many ions are mass-ambiguous (one $m/z$ maps to
 several candidate metabolites) and values are \emph{relative} ion
-intensities, not absolute concentrations. \emph{Status:} the data are in
-hand but not yet ingested; the work is to deduplicate/annotate ions, build
-$\mathbf{S}$ for the measured subset from an \emph{E.\ coli} genome-scale
-model (\eg{} iJO1366) via KEGG$\to$BiGG mapping, and rescale the
-relative intensities. There is \emph{no} kinetic ground truth here, so
-success can only be judged by held-out prediction, not by recovered $k_j$.
+intensities, not absolute concentrations. \emph{Status:} the data are now
+ingested and characterised (\cref{fig:ecoli_real}). The trajectory is
+\emph{information-rich} --- its activity rank is $60$ at $90\%$ and $102$ at
+$99\%$ of the variance, far above the closed synthetic networks (toy $50$,
+glycolysis $5$, driven real topologies $38$) --- so, unlike the synthetic
+rungs, data richness is \emph{not} the limiting factor. The obstacle is
+\emph{partial observation}: of the $247$ measured metabolites only $32$ map
+(by KEGG) into the \emph{E.\ coli} core model and $286$ into genome-scale
+iJO1366, but iJO1366 carries ${\sim}1800$ metabolites, so the measured set is
+a small, open fraction whose dynamics depend on reactions involving
+\emph{unmeasured} (latent) species. The subnetwork where the inverse problem
+is even well-defined --- reactions whose every metabolite is measured --- is
+$181$ of iJO1366's $2583$ reactions; that fully-observed core is the only
+place a leak-resistant fit can be attempted, and is the immediate LSQ/GNN
+target. There is \emph{no} kinetic ground truth, so success can be judged only
+by held-out prediction, not by recovered $k_j$.
 A parallel mammalian direction is chronic jugular microdialysis in freely
 moving mice \citep{nardin2025} (${\sim}123$ metabolites every $7.5$~min over
 ${\sim}8$~h; $10$ components explain $73\%$ of variance).
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{\figdir/ecoli_real_data.png}
+  \caption{\textbf{The real \emph{E.\ coli} metabolome is a high-rank trajectory.}
+  \textbf{(a)} Measured trajectory: $247$ metabolites $\times$ $119$ time points
+  (relative ion intensities; $z$-scored per metabolite, rows sorted by activity).
+  \textbf{(b)} SVD cumulative-variance spectrum: the activity rank is $60$ at $90\%$
+  and $102$ at $99\%$ of the variance --- far richer than the closed synthetic networks
+  (toy rank $50$, glycolysis $5$, driven real topologies $38$). Data richness is therefore
+  not the bottleneck for real data; the obstacle is partial observation (only $\sim 181$
+  of iJO1366's reactions have all their metabolites measured).}
+  \label{fig:ecoli_real}
+\end{figure}
 
 \paragraph{What transfers and what changes.}
 The core recipe transfers: the bipartite graph, message passing over
@@ -800,7 +824,7 @@ Synthetic homeostasis & random / mass-action & $\lambda_i$ known & open (single-
 Rung 1: yeast glycolysis & real / MM+Hill & $V_{\max},K_m$ known & rollout in-sample; $V_{\max}$ R$^2{\approx}0$ (degenerate) \\
 Real topology (\emph{E.\ coli} core) & real S / imposed MM & $V_{\max}$ known & $V_{\max}$ R$^2{\approx}0$, $100\%$ out (rank-2 degenerate) \\
 Real topology (yeast-GEM subgraph) & real S / imposed MM & $V_{\max}$ known & $V_{\max}$ R$^2{\approx}0$, $100\%$ out (rank-2 degenerate) \\
-Rung 3: real \emph{E.\ coli} data & inferred / unknown & none & data in hand; not ingested \\
+Rung 3: real \emph{E.\ coli} data & inferred / unknown & none & ingested; rank $102$, $181$ fully-obs.\ rxns; LSQ/GNN next \\
 \bottomrule
 \end{tabular}
 \caption{Where each target stands. Only the first row is a validated,

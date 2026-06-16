@@ -750,27 +750,29 @@ high-rank, stimulus-driven trajectories.
   \label{fig:model_traces}
 \end{figure}
 
-\paragraph{Identifiability is not the bottleneck --- learnability is.} Training the GNN on
-the driven (rank-$38$) \emph{E.\ coli} data still recovers \emph{none} of the kinetics
-($V_{\max}$ $R^2 \approx 0$, $100\%$ outliers), exactly as on the undriven net. To localise
-the failure we form the design matrix of the inverse problem directly: with $\mathbf{S}$ and
-the substrate shape given, $dc/dt$ is \emph{linear} in $V_{\max}$, $A\,V_{\max} = b$, with
-$A_{(i,t),j} = \partial(dc_i/dt)/\partial V_{\max,j}$ computed exactly from the simulator (a
-finite-difference Jacobian; reconstruction residual $10^{-4}$). The result is unambiguous:
-$A$ is \emph{full column rank} and well conditioned at \emph{both} the rank-$2$ closed
-trajectory (condition number $121$) and the rank-$38$ driven one ($31$), and a plain
-least-squares solve recovers $V_{\max}$ \emph{perfectly} ($R^2 = 1.00$) in both cases. So the
-MM inverse problem is \emph{well-posed regardless of activity rank} --- the data always suffice
---- and the GNN's failure is therefore \emph{not} an identifiability or data-richness problem
-but a learning/optimisation one: least squares extracts $V_{\max}$ that gradient descent on the
-GNN does not. Tellingly, the synthetic mass-action toy that the GNN \emph{does} recover
-($R^2{=}0.74$) has a \emph{worse}-posed design matrix (rank-deficient, least-squares
-$R^2{=}0.87$). GNN success is thus decoupled from identifiability: it hinges on whether the
-network can jointly learn the substrate-function \emph{shape} and the per-reaction scale ---
-straightforward for the power law of mass action, but unpinned for the saturating
-Michaelis--Menten law, where shape and $V_{\max}$ trade off. The lever is therefore the model,
-not the data: a least-squares $V_{\max}$ solve given the learned shape, or shape/scale
-constraints on $\mathrm{MLP_{sub}}$ --- not more rank, drive, or trajectories.
+\paragraph{Identifiability is not the bottleneck --- learnability is.} The GNN trained on the
+driven (rank-$38$) \emph{E.\ coli} data recovers \emph{none} of the kinetics ($V_{\max}$
+$R^2 \approx 0$, $100\%$ outliers), exactly as on the undriven net. Yet the inverse problem is
+\emph{well-posed}. Given $\mathbf{S}$ \emph{and the rate-law shape}, $dc/dt$ is linear in the
+per-reaction scale, $A\,\theta = b$ with columns $A_{\cdot j} = \mathbf{S}_{\cdot j}\,\phi_j(c)$
+($\phi_j=\prod c^{s}$ for mass action; $\phi_j=\prod[c/(K_m{+}c)]^{s}$ with the true $K_m$ for
+MM). Built exactly from the simulator's Jacobian (reconstruction residual $10^{-4}$), this $A$ is
+\emph{full column rank} and well conditioned at \emph{both} rank-$2$ (cond.\ $121$) and rank-$38$
+(cond.\ $31$); a plain least-squares solve then recovers $V_{\max}$ \emph{perfectly}
+($R^2 = 1.00$) \emph{and} that $V_{\max}$ free-rolls-out at per-metabolite Pearson $1.00$, at both
+ranks. So the data always suffice --- identifiability is not rank-limited --- and a single correct
+solution nails parameters \emph{and} rollout; the GNN simply does not find it.
+
+The catch is that this $R^2{=}1$ is conditional on \emph{knowing $\phi$}. The GNN does not: it must
+learn the shape ($\mathrm{MLP_{sub}}$) \emph{and} the scale ($V_{\max}$) jointly, and that
+factorisation is where MM fails. A saturating shape with a free per-reaction $K_m$ can absorb the
+per-reaction scale, so $V_{\max}$ drifts; the rigid power law of mass action cannot, so its scale
+is pinned and recovers --- which is why the GNN recovers the mass-action toy ($R^2{=}0.74$) even
+though \emph{its} design matrix is \emph{worse} posed (rank-deficient, least-squares $R^2{=}0.87$).
+GNN success is thus decoupled from identifiability and set by shape$\times$scale learnability. The
+lever is therefore the model, not the data: solve $V_{\max}$ by least squares \emph{given the
+GNN's learned shape}, or constrain $\mathrm{MLP_{sub}}$'s shape/scale --- not more rank, drive, or
+trajectories.
 
 \begin{table}[H]
 \centering

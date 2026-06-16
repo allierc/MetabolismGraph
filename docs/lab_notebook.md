@@ -1034,3 +1034,15 @@ Generated 3 OU datasets (all finite, smooth/aperiodic — lag-1 autocorr ~0.999,
 Launched all 3 GNN trainings (time-boxed 4h + checkpointed). Eval pending; expectation per the
 RESOLVED learnability finding (eval 6): rank is ample but MM Vmax stays GNN-unlearnable regardless
 of stimulus realism — this run tests that the failure is stimulus-shape-invariant (OU vs sinusoid).
+
+### 2026-06-16 (eval) — OU realistic stimulus: same failure, CONFIRMS stimulus-shape-invariance
+All 3 OU trainings done + evaluated (leak-resistant Vmax + per-met rollout Pearson):
+  rung1 glyco_topo_ou    Vmax R2=0.008  70% out | rollout per-met=0.896 pooled=0.992
+  rung2 ecoli_core_ou    Vmax R2=0.003  86% out | rollout per-met=0.895 pooled=0.967
+  rung3 yeast_central_ou Vmax R2=0.005  98% out | rollout per-met=0.833 pooled=0.968
+Vmax recovery FAILS at all 3 (R2~0, far over the 10% outlier rule); rollout DECENT (0.83-0.90).
+This is the IDENTICAL pattern to the multi-sinusoid stimulus -> the realistic, non-oscillatory
+(OU/AR(1)) drive does NOT rescue parameter recovery. The learnability barrier is STIMULUS-SHAPE-
+INVARIANT: good-enough trajectory prediction with wrong Vmax, independent of whether the drive is
+oscillatory or smooth/aperiodic. Reinforces eval 6: the lever is model-side (shape x scale
+factorisation), not the data/stimulus. Closes the "realistic stimulus" hypothesis.

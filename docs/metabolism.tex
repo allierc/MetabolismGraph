@@ -812,6 +812,33 @@ trajectories.
   \label{fig:rollout_recovery}
 \end{figure}
 
+\paragraph{A realistic, non-oscillatory stimulus changes nothing.} One might worry the failure is
+an artefact of the \emph{shape} of the drive --- a clean multi-sinusoid is nothing like a real
+metabolome. The measured \emph{E.\ coli} trajectory is smooth, aperiodic and low-frequency (lag-$1$
+autocorrelation $0.37$), so we replaced the sinusoid with an Ornstein--Uhlenbeck / AR($1$) drive
+($\phi{=}0.98$; \cref{fig:ou_stimulus}a) and regenerated all three rungs with the same imposed-MM
+kinetics. The driven trajectories are correspondingly smooth and aperiodic (activity rank$_{99}$
+$13/37/38$ for glycolysis / \emph{E.\ coli} core / yeast central). Retraining the GNN on these
+realistic-stimulus data reproduces the failure \emph{exactly}: $V_{\max}$ recovery $R^2 = 0.008 /
+0.003 / 0.005$ ($70\%/86\%/98\%$ outliers), while free rollout stays serviceable
+(per-metabolite Pearson $0.90/0.90/0.83$; \cref{fig:ou_stimulus}b). This is the identical
+decoupling seen under the sinusoid --- good-enough trajectory prediction with unrecovered scale ---
+so the learnability barrier is \emph{stimulus-shape-invariant}: neither the richness nor the
+temporal character of the drive is the lever. The lever remains model-side.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{\figdir/ou_stimulus.png}
+  \caption{\textbf{Making the stimulus realistic does not rescue recovery.} \textbf{(a)} The drive
+  (orange) is an Ornstein--Uhlenbeck / AR($1$) process ($\phi{=}0.98$) --- smooth, aperiodic,
+  low-frequency, matching the real metabolome's character rather than an obvious oscillation --- and
+  the driven metabolite (black) inherits that structure. \textbf{(b)} Across all three rungs the GNN
+  recovers $V_{\max}$ at $R^2 \approx 0$ (grey) yet rolls out at per-metabolite Pearson $0.83$--$0.90$
+  (black): the same recovery/rollout decoupling as under the sinusoidal drive. The learnability
+  barrier is stimulus-shape-invariant.}
+  \label{fig:ou_stimulus}
+\end{figure}
+
 \begin{table}[H]
 \centering
 \small
@@ -824,6 +851,7 @@ Synthetic homeostasis & random / mass-action & $\lambda_i$ known & open (single-
 Rung 1: yeast glycolysis & real / MM+Hill & $V_{\max},K_m$ known & rollout in-sample; $V_{\max}$ R$^2{\approx}0$ (degenerate) \\
 Real topology (\emph{E.\ coli} core) & real S / imposed MM & $V_{\max}$ known & $V_{\max}$ R$^2{\approx}0$, $100\%$ out (rank-2 degenerate) \\
 Real topology (yeast-GEM subgraph) & real S / imposed MM & $V_{\max}$ known & $V_{\max}$ R$^2{\approx}0$, $100\%$ out (rank-2 degenerate) \\
+\quad + realistic OU drive (rungs 1--3) & real S / imposed MM & $V_{\max}$ known & $V_{\max}$ R$^2{\approx}0$; rollout $0.83$--$0.90$ (shape-invariant) \\
 Rung 3: real \emph{E.\ coli} data & inferred / unknown & none & ingested; rank $102$, $181$ fully-obs.\ rxns; LSQ/GNN next \\
 \bottomrule
 \end{tabular}

@@ -1000,3 +1000,21 @@ RECOMMENDATION: stop the blind data-variant iteration. Either (1) rebuild the id
 analysis correctly from the model Jacobian, or (2) consolidate the (clean, important) negative
 result for the paper: stimulus restores activity rank but MM kinetics on real topology remain
 unrecovered by this GNN -- needs steer.
+
+### 2026-06-15 (eval 6) — RESOLVED: MM is WELL-POSED; the barrier is GNN learning, not data
+Rebuilt the design-matrix analysis from the GT model's ACTUAL forward (finite-difference Jacobian
+wrt Vmax; scripts/design_matrix2.py) -> reconstruction residual 0.0001 for e_coli (TRUSTWORTHY;
+the earlier hand-built tool was buggy). VERIFIED RESULT (e_coli core):
+  - UNDRIVEN rank-2:  design matrix full rank (cond 121), LSQ Vmax recovery R2=1.000
+  - DRIVEN  rank-38:  design matrix full rank (cond 31),  LSQ Vmax recovery R2=1.000
+So MM Vmax is PERFECTLY LSQ-recoverable (given the substrate shape) at BOTH ranks -- the inverse
+problem is WELL-POSED regardless of activity rank, and the data ALWAYS suffices. The stimulus/rank
+program was never the identifiability bottleneck for MM. Yet the GNN fails 100% at both ranks ->
+the barrier is ENTIRELY GNN LEARNING/OPTIMISATION, not the data.
+Decoupling: the mass-action toy the GNN RECOVERS (0.74) has a WORSE-posed problem (rank-deficient,
+LSQ R2=0.87). So GNN success is decoupled from LSQ posedness: it depends on whether the GNN can
+JOINTLY learn the substrate-function SHAPE with the per-reaction scale -- easy for power-law
+mass-action, failing for saturating MM (the MLP_sub/Vmax factorisation isn't pinned for MM).
+(yeast design-matrix residual 0.32 -> flux-limit clamping invalidates its linear A; e_coli is the
+clean case the conclusion rests on.) FIX is model-side: e.g. LSQ Vmax solve given the learned
+shape, or shape/scale constraints -- NOT more data/rank. RESOLVES the rung-2/3 + stimulus arc.

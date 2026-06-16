@@ -774,6 +774,20 @@ lever is therefore the model, not the data: solve $V_{\max}$ by least squares \e
 GNN's learned shape}, or constrain $\mathrm{MLP_{sub}}$'s shape/scale --- not more rank, drive, or
 trajectories.
 
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{\figdir/rollout_recovery.png}
+  \caption{\textbf{Right parameters give a perfect rollout; the GNN finds neither.} Free rollout
+  of the driven \emph{E.\ coli} core network (eight highest-variance metabolites, $z$-scored,
+  stacked) vs ground truth (green). \textbf{(a)} With the \emph{GNN-learned} kinetics the rollout
+  (black) drifts off in amplitude/phase --- per-metabolite Pearson $0.59$, and $V_{\max}$
+  unrecovered. \textbf{(b)} With $V_{\max}$ from a least-squares solve given the true substrate
+  shape, the rollout overlays the truth exactly (per-metabolite Pearson $1.00$). A single correct
+  solution nails both parameters and rollout; the GNN's mediocre rollout and wrong $V_{\max}$ are
+  two symptoms of the same shape$\times$scale learnability gap, not of an ill-posed problem.}
+  \label{fig:rollout_recovery}
+\end{figure}
+
 \begin{table}[H]
 \centering
 \small

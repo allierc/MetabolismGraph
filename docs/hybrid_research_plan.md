@@ -65,3 +65,38 @@ real-data sections into `metabolism.tex`.
 
 ## RESULTS LOG
 (appended as phases complete)
+
+---
+## RESULTS LOG
+
+### Phase 0 (strategy baseline) — gate
+oracle/joint/curriculum all recover Vmax at only R²≈0.02–0.11 (Km R²=1.0 only because the
+oracle freezes it at GT). Even with the EXACT shape (oracle), end-to-end SGD recovers almost no
+Vmax. Curriculum/joint ≈ oracle ⇒ the substrate shape is NOT the lever. (fig:hybrid_summary)
+
+### Phase 1 (joint identifiability)
+(Vmax,Km) rank-identifiable at all rungs (full rank, 0 null, linearized R²=1.0); Km block
+ill-conditioned (cond 3.8e3–6.9e4): saturated edges (c≫Km) weakly constrain Km.
+
+### Phase 1c — DECISIVE diagnostic ladder (ecoli_core, exact Km). fig:homeostasis_confound
+Vmax recovery R² on the SAME data, exact MM shape:
+- SGD, **no homeostasis**, log_k only         → **1.000**  (SGD recovers the scale when isolated)
+- SGD, **generic MLP_node** homeostasis        → **fails** (R²<0, loss floor 0.155: generic homeo can't fit AND scrambles log_k)
+- SGD, **structured** −λ(c−b) homeostasis      → 0.22     (structured fits to loss 1e-6 but joint SGD ill-conditioned/slow)
+- **LSQ**, structured homeostasis (linear in Vmax,λ,μ) → **1.000** (cond 489, resid 2e-4: separation is WELL-POSED)
+- full GNN (oracle, exact Km, as-shipped)      → 0.11
+
+**CENTRAL DIAGNOSIS:** the inverse problem is linearly well-posed (LSQ → Vmax R²=1.0). The GNN
+fails because (a) the **generic homeostasis MLP_node** swamps + scrambles the reaction parameters,
+and (b) **end-to-end SGD** on the prediction loss is ill-conditioned. The FIX = structure BOTH
+terms (MM substrate + structured homeostasis) and **solve the parameters by least squares**, not
+end-to-end gradient descent.
+
+### REFRAMED next steps
+- **Phase 2 (new):** productionize (i) structured homeostasis `−softplus(λ_i)(c_i−b_i)` as a
+  model option, (ii) a closed-form **LSQ parameter solve** (Vmax + λ + μ given the learned/structured
+  shape) as the recovery head. Demonstrate Vmax R²→1 across all 3 rungs. The honest limitations
+  (per-metabolite λ and saturated-edge Km weakly identified) get reported, not hidden.
+- **Phase 3:** alternating solve (LSQ Vmax | GD Km shape) for the case where Km is also learned.
+- **Phase 4–6:** rollout/held-out, REAL E. coli data, write-up (lsq_vs_gnn + homeostasis_confound
+  become the paper's positive result: structured model + linear solve recovers kinetics).

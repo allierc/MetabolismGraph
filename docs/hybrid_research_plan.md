@@ -64,10 +64,6 @@ real-data sections into `metabolism.tex`.
 ---
 
 ## RESULTS LOG
-(appended as phases complete)
-
----
-## RESULTS LOG
 
 ### Phase 0 (strategy baseline) — gate
 oracle/joint/curriculum all recover Vmax at only R²≈0.02–0.11 (Km R²=1.0 only because the

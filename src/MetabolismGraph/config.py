@@ -252,6 +252,7 @@ class TrainingConfig(BaseModel):
     lr_sub_schedule: list[float] = []       # per-epoch lr for the 'MLP_sub' group ONLY; [] = keep base
     pretrain_substrate_steps: int = 0       # >0: warm-start MLP_sub (Km) + log_k on one-step loss before the main scheme
     pretrain_substrate_lr: float = 1e-3     # lr for the pretraining warm-start
+    init_km_from_gt: bool = False           # structured-MM oracle: init log_km from GT (upper-bound baseline)
     coeff_tail_loss: float = 0.0            # weight for frames in [T_epoch, T_eff); 0 = hard cutoff
     ar_max_roll: int = 0                    # cap on T_eff (0 = 2*T_epoch when tail>0 else T_epoch)
     grad_clip: float = 0.0                  # max grad norm (0 = no clipping)

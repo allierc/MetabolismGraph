@@ -225,6 +225,14 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
         print('stoichiometry frozen (S given mode)')
         logger.info('freeze_stoichiometry: True (S given mode)')
 
+    # --- structured-MM oracle: initialize per-edge Km from ground truth (upper bound) ---
+    if getattr(train_config, 'init_km_from_gt', False) and getattr(model, 'mm_substrate', False) \
+            and gt_model is not None and hasattr(gt_model, 'log_km'):
+        with torch.no_grad():
+            model.log_km.data.copy_(gt_model.log_km.detach().to(device))
+        print('[hybrid] log_km INITIALIZED from ground truth (oracle baseline)')
+        logger.info('init_km_from_gt: True (structured-MM oracle)')
+
     # --- freeze embeddings if training_single_type (single metabolite type) ---
     training_single_type = getattr(train_config, 'training_single_type', False)
     if training_single_type:

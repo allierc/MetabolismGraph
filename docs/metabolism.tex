@@ -839,6 +839,35 @@ temporal character of the drive is the lever. The lever remains model-side.
   \label{fig:ou_stimulus}
 \end{figure}
 
+\paragraph{Least squares does the job; the GNN hardly does it yet.} The cleanest statement of where
+the difficulty lives is to put the two estimators side by side on the \emph{same} realistic-stimulus
+data (\cref{fig:lsq_vs_gnn}). Given the true substrate shape, least squares for the per-reaction
+scale is the achievable upper bound; built from the simulator's exact Jacobian, it recovers
+$V_{\max}$ \emph{perfectly} on the two rungs where the dynamics are genuinely linear in $V_{\max}$
+(glycolysis and \emph{E.\ coli} core, reconstruction residual ${\sim}10^{-4}$): $R^2 = 1.00$ vs the
+GNN's $0.008$ and $0.003$. The third rung (yeast central) is flux-limit-clamped, which makes the
+dynamics nonlinear in $V_{\max}$ and invalidates the linear design matrix (residual $0.30$); there
+even least squares degrades to $R^2 = 0.12$, but that is a property of the clamped simulator, not a
+limit of the data --- and the GNN is still worse ($0.005$). So a correct, shape-informed solve
+nails the parameters wherever the inverse problem is honestly posed, while the GNN, which must
+\emph{discover} the shape and the scale jointly, recovers essentially none of it. The remaining gap
+to close is the GNN's, and it is closed model-side: feed it the shape (or constrain
+$\mathrm{MLP_{sub}}$) and solve the scale by least squares, rather than asking it to learn both at
+once.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.72\textwidth]{\figdir/lsq_vs_gnn.png}
+  \caption{\textbf{Least squares recovers $V_{\max}$; the GNN does not (yet).} $V_{\max}$ recovery
+  $R^2$ on the realistic OU-stimulus data, least squares given the true shape (blue) vs the trained
+  GNN (black), per rung. Where the dynamics are genuinely linear in $V_{\max}$ (rungs 1--2,
+  reconstruction residual ${\sim}10^{-4}$) least squares is exact ($R^2{=}1.00$) while the GNN sits
+  at ${\approx}0$. Rung 3's flux clamping invalidates the linear design matrix (residual $0.30$), so
+  even least squares degrades --- a simulator artefact, not a data limit. The achievable solution
+  exists and is easy to compute; the open problem is getting the GNN to find it.}
+  \label{fig:lsq_vs_gnn}
+\end{figure}
+
 \begin{table}[H]
 \centering
 \small

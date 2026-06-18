@@ -1046,3 +1046,12 @@ This is the IDENTICAL pattern to the multi-sinusoid stimulus -> the realistic, n
 INVARIANT: good-enough trajectory prediction with wrong Vmax, independent of whether the drive is
 oscillatory or smooth/aperiodic. Reinforces eval 6: the lever is model-side (shape x scale
 factorisation), not the data/stimulus. Closes the "realistic stimulus" hypothesis.
+
+### 2026-06-18 — LSQ-vs-GNN head-to-head on OU rungs (fig:lsq_vs_gnn)
+Verified-Jacobian LSQ (design_matrix2.py) Vmax recovery on the 3 OU-stimulus rungs:
+  rung1 glyco_topo_ou    residual 0.0001 -> LSQ R2=1.000  (GNN 0.008)
+  rung2 ecoli_core_ou    residual 0.0002 -> LSQ R2=1.000  (GNN 0.003)
+  rung3 yeast_central_ou residual 0.2967 -> LSQ R2=0.124  (GNN 0.005)  [flux clamp breaks linear A]
+Headline: where the inverse problem is honestly linear-in-Vmax (rungs 1-2, residual ~1e-4) LSQ is
+EXACT while the GNN is ~0; yeast's flux clamping invalidates even the linear solve (simulator
+artefact, not a data limit). New fig:lsq_vs_gnn + paragraph in metabolism.tex (now 26 pp).

@@ -1,10 +1,9 @@
-description: 'ORACLE: per-edge Km=GT, FROZEN throughout. Upper bound: exact shape
-  -> can GD recover Vmax?'
-dataset: ecoli_core_ou
+description: 'ORACLE glyco: Km=GT frozen. Upper bound.'
+dataset: glyco_topo_ou
 simulation:
   sbml_t_end: 420.0
-  n_metabolites: 72
-  n_reactions: 71
+  n_metabolites: 20
+  n_reactions: 30
   max_metabolites_per_reaction: 4
   n_frames: 4000
   delta_t: 0.035
@@ -21,15 +20,14 @@ simulation:
   baseline_concentration: 1.0
   circadian_amplitude: 0.0
   circadian_period: 1440
-  topology_sbml: papers/e_coli_core.xml
-  topology_subgraph_reactions: 0
   concentration_min: 0.2
   concentration_max: 3.0
   external_input_type: ou
   external_input_mode: additive
-  n_input_metabolites: 40
+  n_input_metabolites: 12
   external_input_amplitude: 0.6
   external_input_phi: 0.98
+  topology_from_dataset: glycolysis_yeast
 graph_model:
   model_name: PDE_MichaelisMenten
   prediction: first_derivative
@@ -46,7 +44,7 @@ plotting:
 training:
   n_epochs: 40
   n_runs: 4
-  device: cuda:1
+  device: cuda:0
   batch_size: 4
   seed: 42
   data_augmentation_loop: 1

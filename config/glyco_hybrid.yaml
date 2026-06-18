@@ -1,10 +1,9 @@
-description: 'ORACLE: per-edge Km=GT, FROZEN throughout. Upper bound: exact shape
-  -> can GD recover Vmax?'
-dataset: ecoli_core_ou
+description: 'CURRICULUM glyco: freeze 15 -> ramp Km.'
+dataset: glyco_topo_ou
 simulation:
   sbml_t_end: 420.0
-  n_metabolites: 72
-  n_reactions: 71
+  n_metabolites: 20
+  n_reactions: 30
   max_metabolites_per_reaction: 4
   n_frames: 4000
   delta_t: 0.035
@@ -21,15 +20,14 @@ simulation:
   baseline_concentration: 1.0
   circadian_amplitude: 0.0
   circadian_period: 1440
-  topology_sbml: papers/e_coli_core.xml
-  topology_subgraph_reactions: 0
   concentration_min: 0.2
   concentration_max: 3.0
   external_input_type: ou
   external_input_mode: additive
-  n_input_metabolites: 40
+  n_input_metabolites: 12
   external_input_amplitude: 0.6
   external_input_phi: 0.98
+  topology_from_dataset: glycolysis_yeast
 graph_model:
   model_name: PDE_MichaelisMenten
   prediction: first_derivative
@@ -46,7 +44,7 @@ plotting:
 training:
   n_epochs: 40
   n_runs: 4
-  device: cuda:1
+  device: cuda:0
   batch_size: 4
   seed: 42
   data_augmentation_loop: 1
@@ -72,7 +70,6 @@ training:
   grad_clip: 1.0
   noise_recurrent_level: 0.01
   max_train_hours: 1.5
-  init_km_from_gt: true
   lr_sub_schedule:
   - 0.0
   - 0.0
@@ -89,28 +86,28 @@ training:
   - 0.0
   - 0.0
   - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
+  - 1.0e-05
+  - 1.177e-05
+  - 1.385e-05
+  - 1.631e-05
+  - 1.919e-05
+  - 2.259e-05
+  - 2.659e-05
+  - 3.13e-05
+  - 3.684e-05
+  - 4.336e-05
+  - 5.104e-05
+  - 6.008e-05
+  - 7.071e-05
+  - 8.323e-05
+  - 9.796e-05
+  - 0.00011531
+  - 0.00013572
+  - 0.00015975
+  - 0.00018803
+  - 0.00022132
+  - 0.0002605
+  - 0.00030662
+  - 0.0003609
+  - 0.0004248
+  - 0.0005

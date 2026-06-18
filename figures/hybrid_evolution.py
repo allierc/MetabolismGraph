@@ -50,8 +50,9 @@ def main():
     ax.set_xlabel("epoch"); ax.set_ylabel("recovery $R^2$ (log space)")
     ax.set_ylim(-0.12, 1.12)
     ax.legend(loc="lower right", frameon=False)
+    ax.set_title(CFG, fontsize=11, loc="left", color="0.4")
     fig.tight_layout()
-    out = os.path.join(ROOT, "figures/metabolism/hybrid_evolution.png")
+    out = os.path.join(ROOT, f"figures/metabolism/hybrid_evolution_{CFG}.png")
     fig.savefig(out, dpi=140); plt.close(fig)
     print(f"saved {out}: final Vmax R2={v_last[-1]:.3f}, Km R2={k_last[-1]:.3f} "
           f"(phase-A end Vmax R2={v_last[min(N_PHASE_A-1, len(v_last)-1)]:.3f})")

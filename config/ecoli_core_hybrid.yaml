@@ -1,6 +1,5 @@
-description: 'HYBRID structured-MM: MLP_sub = [c/(Km+c)]^s with learnable per-edge
-  Km. Phase A (epochs 0-14): Km FROZEN (lr=0), learn Vmax (log_k). Phase B (15-39):
-  slowly ramp Km lr, watch (Vmax,Km) evolve.'
+description: 'CURRICULUM: Km frozen 15 epochs (learn Vmax), then slow geometric ramp.
+  The 3-step hybrid.'
 dataset: ecoli_core_ou
 simulation:
   sbml_t_end: 420.0
@@ -72,7 +71,7 @@ training:
   ar_max_roll: 300
   grad_clip: 1.0
   noise_recurrent_level: 0.01
-  max_train_hours: 2.0
+  max_train_hours: 1.5
   lr_sub_schedule:
   - 0.0
   - 0.0

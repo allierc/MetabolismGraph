@@ -1,5 +1,5 @@
-description: 'ORACLE: per-edge Km=GT, FROZEN throughout. Upper bound: exact shape
-  -> can GD recover Vmax?'
+description: 'JOINT: Km learnable from epoch 0 (no freeze). Baseline: learn shape+scale
+  together from scratch.'
 dataset: ecoli_core_ou
 simulation:
   sbml_t_end: 420.0
@@ -72,45 +72,4 @@ training:
   grad_clip: 1.0
   noise_recurrent_level: 0.01
   max_train_hours: 1.5
-  init_km_from_gt: true
-  lr_sub_schedule:
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
+  lr_sub_schedule: []

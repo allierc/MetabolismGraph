@@ -1,5 +1,4 @@
-description: 'ORACLE: per-edge Km=GT, FROZEN throughout. Upper bound: exact shape
-  -> can GD recover Vmax?'
+description: 'CURRICULUM slow: freeze 25 epochs, gentle Km ramp.'
 dataset: ecoli_core_ou
 simulation:
   sbml_t_end: 420.0
@@ -72,7 +71,6 @@ training:
   grad_clip: 1.0
   noise_recurrent_level: 0.01
   max_train_hours: 1.5
-  init_km_from_gt: true
   lr_sub_schedule:
   - 0.0
   - 0.0
@@ -99,18 +97,18 @@ training:
   - 0.0
   - 0.0
   - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
+  - 1.0e-05
+  - 1.239e-05
+  - 1.534e-05
+  - 1.9e-05
+  - 2.354e-05
+  - 2.915e-05
+  - 3.611e-05
+  - 4.472e-05
+  - 5.539e-05
+  - 6.861e-05
+  - 8.498e-05
+  - 0.00010525
+  - 0.00013037
+  - 0.00016147
+  - 0.0002

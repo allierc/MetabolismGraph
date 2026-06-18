@@ -93,6 +93,10 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
     ar_grad_clip = getattr(train_config, 'grad_clip', 0.0)
     ar_anchor_k = bool(getattr(train_config, 'anchor_k_after_warmup', False))
     max_train_hours = float(getattr(train_config, 'max_train_hours', 0.0))
+    # hybrid structured-MM curriculum: per-epoch lr for the 'MLP_sub' (Km) group ONLY
+    sub_lr_schedule = list(getattr(train_config, 'lr_sub_schedule', []) or [])
+    if sub_lr_schedule:
+        print(f'[hybrid] lr_sub_schedule (MLP_sub/Km group)={sub_lr_schedule}')
     ar_active = len(ar_schedule) > 0
     if ar_active:
         recurrent_training = True
@@ -308,6 +312,8 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                 stoich_params.append(p)
         elif 'NNR_f' in name:
             continue  # handled by optimizer_f
+        elif 'log_km' in name:
+            sub_params.append(p)          # structured-MM Km IS the MLP_sub shape param
         elif 'log_k' in name:
             k_params.append(p)
         elif name == 'a':
@@ -379,6 +385,7 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
 
     list_loss = []
     list_loss_regul = []
+    hybrid_recovery_log = []   # structured-MM: per-eval [epoch, N, Vmax_R2, Km_R2] evolution
     loss_components = {'loss': [], 'regul_total': [], 'S_L1': [], 'S_integer': [], 'mass_conservation': [], 'MLP_sub_diff': [], 'MLP_node_L1': [], 'MLP_sub_norm': [], 'k_floor': []}
 
     print("start training ...")
@@ -429,6 +436,15 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                     if g.get('name') == 'k':
                         g['lr'] = 0.0
                 print(f'[AR] epoch {epoch}: k group FROZEN (anchored from single-step warmup)')
+
+        # ---- hybrid structured-MM curriculum: freeze->ramp the MLP_sub (Km) group ----
+        if sub_lr_schedule:
+            lr_sub_e = float(sub_lr_schedule[min(epoch, len(sub_lr_schedule) - 1)])
+            for g in optimizer.param_groups:
+                if g.get('name') == 'MLP_sub':
+                    g['lr'] = lr_sub_e
+            print(f'[hybrid] epoch {epoch}: MLP_sub (Km) group lr={lr_sub_e:g}'
+                  f"{'  [FROZEN]' if lr_sub_e == 0 else ''}")
 
         last_r2 = None
         pbar = trange(Niter, ncols=100)
@@ -729,8 +745,21 @@ def data_train_metabolism(config, erase, best_model, device, log_file=None, styl
                     else:
                         r2_color = '\033[91m'   # red
                     r2_label = 'k' if freeze_stoichiometry else 'S'
+                    # structured-MM hybrid: also report per-reaction Km recovery so the
+                    # freeze->ramp shape-learning curve is visible alongside Vmax (k)
+                    km_str = ''
+                    if getattr(model, 'mm_substrate', False) and gt_model is not None \
+                            and hasattr(gt_model, 'log_km'):
+                        with torch.no_grad():
+                            km_r2 = _log_r2(to_numpy(model.log_km.detach().cpu()),
+                                            to_numpy(gt_model.log_km.detach().cpu()))
+                        km_str = f'  Km R\u00b2={km_r2:.3f}'
+                        # record the (Vmax, Km) recovery evolution across the freeze->ramp curriculum
+                        hybrid_recovery_log.append([int(epoch), int(N), float(last_r2), float(km_r2)])
+                        np.save(os.path.join(log_dir, 'hybrid_recovery.npy'),
+                                np.array(hybrid_recovery_log))
                     pbar.set_postfix_str(
-                        f'{r2_color}{r2_label} R\u00b2={last_r2:.3f}\033[0m'
+                        f'{r2_color}{r2_label} R\u00b2={last_r2:.3f}\033[0m{km_str}'
                     )
 
                 # save checkpoint
@@ -1826,30 +1855,48 @@ def _plot_metabolism_mlp_functions(model, x, xnorm, log_dir, epoch, N, device,
     c_np = to_numpy(conc_range)
     scale_factors = {}
     with torch.no_grad():
-        for s_val, color in zip(stoich_values, colors):
-            s_abs = torch.full((n_pts, 1), float(s_val), device=device)
-            msg_in = torch.cat([conc_range.unsqueeze(-1), s_abs], dim=-1)
-            msg_out = model.substrate_func(msg_in)
-            msg_norm = msg_out.norm(dim=-1)
-            ax.plot(c_np, to_numpy(msg_norm),
-                    linewidth=2, color=color, label=f'learned |s|={s_val}')
+        if getattr(model, 'mm_substrate', False):
+            # structured MM: shape is analytic [c/(Km+c)]^s, per-edge Km. Plot the learned
+            # saturation curve at the median learned Km vs GT median Km, per |s|.
+            km_learned = to_numpy(torch.pow(10.0, model.log_km).cpu())
+            km_gt = (to_numpy(torch.pow(10.0, gt_model.log_km).cpu())
+                     if gt_model is not None and hasattr(gt_model, 'log_km') else None)
+            km_l_med = float(np.median(km_learned))
+            for s_val, color in zip(stoich_values, colors):
+                sat_l = (c_np / (km_l_med + c_np)) ** s_val
+                ax.plot(c_np, sat_l, linewidth=2, color=color,
+                        label=f'learned $K_m$={km_l_med:.2f}, |s|={s_val}')
+                if km_gt is not None:
+                    km_g_med = float(np.median(km_gt))
+                    sat_g = (c_np / (km_g_med + c_np)) ** s_val
+                    ax.plot(c_np, sat_g, linewidth=2, color=color, linestyle='--',
+                            alpha=0.6, label=f'GT $K_m$={km_g_med:.2f}, |s|={s_val}')
+            ax.set_ylabel(r'$[c/(K_m+c)]^{|s|}$ (structured MM)', fontsize=14)
+        else:
+            for s_val, color in zip(stoich_values, colors):
+                s_abs = torch.full((n_pts, 1), float(s_val), device=device)
+                msg_in = torch.cat([conc_range.unsqueeze(-1), s_abs], dim=-1)
+                msg_out = model.substrate_func(msg_in)
+                msg_norm = msg_out.norm(dim=-1)
+                ax.plot(c_np, to_numpy(msg_norm),
+                        linewidth=2, color=color, label=f'learned |s|={s_val}')
 
-            # true power law c^s (normalized to match learned scale)
-            true_power = np.power(c_np + 1e-8, s_val)
-            scale = to_numpy(msg_norm).max() / (true_power.max() + 1e-8)
-            scale_factors[s_val] = scale
-            ax.plot(c_np, true_power * scale,
-                    linewidth=2, color=color, linestyle='--', alpha=0.5,
-                    label=f'$c^{{{s_val}}}$ (scaled)')
+                # true power law c^s (normalized to match learned scale)
+                true_power = np.power(c_np + 1e-8, s_val)
+                scale = to_numpy(msg_norm).max() / (true_power.max() + 1e-8)
+                scale_factors[s_val] = scale
+                ax.plot(c_np, true_power * scale,
+                        linewidth=2, color=color, linestyle='--', alpha=0.5,
+                        label=f'$c^{{{s_val}}}$ (scaled)')
 
-    # annotate scale factor α (used for log_k correction)
-    alpha_text = ', '.join(f'|s|={s}: {scale_factors[s]:.3f}'
-                           for s in stoich_values)
-    ax.text(0.05, 0.96, f'$\\alpha$: {alpha_text}',
-            transform=ax.transAxes, fontsize=10, verticalalignment='top')
+            # annotate scale factor α (used for log_k correction)
+            alpha_text = ', '.join(f'|s|={s}: {scale_factors[s]:.3f}'
+                                   for s in stoich_values)
+            ax.text(0.05, 0.96, f'$\\alpha$: {alpha_text}',
+                    transform=ax.transAxes, fontsize=10, verticalalignment='top')
+            ax.set_ylabel(r'$\|\mathrm{MLP_{sub}}(c, |s|)\|$', fontsize=14)
 
     ax.set_xlabel('concentration', fontsize=14)
-    ax.set_ylabel(r'$\|\mathrm{MLP_{sub}}(c, |s|)\|$', fontsize=14)
     ax.legend(fontsize=10)
     ax.tick_params(labelsize=12)
     plt.tight_layout()
@@ -2080,6 +2127,17 @@ def _compute_scalar_correction(model, device):
     return log_alpha, n_sub
 
 
+def _log_r2(pred, gt):
+    """R² of pred vs gt in the values given (used in log10 space for k / Km)."""
+    pred = np.asarray(pred, dtype=float); gt = np.asarray(gt, dtype=float)
+    m = np.isfinite(pred) & np.isfinite(gt)
+    if m.sum() < 3:
+        return float('nan')
+    ss_res = np.sum((pred[m] - gt[m]) ** 2)
+    ss_tot = np.sum((gt[m] - gt[m].mean()) ** 2)
+    return float(1 - ss_res / ss_tot) if ss_tot > 0 else float('nan')
+
+
 def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N,
                                     device=None, outlier_threshold=0.3):
     """plot learned vs ground-truth rate constants k_j.
@@ -2113,6 +2171,7 @@ def _plot_rate_constants_comparison(model, gt_model, log_dir, epoch, N,
     corrected_log_k = learned_log_k
     has_correction = False
     if (device is not None
+            and not getattr(model, 'mm_substrate', False)   # structured MM: no MLP_sub scale ambiguity
             and hasattr(model, 'substrate_func')
             and hasattr(model, 'n_sub_per_rxn')):
         log_alpha, n_sub = _compute_scalar_correction(model, device)
@@ -2251,25 +2310,31 @@ def _compare_functions(model, gt_model, x, device, cluster_distance_threshold=0.
         conc_grid, stoich_grid = torch.meshgrid(conc, stoich, indexing='ij')
         inputs = torch.stack([conc_grid.flatten(), stoich_grid.flatten()], dim=-1)
 
-        # Evaluate both models
-        learned_out = model.substrate_func(inputs)
-        gt_out = gt_model.substrate_func(inputs)
+        # structured-MM substrate: the kinetic SHAPE is analytic and per-edge (depends on
+        # the learnable per-edge Km), not a single learned function of (c,|s|), so the grid
+        # comparison below is not well-defined. Skip it (Km recovery is tracked separately).
+        if getattr(model, 'mm_substrate', False):
+            sub_r2 = torch.tensor(float('nan')); sub_corr = torch.tensor(float('nan'))
+        else:
+            # Evaluate both models
+            learned_out = model.substrate_func(inputs)
+            gt_out = gt_model.substrate_func(inputs)
 
-        # Flatten to 1D for correlation
-        learned_flat = learned_out.flatten()
-        gt_flat = gt_out.flatten()
+            # Flatten to 1D for correlation
+            learned_flat = learned_out.flatten()
+            gt_flat = gt_out.flatten()
 
-        # Compute metrics
-        ss_res = ((learned_flat - gt_flat) ** 2).sum()
-        ss_tot = ((gt_flat - gt_flat.mean()) ** 2).sum()
-        sub_r2 = 1 - ss_res / (ss_tot + 1e-8)
+            # Compute metrics
+            ss_res = ((learned_flat - gt_flat) ** 2).sum()
+            ss_tot = ((gt_flat - gt_flat.mean()) ** 2).sum()
+            sub_r2 = 1 - ss_res / (ss_tot + 1e-8)
 
-        # Pearson correlation
-        learned_centered = learned_flat - learned_flat.mean()
-        gt_centered = gt_flat - gt_flat.mean()
-        sub_corr = (learned_centered * gt_centered).sum() / (
-            learned_centered.norm() * gt_centered.norm() + 1e-8
-        )
+            # Pearson correlation
+            learned_centered = learned_flat - learned_flat.mean()
+            gt_centered = gt_flat - gt_flat.mean()
+            sub_corr = (learned_centered * gt_centered).sum() / (
+                learned_centered.norm() * gt_centered.norm() + 1e-8
+            )
 
     result = {
         'MLP_sub_r2': float(sub_r2.cpu()),

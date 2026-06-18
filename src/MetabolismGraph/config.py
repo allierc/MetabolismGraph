@@ -244,6 +244,14 @@ class TrainingConfig(BaseModel):
     # k-recovery path untouched when n_steps_schedule is empty. ----
     n_steps_schedule: list[int] = []        # per-epoch rollout horizon, e.g. [10,50,100,200,...]
     lr_schedule: list[float] = []           # per-epoch lr for 'k'+'MLP_sub' groups; [] = keep base
+
+    # ---- hybrid structured-MM curriculum (substrate_func_type='mm'): freeze the kinetic
+    # SHAPE (per-reaction Km, the MLP_sub group) at lr=0 while the SCALE (log_k / Vmax)
+    # converges, then slowly ramp the Km lr to watch the joint shape x scale solution
+    # evolve. Independent of lr_schedule (which co-ramps k+MLP_sub for the AR curriculum).
+    lr_sub_schedule: list[float] = []       # per-epoch lr for the 'MLP_sub' group ONLY; [] = keep base
+    pretrain_substrate_steps: int = 0       # >0: warm-start MLP_sub (Km) + log_k on one-step loss before the main scheme
+    pretrain_substrate_lr: float = 1e-3     # lr for the pretraining warm-start
     coeff_tail_loss: float = 0.0            # weight for frames in [T_epoch, T_eff); 0 = hard cutoff
     ar_max_roll: int = 0                    # cap on T_eff (0 = 2*T_epoch when tail>0 else T_epoch)
     grad_clip: float = 0.0                  # max grad norm (0 = no clipping)

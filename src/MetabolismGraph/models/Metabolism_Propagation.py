@@ -135,7 +135,18 @@ class Metabolism_Propagation(nn.Module):
         # MLP_sub: (c_k, |s_kj|) -> substrate contribution (learns c^s)
         sub_sizes = [2] + [hidden_sub] * (n_layers_sub - 1) + [1]
         self.substrate_func_type = getattr(model_config, 'substrate_func_type', 'mlp')
-        if self.substrate_func_type == 'logspace':
+        # structured Michaelis-Menten substrate: the kinetic SHAPE is fixed to the exact
+        # saturating form g = [c/(Km+c)]^|s| and the ONLY free shape parameter is a
+        # learnable per-reaction Km (log_km). This makes the model's reaction term
+        # structurally identical to the MM generator (v = Vmax * prod g), so the shape
+        # family CONTAINS the ground truth -- the hybrid "freeze shape, learn scale, then
+        # slowly unfreeze shape" experiment. log_km lives in the MLP_sub param group.
+        # log_km (per substrate-edge, matching the MM generator's granularity) is created
+        # in load_stoich_graph once the edge count is known.
+        self.mm_substrate = (self.substrate_func_type == 'mm')
+        if self.mm_substrate:
+            self.substrate_func = nn.Identity()              # shape is analytic, no MLP
+        elif self.substrate_func_type == 'logspace':
             self.substrate_func = LogSubstrate(hidden_sub, n_layers_sub)
         elif self.substrate_func_type == 'powerlaw':
             self.substrate_func = PowerLawSubstrate()
@@ -181,6 +192,11 @@ class Metabolism_Propagation(nn.Module):
         )
         self.register_buffer('sub_to_all', sub_to_all)
 
+        # structured-MM: learnable per-substrate-edge Km (matches the generator's log_km,
+        # which is per substrate edge). Km init = 1.0 (log_km = 0).
+        if getattr(self, 'mm_substrate', False):
+            self.log_km = nn.Parameter(torch.zeros(met_sub.shape[0], device=dev))
+
         # single learnable stoichiometric coefficient vector (all edges)
         n_all_edges = met_all.shape[0]
         self.sto_all = nn.Parameter(torch.randn(n_all_edges, device=dev) * 0.1)
@@ -220,6 +236,10 @@ class Metabolism_Propagation(nn.Module):
             self.register_buffer('stim_rxn', stim_rxn)
             self.register_buffer('stim_sto', stim_sto)
             self.n_stimulus = int(stim_idx.max().item()) + 1
+            # per-(boundary-edge) Km for the structured MM substrate (mirrors the
+            # generator's log_km_stim); also lives in the MLP_sub param group.
+            if getattr(self, 'mm_substrate', False):
+                self.log_km_stim = nn.Parameter(torch.zeros(stim_idx.shape[0], device=stim_idx.device))
         else:
             self.register_buffer('stim_idx', None)
             self.n_stimulus = 0
@@ -248,45 +268,63 @@ class Metabolism_Propagation(nn.Module):
         node_in = torch.cat([concentrations.unsqueeze(-1), self.a], dim=-1)
         homeostasis = self.node_func(node_in).squeeze(-1)
 
-        # ===== MLP_sub: substrate contribution =====
-        # gather (c_k, |s_kj|) for each substrate edge
-        c_sub = concentrations[self.met_sub].unsqueeze(-1)
-        s_abs = self.sto_all[self.sub_to_all].abs().unsqueeze(-1)
-        msg_in = torch.cat([c_sub, s_abs], dim=-1)
-
-        # MLP_sub(c_k, s_kj) learns c^s
-        msg = self.substrate_func(msg_in)
-
-        # ===== Aggregation: sum or product =====
-        if self.aggr_type == 'mul':
-            # multiplicative: Π MLP_sub via log-space scatter
-            eps = 1e-8
-            log_msg = torch.log(msg.abs().clamp(min=eps))
-            log_agg = torch.zeros(self.n_rxn, dtype=msg.dtype, device=msg.device)
-            log_agg.index_add_(0, self.rxn_sub, log_msg.squeeze(-1))
+        eps = 1e-8
+        if self.mm_substrate:
+            # ===== Structured Michaelis-Menten substrate (exact saturating shape) =====
+            # g_edge = [c/(Km+c)]^|s|, per-reaction product in log-space; learnable per-
+            # reaction Km. Structurally identical to the MM generator -> v = Vmax * prod g.
+            c_sub = concentrations[self.met_sub].clamp(min=eps)
+            s_abs = self.sto_all[self.sub_to_all].abs()
+            km_edge = torch.pow(10.0, self.log_km)          # per substrate-edge Km
+            sat = c_sub / (km_edge + c_sub)
+            log_agg = torch.zeros(self.n_rxn, dtype=sat.dtype, device=sat.device)
+            log_agg.index_add_(0, self.rxn_sub, s_abs * torch.log(sat.clamp(min=eps)))
+            if self.stim_idx is not None and stimulus is not None:
+                c_stim = stimulus[self.stim_idx].clamp(min=eps)
+                km_stim = torch.pow(10.0, self.log_km_stim)
+                sat_stim = c_stim / (km_stim + c_stim)
+                log_agg.index_add_(0, self.stim_rxn, self.stim_sto * torch.log(sat_stim.clamp(min=eps)))
             agg = torch.exp(log_agg)
+            base_v = agg                       # bypass softplus: saturation is already in (0,1)
         else:
-            # additive: Σ MLP_sub
-            agg = torch.zeros(self.n_rxn, dtype=msg.dtype, device=msg.device)
-            agg.index_add_(0, self.rxn_sub, msg.squeeze(-1))
+            # ===== MLP_sub: substrate contribution =====
+            # gather (c_k, |s_kj|) for each substrate edge
+            c_sub = concentrations[self.met_sub].unsqueeze(-1)
+            s_abs = self.sto_all[self.sub_to_all].abs().unsqueeze(-1)
+            msg_in = torch.cat([c_sub, s_abs], dim=-1)
 
-        # ===== Stimulus contribution (external sources driving reactions) =====
-        if self.stim_idx is not None and stimulus is not None:
-            eps = 1e-8
-            c_stim = stimulus[self.stim_idx].clamp(min=eps)
-            # MLP_sub processes stimulus concentrations the same way as metabolites
-            stim_msg_in = torch.cat([c_stim.unsqueeze(-1), self.stim_sto.unsqueeze(-1)], dim=-1)
-            stim_msg = self.substrate_func(stim_msg_in)
+            # MLP_sub(c_k, s_kj) learns c^s
+            msg = self.substrate_func(msg_in)
+
+            # ===== Aggregation: sum or product =====
             if self.aggr_type == 'mul':
-                log_stim = torch.log(stim_msg.abs().clamp(min=eps))
-                log_agg.index_add_(0, self.stim_rxn, log_stim.squeeze(-1))
+                # multiplicative: Π MLP_sub via log-space scatter
+                log_msg = torch.log(msg.abs().clamp(min=eps))
+                log_agg = torch.zeros(self.n_rxn, dtype=msg.dtype, device=msg.device)
+                log_agg.index_add_(0, self.rxn_sub, log_msg.squeeze(-1))
                 agg = torch.exp(log_agg)
             else:
-                agg.index_add_(0, self.stim_rxn, stim_msg.squeeze(-1))
+                # additive: Σ MLP_sub
+                agg = torch.zeros(self.n_rxn, dtype=msg.dtype, device=msg.device)
+                agg.index_add_(0, self.rxn_sub, msg.squeeze(-1))
+
+            # ===== Stimulus contribution (external sources driving reactions) =====
+            if self.stim_idx is not None and stimulus is not None:
+                c_stim = stimulus[self.stim_idx].clamp(min=eps)
+                # MLP_sub processes stimulus concentrations the same way as metabolites
+                stim_msg_in = torch.cat([c_stim.unsqueeze(-1), self.stim_sto.unsqueeze(-1)], dim=-1)
+                stim_msg = self.substrate_func(stim_msg_in)
+                if self.aggr_type == 'mul':
+                    log_stim = torch.log(stim_msg.abs().clamp(min=eps))
+                    log_agg.index_add_(0, self.stim_rxn, log_stim.squeeze(-1))
+                    agg = torch.exp(log_agg)
+                else:
+                    agg.index_add_(0, self.stim_rxn, stim_msg.squeeze(-1))
+
+            base_v = self.softplus(agg)  # ensure positive rates
 
         # ===== Reaction rates: v = k * aggr =====
         k = torch.pow(10.0, self.log_k)
-        base_v = self.softplus(agg)  # ensure positive rates
 
         # ===== External modulation (optional) =====
         if self.external_input_mode == "multiplicative_substrate":

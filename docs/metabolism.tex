@@ -223,51 +223,25 @@ connectome-dynamics models.
 \label{sec:toy}
 
 The toy model is a synthetic rank-50 oscillatory mass-action network ($100$
-metabolites, $256$ reactions, stoichiometry $\mathbf{S}$ given, no homeostasis),
-generated with known rate constants and fit leak-free (the loss reads only the
-concentration dynamics, never a ground-truth label). The \emph{rate-constant
-recovery} $R^2$ (learned vs.\ true $\log_{10} k_j$) is $0.75 \pm 0.04$ across
-four seeds (\cref{tab:cv}); for the published seed it is raw $0.74$ over all
-$256$ reactions, or trimmed $0.98$ after excluding the $4.3\%$ ($11/256$)
-outliers, at slope $1.00$ (\cref{fig:toy_dashboard}c). The two learned functions
-match ground truth (\cref{fig:toy_dashboard}a,b): $\mathrm{MLP_{sub}}$ recovers the substrate
-law $c^{|s|}$ and $\mathrm{MLP_{node}}$ (homeostasis) stays $\approx 0$, the
-correct value for this regime. Rollout quality is measured by the \emph{Pearson}
-correlation between the learned free autoregressive rollout and the true
-trajectory: it is high early ($0.96$ up to time $25$) and degrades as
-integration error accumulates ($0.85$ at time $50$, $0.74$ up to the divergence
-onset at time ${\approx}124$), after which the rollout diverges
-(\cref{fig:toy_dashboard}d). The rate constants are recovered, but single-step
-training places no constraint on multi-step stability, so the autocatalytic
-dynamics eventually blow up. Rate-constant recovery and rollout are different
-questions: this model recovers the parameters but is not a stable simulator.
+metabolites, $256$ reactions, $\mathbf{S}$ given, no homeostasis), generated with
+known rate constants and fit leak-free (the loss reads only the concentration
+dynamics, never a ground-truth label). Rate-constant recovery $R^2$ (learned vs.\
+true $\log_{10} k_j$) is $0.75 \pm 0.04$ across four seeds (\cref{tab:cv}), and the
+two learned functions match ground truth (\cref{fig:toy_dashboard}): $\mathrm{MLP_{sub}}$
+recovers $c^{|s|}$ and $\mathrm{MLP_{node}}$ stays $\approx 0$. The free rollout tracks the
+oscillations early but, with no multi-step constraint, the autocatalytic dynamics
+eventually diverge: this model recovers the parameters but is not a stable simulator.
 
-We then asked whether a recurrent training curriculum closes the stability gap:
-the rollout horizon is grown across epochs (single-step, then $100, 200, \dots,
-1000$ integration steps, with a co-ramped learning rate and gradient clipping).
-A naive run is a cautionary tale about the metric. The free trajectory no longer
-diverges (\cref{fig:toy_recurrent}d), and the \emph{pooled} rollout Pearson even
-rises ($0.74 \to 0.83$) --- but the pooled correlation is dominated by
-\emph{between-metabolite} level differences and merely rewards staying bounded.
-Measured honestly \emph{per metabolite} (each rollout against its own true
-trajectory), fidelity \emph{collapses} from $0.47$ (single-step) to $0.18$: the
-curriculum trades the single-step model's correct-but-unstable oscillations for a
-smooth, bounded, dynamically dead trajectory that no longer reproduces the peaks.
-Rate-constant recovery collapses in step (\cref{fig:toy_recurrent}c): the
-correlation between learned and true $\log_{10} k_j$ falls from $0.87$ to $0.07$
-(raw $R^2 = 0.004$, $90\%$ outliers), and the homeostasis $\mathrm{MLP_{node}}$,
-correctly $\approx 0$ under single-step training, drifts to a spurious nonzero
-function. The multi-step objective admits a smooth \emph{degenerate} solution ---
-wrong rate constants and a spurious homeostasis term reproduce a damped trajectory
-without the mechanism --- the same right-dynamics/wrong-parameters degeneracy seen
-on glycolysis. The lesson is twofold: report \emph{per-metabolite} rollout
-fidelity (the pooled number is flattering), and recognise that the naive
-curriculum does not buy stability so much as suppress dynamics. Whether \emph{any}
-curriculum achieves a genuinely good rollout (high per-metabolite fidelity
-\emph{and} stability \emph{and} preserved $k$-recovery) is an open question we are
-addressing with a sweep of schemes --- horizon caps, learning-rate decay,
-$k$-anchoring (freezing the recovered rate constants past the single-step warmup),
-soft tail losses, and longer warmups; results pending.
+Does a recurrent curriculum (growing the rollout horizon across epochs, single-step
+$\to 1000$ steps, with co-ramped LR and gradient clipping) close the stability gap? A
+naive run is a cautionary tale about the metric. The free trajectory no longer diverges
+and the \emph{pooled} rollout Pearson even rises, but the pooled number merely rewards
+staying bounded; measured \emph{per metabolite}, fidelity \emph{collapses}, and
+rate-constant recovery collapses with it (\cref{fig:toy_recurrent}) while
+$\mathrm{MLP_{node}}$ drifts to a spurious nonzero function. The multi-step objective admits a
+smooth \emph{degenerate} solution --- wrong $k$ plus spurious homeostasis reproduce a damped
+trajectory without the mechanism. The lesson: report \emph{per-metabolite} rollout fidelity,
+and recognise that the naive curriculum suppresses dynamics rather than buying stability.
 
 \begin{table}[H]
 \centering
@@ -301,21 +275,14 @@ constants but none yields a stable simulator.}
   \centering
   \includegraphics[width=\textwidth]{\figdir/toy_dashboard.png}
   \caption{\textbf{Toy-model results dashboard (leak-free, seed 77).}
-  \textbf{(a)} $\mathrm{MLP_{node}}$ per metabolite (homeostasis); it stays
-  $\approx 0$ (dashed: the true zero homeostasis of this regime). \textbf{(b)}
-  $\mathrm{MLP_{sub}}(c,|s|)$ (solid) vs.\ the true power law
-  $c^{|s|}$ (dashed) for $|s|{=}1,2$, anchored at $c{=}1$: the substrate law is
-  recovered for $|s|{=}1$ (the regime the toy contains), while the $|s|{=}2$
-  curve is an out-of-support extrapolation. \textbf{(c)} Rate-constant recovery: learned vs.\
-  true $\log_{10} k_j$ for all $256$ reactions after the $\mathrm{MLP_{sub}}$
-  scalar correction (dashed: identity, slope $1.00$); $11$ red points ($4.3\%$)
-  exceed the $0.3$-dex outlier gate, raw $R^2{=}0.74$, trimmed $R^2{=}0.98$.
-  \textbf{(d)} Free rollout of the eight highest-variance metabolites, $z$-scored
-  and stacked: ground truth (green) vs.\ the learned autoregressive rollout
-  (dashed black). It tracks the oscillations early and drifts until it diverges
-  at time ${\approx}124$ (red line); convergent-window rollout Pearson $0.47$ per
-  metabolite ($0.74$ pooled). Rate constants are recovered, but the
-  single-step-trained model is not a stable simulator.}
+  \textbf{(a)} $\mathrm{MLP_{node}}$ per metabolite (homeostasis; dashed: the true zero of
+  this regime). \textbf{(b)} $\mathrm{MLP_{sub}}(c,|s|)$ (solid) vs.\ the true power law
+  $c^{|s|}$ (dashed) for $|s|{=}1,2$, anchored at $c{=}1$ ($|s|{=}2$ is out-of-support
+  extrapolation). \textbf{(c)} Rate-constant recovery: learned vs.\ true $\log_{10} k_j$ for
+  all $256$ reactions after the $\mathrm{MLP_{sub}}$ scalar correction (dashed: identity); red
+  points exceed the $0.3$-dex outlier gate. \textbf{(d)} Free rollout of the eight
+  highest-variance metabolites, $z$-scored and stacked: ground truth (green) vs.\ the learned
+  autoregressive rollout (dashed black); red line marks rollout divergence.}
   \label{fig:toy_dashboard}
 \end{figure}
 
@@ -324,67 +291,36 @@ constants but none yields a stable simulator.}
   \includegraphics[width=\textwidth]{\figdir/toy_dashboard_toy_recurrent.png}
   \caption{\textbf{Naive recurrent curriculum: stable but dynamically dead.}
   Same dashboard as \cref{fig:toy_dashboard}, for a model trained with the
-  horizon-growing curriculum (single-step $\to 1000$ steps). \textbf{(d)} The free
-  rollout no longer diverges, and the \emph{pooled} Pearson rises to $0.83$ --- but
-  per metabolite (each rollout vs.\ its own true trajectory) fidelity \emph{drops}
-  to $0.18$ (from $0.47$ single-step): the predicted traces are smooth and bounded
-  but no longer reproduce the oscillations. The pooled number is flattering because
-  it is dominated by between-metabolite level differences. \textbf{(c)} Rate-constant
-  recovery has \emph{collapsed}: a structureless cloud ($90\%$ outliers, raw
-  $R^2{=}0.00$, correlation with truth $0.07$ vs.\ $0.87$ single-step). \textbf{(a)}
-  And $\mathrm{MLP_{node}}$, correctly $\approx 0$ under single-step training, has
-  drifted to a spurious nonzero homeostasis. The multi-step objective is satisfied
-  by a smooth \emph{degenerate} solution --- wrong $k$ plus spurious homeostasis ---
-  that suppresses dynamics rather than learning them. (\textbf{(b)} $|s|{=}2$ is
-  out-of-support extrapolation here, as in \cref{fig:toy_dashboard}.)}
+  horizon-growing curriculum (single-step $\to 1000$ steps). \textbf{(d)} The free rollout no
+  longer diverges but the predicted traces are smooth and bounded, no longer reproducing the
+  oscillations; \textbf{(c)} rate-constant recovery has collapsed to a structureless cloud; and
+  \textbf{(a)} $\mathrm{MLP_{node}}$ has drifted to a spurious nonzero homeostasis. (\textbf{(b)}
+  $|s|{=}2$ is out-of-support extrapolation, as in \cref{fig:toy_dashboard}.)}
   \label{fig:toy_recurrent}
 \end{figure}
 
-A different lever closes the stability gap where the curriculum could not:
-supplying a known \emph{external stimulus}. The toy is autonomous, and a long
-autonomous rollout of a linear oscillatory system collapses to a damped solution
-under any multi-step objective (above). Feeding a known time-varying drive to a
-subset of metabolites at every rollout step --- the boundary-input convention used
-by the calcium models --- changes the picture. With the drive supplied and ten
-distinct driven trajectories for training, even \emph{single-step} training yields
-a rollout that is stable over the full window (no divergence) while preserving
-rate-constant recovery ($R^2 = 0.78$), and it stays bounded on a held-out
-trajectory with a different drive (\cref{fig:toy_stim}). The external input anchors
-the dynamics the way it does in the connectome models. Per-metabolite fidelity
-($0.33$) does not yet exceed the stimulus-free early-window value ($0.47$), but the
-stimulus model holds that fidelity across the \emph{entire} trajectory rather than
-only up to divergence; whether the curriculum, now anchored by the drive, lifts it
-further without the degeneracy was then tested directly, by running the
-stimulus-driven \emph{curriculum} (three horizon schedules, each to a fixed $12$\,h
-compute budget; \cref{fig:toy_stim_rec}). The answer is negative: the curriculum does
-not improve on single-step training. Among the three schedules the best $k$-recovery
-comes from the \emph{capped} horizon (cap-$100$): the rollout stays stable and
-dynamically alive over the full window (per-metabolite Pearson $0.31$), so the
-stimulus does prevent the dead-collapse that the stimulus-free curriculum suffered
-(per-metabolite $\le 0.23$, $k$ destroyed). But the rollout fidelity ($0.31$) merely
-matches single-step training ($0.33$, \cref{fig:toy_stim}) rather than exceeding it,
-\emph{and} rate-constant recovery degrades --- from $R^2 = 0.78$ / $4\%$ outliers
-(single-step) to $R^2 = 0.44$ / $14\%$ outliers, now failing the $\le 10\%$ gate. The
-uncapped and zebrafish-style schedules are worse still on $k$ ($32\%$ and $84\%$
-outliers). The earlier warm-up reading of a high $k$-recovery held only at the short
-horizon; once training actually reaches a multi-step horizon the curriculum erodes
-$k$, exactly the stability/identifiability tension of \cref{fig:toy_recurrent},
-merely softened (not removed) by the drive. \textbf{Single-step training with the
+A different lever closes the stability gap: supplying a known \emph{external stimulus}.
+Feeding a time-varying drive to a subset of metabolites at every rollout step --- the
+boundary-input convention of the calcium models --- changes the picture. With the drive
+supplied and ten driven trajectories for training, even \emph{single-step} training gives a
+rollout that is stable over the full window while preserving rate-constant recovery, and stays
+bounded on a held-out trajectory with a different drive (\cref{fig:toy_stim}). Running the
+stimulus-driven \emph{curriculum} on top (three horizon schedules to a fixed $12$\,h budget;
+\cref{fig:toy_stim_rec}) does not improve on this: the stimulus prevents the dead-collapse the
+stimulus-free curriculum suffered, but once training reaches a multi-step horizon the
+curriculum erodes $k$-recovery without a rollout gain --- the same identifiability tension as
+\cref{fig:toy_recurrent}, softened by the drive. \textbf{Single-step training with the
 external stimulus remains the best toy configuration.}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{\figdir/toy_dashboard_toy_stim10_single.png}
   \caption{\textbf{An external stimulus anchors the rollout.} Same dashboard, for
-  single-step training on ten trajectories driven by a known time-varying stimulus
-  (orange in \textbf{d}, the given input, plotted as in the glycolysis figure).
-  \textbf{(d)}~The free rollout (black) is now stable over the full window with no
-  divergence (contrast \cref{fig:toy_dashboard}d, which diverges at $t{\approx}124$,
-  and \cref{fig:toy_recurrent}d's degeneracy); per-metabolite Pearson $0.33$.
-  \textbf{(c)}~Rate-constant recovery is preserved ($R^2 = 0.78$, $4\%$ outliers)
-  --- the stimulus stabilises the rollout \emph{without} the parameter collapse the
-  curriculum caused. On a held-out trajectory with a different drive the rollout
-  stays bounded (per-metabolite $0.20$).}
+  single-step training on ten trajectories driven by a known time-varying stimulus (orange in
+  \textbf{d}, the given input). \textbf{(d)}~The free rollout (black) is now stable over the
+  full window with no divergence (contrast \cref{fig:toy_dashboard}d and
+  \cref{fig:toy_recurrent}d); \textbf{(c)}~rate-constant recovery is preserved --- the stimulus
+  stabilises the rollout without the parameter collapse the curriculum caused.}
   \label{fig:toy_stim}
 \end{figure}
 
@@ -392,558 +328,63 @@ external stimulus remains the best toy configuration.}
   \centering
   \includegraphics[width=\textwidth]{\figdir/toy_dashboard_toy_stim10_cap200.png}
   \caption{\textbf{The recurrent curriculum, even anchored by the stimulus, does not
-  beat single-step training.} Best of three stimulus-driven curriculum schedules (the
-  capped cap-$100$ horizon, trained to a $12$\,h budget). \textbf{(d)}~The free rollout
-  (black) under the given drive (orange) is stable over the full window with no
-  divergence and tracks the ground-truth oscillations (green), but per-metabolite
-  Pearson is only $0.31$ --- matching, not exceeding, single-step training
-  (\cref{fig:toy_stim}, $0.33$). \textbf{(c)}~Rate-constant recovery has degraded to
-  $R^2 = 0.44$ (trimmed $0.92$) with $14\%$ outliers (red), above the $\le 10\%$ gate
-  and well below the single-step value ($0.78$, $4\%$); \textbf{(a)}~$\mlpnode$ also
-  drifts to a spurious nonzero function. The stimulus prevents the dead-collapse of the
-  stimulus-free curriculum but the multi-step objective still trades away $k$
-  identifiability for no rollout gain.}
+  beat single-step training.} Best of three stimulus-driven curriculum schedules (capped
+  cap-$100$ horizon, $12$\,h budget). \textbf{(d)}~The free rollout (black) under the given
+  drive (orange) is stable and tracks the ground truth (green), but \textbf{(c)}~rate-constant
+  recovery has degraded (red outliers) and \textbf{(a)}~$\mlpnode$ drifts to a spurious nonzero
+  function --- the multi-step objective trades away $k$ identifiability for no rollout gain.}
   \label{fig:toy_stim_rec}
 \end{figure}
 
 \textbf{Intrinsic noise as an identifiability lever --- and the right form for a
-conserved system.} Stochastic forcing \emph{inside} the dynamics (distinct from
-measurement noise on the observations) can diversify a trajectory and, in a
-degenerate problem, help break identifiability. But the \emph{form} of the noise
-matters when the state obeys a conservation law. Adding an additive term
-$\sigma\,\xi_i(t)$ directly to the concentrations --- the Euler step of the
-stochastic differential equation $dc = f(c)\,dt + \sigma\,dW$ --- is
-stoichiometrically \emph{unsound}: it injects or removes mass that no reaction
-produced, so we do not use it. The sound alternative perturbs the reaction
-\emph{rates}: $k_j(t) = k_j\,(1 + \sigma\,\xi_j(t))$, a fluctuation in enzyme
-activity. Each reaction still conserves mass through $S$ and only its flux varies, so
-every trajectory stays physical (sub-$10\%$ mass drift) while the data diversify
-(activity rank $35 \to 50$ at $\sigma = 0.3$). The rollout sweep
-(\cref{fig:toy_knoise}) shows the effect directly: as $\sigma$ grows the simulated
-ground truth becomes visibly jagged while the deterministic model rolls out smoothly,
-recovering the underlying clean dynamics from noisy data at low noise. But for
-\emph{recovery} the rate noise is \emph{benign then harmful}: at $\sigma = 0.1$ it is
-unchanged from $\sigma = 0$ (trimmed $R^2 = 0.96$, $4.7\%$ outliers; the raw
-$R^2 = 0.85$ sits inside the cross-seed band), then degrades monotonically
-($\sigma = 0.3$: $21\%$ outliers; $\sigma = 0.5$: $60\%$, as the noise corrupts the
-trajectory itself). So getting the noise physically right does not change the outcome:
-with $S$ given, $k$ is \emph{already} identifiable at $\sigma = 0$
-(\cref{fig:toy_dashboard}), so there is no degeneracy left for any noise to break.
-The lever would matter only in a genuinely $k$-degenerate regime (e.g.\ $S$ unknown),
-which we leave to future work.
+conserved system.} Stochastic forcing \emph{inside} the dynamics can diversify a
+trajectory and help break a degeneracy, but its \emph{form} matters under a conservation
+law. Adding noise directly to the concentrations ($dc = f(c)\,dt + \sigma\,dW$) injects mass
+no reaction produced --- stoichiometrically unsound. The sound alternative perturbs the
+reaction \emph{rates}, $k_j(t) = k_j(1 + \sigma\,\xi_j(t))$ (enzyme-activity fluctuation): mass
+is conserved through $S$, trajectories stay physical, and the data diversify
+(\cref{fig:toy_knoise}). But here this does not change the outcome: with $S$ given, $k$ is
+\emph{already} identifiable at $\sigma = 0$, so there is no degeneracy left to break, and the
+noise is benign at low level then harmful as it corrupts the trajectory. The lever would
+matter only in a genuinely $k$-degenerate regime (e.g.\ $S$ unknown), left to future work.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{\figdir/toy_knoise_rollout.png}
   \caption{\textbf{Stoichiometrically-sound rate-noise sweep (rollout traces).}
   Intrinsic noise applied to the reaction \emph{rates}, $k_j(1+\sigma_k\xi)$
-  (enzyme-activity fluctuation; mass-conserving), at four levels. Each panel shows the
-  noisy simulated ground truth (green) and the trained model's deterministic free
-  rollout (black), $z$-scored and stacked, with the leak-resistant $k$-recovery $R^2$
-  and per-metabolite rollout Pearson annotated. As $\sigma_k$ grows the simulation
-  becomes visibly jagged while the model rollout stays smooth; $k$-recovery is
-  unchanged at $\sigma_k = 0.1$ and then degrades ($21\%$ then $60\%$ outliers),
-  confirming that on this $S$-given toy the (sound) noise neither helps nor is needed
-  to identify $k$.}
+  (enzyme-activity fluctuation; mass-conserving), at four levels. Each panel shows the noisy
+  simulated ground truth (green) and the trained model's deterministic free rollout (black),
+  $z$-scored and stacked, with $k$-recovery $R^2$ and per-metabolite rollout Pearson annotated.
+  As $\sigma_k$ grows the simulation becomes visibly jagged while the model rollout stays
+  smooth.}
   \label{fig:toy_knoise}
 \end{figure}
 
 \section{Toward real metabolomics}
 \label{sec:realdata}
 
-The framework is developed and validated on synthetic data where ground
-truth is known; the goal is real metabolomic time series. Three concrete
-datasets, now vendored in the repository, stage that transition from fully
-parameterised kinetics, through genome-scale topology, to a real recording.
-None of the three is solved yet; this section describes what each provides
-and what stands between it and a result.
-
-\paragraph{Rung 1 --- yeast glycolysis kinetic model (BioModels
-the published yeast glycolysis kinetic model).}
-A small, fully parameterised kinetic model of glycolysis in
-\emph{S.\ cerevisiae} \citep{smallbone2013}, imported from SBML. After
-separating dynamic from boundary species it gives $20$ internal metabolites
-($+9$ fixed boundary species), $30$ reactions including iso-enzymes (three
-hexokinase, three pyruvate-decarboxylase, three glyceraldehyde-3-phosphate
-variants), with real stoichiometry $\mathbf{S}$ and measured initial
-concentrations. The stoichiometry is sparse ($77$ nonzero entries) and almost
-entirely unit-valued --- coefficients are $\pm 1$ ($40$ negative, $35$ positive)
-with a single $-2$ and a single $-3$ --- but, unlike the all-$|s|{=}1$ toy, it is
-genuinely \emph{multi-substrate}: of the $30$ reactions $15$ are first-order in
-substrate, $13$ are second-order ($|s|{=}2$), and one is fourth-order, so there is
-real kinetic curvature to recover. Crucially the rate laws are \emph{not}
-mass-action but \emph{Michaelis--Menten} (MM), the saturating enzyme-kinetic law
-$v = V_{\max}\,c/(K_m+c)$: the reaction velocity rises with substrate and plateaus,
-where $V_{\max}$ (the \emph{maximal velocity}, set by enzyme amount and turnover) is
-the per-reaction rate constant to be recovered --- the MM analogue of the
-mass-action $k_j$ --- and $K_m$ (the \emph{half-saturation constant}) is the
-substrate concentration at which $v = V_{\max}/2$. Glycolysis mixes
-reversible/irreversible MM, Hill, and allosteric forms, so
-$v_j = V_{\max,j}\prod_k\!\big[c_k/(K_{m,kj}+c_k)\big]^{|S_{kj}|}$ rather
-than a power law. This is the cleanest available ground truth: known
-$V_{\max}$/$K_m$ let us score parameter recovery directly. \emph{Status:}
-the SBML import, $\mathbf{S}$ extraction, and a Michaelis--Menten simulator
-are in place and generate a $12{,}000$-frame dataset, and we port the
-connectome-style \emph{autoregressive curriculum} (per-epoch horizon ramp
-$10\to300$, soft tail-loss, LR co-ramp, gradient clipping) to stabilise the
-rollout. Two cautions, both found by being sceptical of an initially good
-number. First, the test rollout looked catastrophic ($R^2={-}390$) only because
-the evaluator omitted the model's \emph{boundary stimulus}; supplying it, the
-curriculum model reproduces the trajectory well (global $R^2 = 0.99$,
-\cref{fig:glyco_rollout}). Second, that success is misleading: it is
-\emph{in-sample} (a single trajectory, no held-out run), the per-metabolite
-$R^2$ is only $0.15$, and the leak-resistant test fails outright --- the
-recovered $V_{max}$ correlate with ground truth at $R^2 \approx 0$ (slope
-$0.06$, $73\%$ outliers, \cref{fig:glyco_recovery}). The model therefore
-reproduces the dynamics with the \emph{wrong} kinetics: a degenerate fit. A
-\emph{direct held-out test} confirms it does not generalise: rolling the trained
-model out on an unseen trajectory (a different boundary stimulus, comparable
-rank, \cref{fig:glyco_holdout}) collapses the fit from global Pearson $0.997$
-in-sample to $0.28$ (global $R^2$ $0.99 \to 0.05$; per-metabolite $R^2$ strongly
-negative) --- the predicted traces settle to the wrong levels and no longer track
-the true dynamics. The good in-sample rollout was effectively memorisation of the
-single training trajectory. The curriculum fixed rollout \emph{stability}; the real
-open problem on real Michaelis--Menten data is parameter \emph{identifiability}
---- the same scale/compensation degeneracy as the synthetic setup, but here
-unbroken. (One robust falsification survived both metrics: the config with the
-lowest \emph{training} loss had the worst rollout \emph{and} the worst recovery,
-so training loss is not a proxy for either.)
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.92\textwidth]{\figdir/glyco_rollout.png}
-  \caption{\textbf{Rung 1 glycolysis: free-running rollout, ground truth vs
-  learned} (the curriculum model, stimulus supplied). The eight
-  highest-variance metabolites, $z$-scored and stacked by a vertical offset:
-  ground truth (green) vs.\ the learned free autoregressive rollout (dashed
-  black); the nine \emph{given} external stimulus channels (orange, top) are the
-  known boundary drive supplied to the rollout, not predicted. The rollout tracks
-  the trajectory with no divergence; rollout Pearson vs.\ the true trajectory is
-  $0.997$ globally ($0.89$ per-metabolite). But note the metabolites mostly relax
-  to a steady state under the strong given drive --- so the high Pearson is partly
-  stimulus-driven settling, and per-metabolite $R^2$ is only $0.14$ (the settled
-  levels drift). This is \emph{in-sample} (single trajectory, no held-out run),
-  and despite the good-looking rollout the rate constants are not recovered
-  ($V_{\max}$ recovery $R^2 \approx 0$, \cref{fig:glyco_recovery}).}
-  \label{fig:glyco_rollout}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.92\textwidth]{\figdir/glyco_rollout_holdout.png}
-  \caption{\textbf{Rung 1 glycolysis: the held-out generalisation test.} The same
-  trained model rolled out on an \emph{unseen} trajectory --- a different given
-  stimulus (orange, top) and a different initial state, comparable rank --- never
-  used in training. Unlike the in-sample case (\cref{fig:glyco_rollout}), the
-  learned rollout (dashed black) settles to the \emph{wrong} levels and no longer
-  tracks ground truth (green): global Pearson falls from $0.997$ to $0.28$
-  (global $R^2$ $0.99 \to 0.05$; per-metabolite $R^2$ strongly negative). The
-  in-sample fit was memorisation of one trajectory, not a learned mechanism ---
-  direct evidence for the degeneracy implied by the failed $V_{\max}$ recovery.}
-  \label{fig:glyco_holdout}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.6\textwidth]{\figdir/glyco_k_recovery.png}
-  \caption{\textbf{Rung 1 glycolysis: $V_{max}$ recovery fails} ---
-  the leak-resistant test. Learned vs true $\log_{10} V_{max}$ for the $30$
-  reactions: $R^2 \approx 0$, slope $0.06$, $22/30$ ($73\%$) outliers (fails the
-  $10\%$ gate). Despite the near-perfect in-sample rollout
-  (\cref{fig:glyco_rollout}), the model recovers essentially \emph{none} of the
-  true kinetics --- a degenerate fit (right dynamics, wrong mechanism).}
-  \label{fig:glyco_recovery}
-\end{figure}
-
-\paragraph{Does $\mathrm{MLP_{sub}}$ learn the glycolysis kinetics, and does the
-log-exp form help?} A natural suspect for the recovery failure is that
-$\mathrm{MLP_{sub}}$ cannot represent the substrate kinetics. Unlike the synthetic
-power-law toy, glycolysis is Michaelis--Menten: the substrate law \emph{saturates},
-$[c/(K_m{+}c)]^{|s|}$, rather than growing as $c^{|s|}$. We compare the learned
-$\mathrm{MLP_{sub}}$ against that MM truth for the plain MLP and the log-space
-parameterisation $g=\exp(\mathrm{MLP}(\log c, |s|))$ (\cref{fig:glyco_sub}).
-Representation is \emph{not} the bottleneck for the well-populated orders: $|s|{=}1$
-($15$ reactions) is tracked by both forms, and $|s|{=}2$ ($13$ reactions) is partly
-captured (plain) or mildly undershot (log-space). Only $|s|{=}4$ --- a \emph{single}
-reaction --- is unconstrained, where the plain MLP extrapolates wildly and log-space
-flattens: with one example there is no signal to fit it (the same
-scarcity-of-high-order-reactions limit discussed below). Crucially, the log-exp form
-does \emph{not} rescue Rung~1: $V_{\max}$ recovery is $R^2 = 0.00$ (plain) and $0.04$
-(log-space), both failing outright. The exponential ansatz, which added curvature on
-the power-law toy, is mismatched to a \emph{saturating} law; and in any case the
-limiting factor is not how $\mathrm{MLP_{sub}}$ is parameterised but the
-Michaelis--Menten identifiability degeneracy ($V_{\max}$ and $K_m$ trade off) --- the
-substrate function can be represented, yet the rate constants are not recovered.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{\figdir/glyco_sub_compare.png}
-  \caption{\textbf{Rung 1: does $\mathrm{MLP_{sub}}$ learn the glycolysis substrate
-  kinetics?} Learned $\mathrm{MLP_{sub}}(c,|s|)$ (solid) vs the true Michaelis--Menten
-  law $[c/(K_m{+}c)]^{|s|}$ (dashed; saturating, not a power law) for the glycolysis
-  substrate orders $|s|{=}1,2,4$, log $y$-axis, anchored at $c{=}1$. \textbf{(a)} plain
-  MLP, \textbf{(b)} log-space MLP. The well-populated $|s|{=}1$ (and largely $|s|{=}2$)
-  shapes are captured; $|s|{=}4$ is a single reaction and unconstrained (plain blows
-  up, log-space flattens). Either way $V_{\max}$ recovery fails ($R^2 = 0.00$ plain /
-  $0.04$ log-space), so the substrate-function form is not the limiting factor.}
-  \label{fig:glyco_sub}
-\end{figure}
-
-\paragraph{The limit is signal, not capacity.} Two controls on a synthetic
-$|s|{\ge}2$ regime (where the substrate orders, unlike glycolysis's one $|s|{=}4$
-reaction, are populated enough to test) localise the residual failure. (i)~Training
-on four diverse trajectories instead of one barely helps (outliers
-$37.5\%\!\to\!32\%$), so it is not a data-volume / identifiability-by-replication
-problem. (ii)~A \emph{structured} substrate function $g=c^{a(|s|)}$ --- which can
-represent any exponent \emph{exactly} ---
-still fails (outliers $30.9\%$): its learned exponent map saturates at
-$a(s){=}1.0, 1.45, 1.64, 1.71, 1.73, 1.75$ for $s{=}1{\dots}6$, against the true
-$1,2,3,4,5,6$. It nails $a(1)$ ($499$ reactions) but never reaches the high
-exponents --- because those reactions are \emph{rare} ($15/12/8/2$ reactions at
-$|s|{=}3/4/5/6$). The unrecoverable ${\sim}31\%$ are exactly the $|s|{\ge}2$
-reactions, across all three parameterisations. So the bottleneck for high-order
-kinetics is neither MLP capacity nor data volume but the \emph{scarcity of
-high-order reactions}: too little signal to identify a steep exponent. The fix is
-a structural prior (e.g.\ integer exponents) or a regime richer in high-$|s|$
-reactions --- not a better generic function approximator.
-
-\paragraph{Rung 2 --- consensus genome-scale model (yeast-GEM).}
-The community-curated genome-scale model of \emph{S.\ cerevisiae}
-\citep{yeastgem}: $2{,}806$ metabolites, $4{,}131$ reactions across $14$
-compartments. It supplies a large, real stoichiometric matrix $\mathbf{S}$
-and flux bounds but \emph{no} kinetic rate laws --- the true inverse
-problem. The intended use is to extract a central-carbon subgraph
-(glycolysis $+$ TCA $+$ fermentation, ${\sim}100$--$150$ reactions), drive
-it with dynamic-FBA or literature kinetics to generate in-silico dynamics,
-and fit the GNN in ``S given'' mode on a realistic topology. \emph{Status:}
-not started beyond vendoring the model; subgraph extraction and a dynamics
-generator are still to be written.
-
-\paragraph{Rung 3 --- real-time metabolomics during nutrient transitions
-(real data).}
-High-frequency flow-injection mass spectrometry of live microbial culture
-\citep{link2015}, now downloaded as the paper's supplementary tables. For
-\emph{E.\ coli} the released data give a metabolite$\times$time intensity
-matrix of $247$ annotated ions over $119$ evenly spaced time points in
-three biological replicates (a long batch course), plus a dedicated
-starvation$\to$growth switch series of $302$ ions over ${\sim}148$ points;
-companion \emph{B.\ subtilis} and \emph{Y.\ lipolytica} sets are included.
-Each ion carries a KEGG annotation ($444$ distinct KEGG IDs for
-\emph{E.\ coli}), though many ions are mass-ambiguous (one $m/z$ maps to
-several candidate metabolites) and values are \emph{relative} ion
-intensities, not absolute concentrations. \emph{Status:} the data are now
-ingested and characterised (\cref{fig:ecoli_real}). The trajectory is
-\emph{information-rich} --- its activity rank is $60$ at $90\%$ and $102$ at
-$99\%$ of the variance, far above the closed synthetic networks (toy $50$,
-glycolysis $5$, driven real topologies $38$) --- so, unlike the synthetic
-rungs, data richness is \emph{not} the limiting factor. The obstacle is
-\emph{partial observation}: of the $247$ measured metabolites only $32$ map
-(by KEGG) into the \emph{E.\ coli} core model and $286$ into genome-scale
-iJO1366, but iJO1366 carries ${\sim}1800$ metabolites, so the measured set is
-a small, open fraction whose dynamics depend on reactions involving
-\emph{unmeasured} (latent) species. The subnetwork where the inverse problem
-is even well-defined --- reactions whose every metabolite is measured --- is
-$181$ of iJO1366's $2583$ reactions; that fully-observed core is the only
-place a leak-resistant fit can be attempted, and is the immediate LSQ/GNN
-target. There is \emph{no} kinetic ground truth, so success can be judged only
-by held-out prediction, not by recovered $k_j$.
-A parallel mammalian direction is chronic jugular microdialysis in freely
-moving mice \citep{nardin2025} (${\sim}123$ metabolites every $7.5$~min over
-${\sim}8$~h; $10$ components explain $73\%$ of variance).
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{\figdir/ecoli_real_data.png}
-  \caption{\textbf{The real \emph{E.\ coli} metabolome is a high-rank trajectory.}
-  \textbf{(a)} Measured trajectory: $247$ metabolites $\times$ $119$ time points
-  (relative ion intensities; $z$-scored per metabolite, rows sorted by activity).
-  \textbf{(b)} SVD cumulative-variance spectrum: the activity rank is $60$ at $90\%$
-  and $102$ at $99\%$ of the variance --- far richer than the closed synthetic networks
-  (toy rank $50$, glycolysis $5$, driven real topologies $38$). Data richness is therefore
-  not the bottleneck for real data; the obstacle is partial observation (only $\sim 181$
-  of iJO1366's reactions have all their metabolites measured).}
-  \label{fig:ecoli_real}
-\end{figure}
-
-\paragraph{What transfers and what changes.}
-The core recipe transfers: the bipartite graph, message passing over
-reactions, function discovery via $\mlpsub/\mlpnode$, and log-space
-rate-constant recovery. Real data adds, all at once, the obstacles the
-synthetic setup omits: non-mass-action (saturating, allosteric) kinetics
-that $\mlpsub$ must learn; a partially known and incomplete $\mathbf{S}$
-(only measured metabolites, ambiguous identities); two orders of magnitude
-fewer, unevenly spaced time points ($\sim 10^2$ vs $\sim 10^3$); relative
-rather than absolute concentrations; and external drivers (the nutrient
-switch) that must enter as a term $f_{\mathrm{ext}}(t)$ in \cref{eq:full}.
-
-\paragraph{What we expect.}
-We do \emph{not} expect the real-data rungs to work soon. The realistic
-near-term target is Rung~1: get the GNN to recover the published
-$V_{\max}$/$K_m$ of a real kinetic model under Michaelis--Menten kinetics
---- a contained problem with ground truth, but one the current code does not
-yet solve. Rung~2 is a topology-realism check with no kinetic ground truth.
-Rung~3 (real \emph{E.\ coli}) is the genuine goal but also where every
-difficulty above appears together; a first ``result'' there means only
-predicting held-out frames of measured dynamics, not recovering mechanism.
-\Cref{tab:status} summarises the gap. The honest reading: one validated
-synthetic working point, three real rungs at the data-and-scaffolding stage,
-and substantial method development (saturating kinetics, honest homeostasis,
-incomplete-network handling, relative-concentration rescaling) still
-required before any real-data claim.
-
-\paragraph{Identifiability on a real network topology (imposed kinetics).}
-Short of full real data, we can already probe the identifiability question on \emph{real}
-metabolic topology by imposing synthetic Michaelis--Menten kinetics (random $V_{\max}/K_m$,
-hence known ground truth) on the real stoichiometry $\mathbf{S}$ of two networks:
-\emph{E.\ coli} core ($72$ metabolites, $71$ enzymatic reactions after dropping
-biomass/exchange pseudo-reactions) and a cytosolic central-carbon subgraph of yeast-GEM
-($208$ metabolites, $120$ reactions). With $\mathbf{S}$ given the model reproduces the
-dynamics --- pooled rollout Pearson $0.99$, per-metabolite $0.55$ (\emph{E.\ coli}) and
-$0.58$ (yeast) --- yet recovers \emph{none} of the kinetics: $V_{\max}$ recovery is
-$R^2 \approx 0$ with $100\%$ of reactions outside the $0.3$-dex gate, on \emph{both} networks
-(\cref{fig:rung_real}). This is the glycolysis degeneracy in its most extreme form, and the
-cause is dynamical, not structural: these closed networks relax to a steady state within a few
-frames, so their trajectories have activity rank ${\approx}2$ --- far below the synthetic toy
-(rank $50$, oscillatory, where $k$ \emph{is} recovered at $R^2 = 0.74$) or even glycolysis
-(rank $5$, $73\%$ outliers). Identifiability therefore tracks the \emph{information content of
-the dynamics}, not the size of the network or the method: a closed metabolic subnetwork at
-steady state is information-starved. Recovering kinetics on real topology will require dynamics
-that hold the system \emph{off} its fixed point --- a sustained external drive, or the nutrient
-switch of Rung~3 --- to raise the rank.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.84\textwidth]{\figdir/toy_dashboard_ecoli_core_mm.png}\\[3pt]
-  \includegraphics[width=0.84\textwidth]{\figdir/toy_dashboard_yeast_central_mm.png}
-  \caption{\textbf{Identifiability on real topology with imposed MM kinetics.} Top:
-  \emph{E.\ coli} core ($72{\times}71$); bottom: yeast-GEM cytosolic subgraph ($208{\times}120$).
-  Real stoichiometry, synthetic Michaelis--Menten kinetics (so $V_{\max}/K_m$ are known ground
-  truth), $\mathbf{S}$ given. Each dashboard: \textbf{(a)} $\mlpnode$, \textbf{(b)} $\mlpsub$,
-  \textbf{(c)} $V_{\max}$ recovery, \textbf{(d)} free rollout. The rollout is plausible (pooled
-  Pearson $0.99$, per-metabolite $0.55$--$0.58$) but $V_{\max}$ recovery is total failure
-  ($R^2 \approx 0$, $100\%$ outliers) --- the closed networks settle to steady state (activity
-  rank ${\approx}2$), carrying too little information to constrain the kinetics.}
-  \label{fig:rung_real}
-\end{figure}
-
-\paragraph{Raising identifiability: drive the network off steady state.}
-The failure above is a \emph{data} problem, and it has a precise linear-algebra reading.
-With $\mathbf{S}$ given, recovering the kinetics is \emph{linear in the parameters},
-$\mathbf{A}\,\boldsymbol{\theta}=\mathbf{b}$, where each row is a measured $dc/dt$ and the
-column multiplying a reaction's rate constant is built from its substrate concentrations
-over time. If a metabolite never varies (a network at steady state), its columns are
-constant or zero --- null and sloppy directions in $\mathbf{A}$ --- and those parameters are
-unidentifiable. Equivalently, linearising the dynamics as $\dot c = J c + B\,u(t)$, an
-\emph{autonomous} trajectory ($u{=}0$) collapses into the few slowest eigenmodes (activity
-rank ${\approx}2$), whereas an external source $u$ on $m$ metabolites drives the trajectory
-into the controllability subspace $\mathrm{span}\{B, JB, J^2B,\dots\}$, whose dimension grows
-with $m$ and with the spectral richness of $u$. We therefore inject a known multi-frequency
-metabolite source (an additive open-system term $u_i(t)$, the analogue of the glycolysis
-boundary stimulus) on a subset of metabolites and sweep its breadth. The activity rank rises
-\emph{linearly} with the number of driven metabolites --- rank ${\approx}m$ --- on both real
-topologies (\cref{fig:stim_rank}): from the rank-${\approx}2$ closed steady state to rank
-$19$--$21$ at $m{=}20$ and ${\approx}30$ at $m{=}40$, clearing the rank-$20$ target.
-Information content, not network size, is the lever; the next step trains on these
-high-rank, stimulus-driven trajectories.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.62\textwidth]{\figdir/stimulus_rank.png}
-  \caption{\textbf{An external metabolite source raises the activity rank
-  ${\approx}$ linearly.} Activity rank (99\%) of the simulated trajectory vs the number
-  of metabolites carrying a known multi-frequency source drive, for all three rungs
-  under imposed MM kinetics: Rung~1 glycolysis ($20$ met), Rung~3 \emph{E.\ coli} core
-  ($72$ met), Rung~2 yeast-GEM subgraph ($208$ met). Closed ($0$ driven) networks sit at
-  rank ${\approx}2$; driving $m$ metabolites gives rank ${\approx}m$ (dashed identity) on
-  all three, crossing the rank-$20$ identifiability target at $m{\approx}20$. The drive is
-  the data-side prerequisite for recovering kinetics.}
-  \label{fig:stim_rank}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{\figdir/model_traces.png}
-  \caption{\textbf{Free-rollout traces under the external drive, one panel per rung.}
-  Eight highest-variance metabolites, $z$-scored and stacked: ground truth (green) vs the
-  trained model's free rollout (black). \textbf{(a)} Rung~1 glycolysis (settles to steady
-  state); \textbf{(b)} Rung~3 \emph{E.\ coli} core and \textbf{(c)} Rung~2 yeast-GEM
-  subgraph, both with the $m{=}40$ metabolite source (rank $38$): the drive holds the
-  networks in sustained, information-rich oscillation rather than a fixed point. The rollout
-  tracks the driven dynamics (per-metabolite Pearson $0.58$--$0.59$); recovering the
-  \emph{kinetics} from them is the open step (cf.\ \cref{fig:stim_rank}).}
-  \label{fig:model_traces}
-\end{figure}
-
-\paragraph{Identifiability is not the bottleneck --- learnability is.} The GNN trained on the
-driven (rank-$38$) \emph{E.\ coli} data recovers \emph{none} of the kinetics ($V_{\max}$
-$R^2 \approx 0$, $100\%$ outliers), exactly as on the undriven net. Yet the inverse problem is
-\emph{well-posed}. Given $\mathbf{S}$ \emph{and the rate-law shape}, $dc/dt$ is linear in the
-per-reaction scale, $A\,\theta = b$ with columns $A_{\cdot j} = \mathbf{S}_{\cdot j}\,\phi_j(c)$
-($\phi_j=\prod c^{s}$ for mass action; $\phi_j=\prod[c/(K_m{+}c)]^{s}$ with the true $K_m$ for
-MM). Built exactly from the simulator's Jacobian (reconstruction residual $10^{-4}$), this $A$ is
-\emph{full column rank} and well conditioned at \emph{both} rank-$2$ (cond.\ $121$) and rank-$38$
-(cond.\ $31$); a plain least-squares solve then recovers $V_{\max}$ \emph{perfectly}
-($R^2 = 1.00$) \emph{and} that $V_{\max}$ free-rolls-out at per-metabolite Pearson $1.00$, at both
-ranks. So the data always suffice --- identifiability is not rank-limited --- and a single correct
-solution nails parameters \emph{and} rollout; the GNN simply does not find it.
-
-The catch is that this $R^2{=}1$ is conditional on \emph{knowing $\phi$}. The GNN does not: it must
-learn the shape ($\mathrm{MLP_{sub}}$) \emph{and} the scale ($V_{\max}$) jointly, and that
-factorisation is where MM fails. A saturating shape with a free per-reaction $K_m$ can absorb the
-per-reaction scale, so $V_{\max}$ drifts; the rigid power law of mass action cannot, so its scale
-is pinned and recovers --- which is why the GNN recovers the mass-action toy ($R^2{=}0.74$) even
-though \emph{its} design matrix is \emph{worse} posed (rank-deficient, least-squares $R^2{=}0.87$).
-GNN success is thus decoupled from identifiability and set by shape$\times$scale learnability. The
-lever is therefore the model, not the data: solve $V_{\max}$ by least squares \emph{given the
-GNN's learned shape}, or constrain $\mathrm{MLP_{sub}}$'s shape/scale --- not more rank, drive, or
-trajectories.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{\figdir/rollout_recovery.png}
-  \caption{\textbf{Right parameters give a perfect rollout; the GNN finds neither.} Free rollout
-  of the driven \emph{E.\ coli} core network (eight highest-variance metabolites, $z$-scored,
-  stacked) vs ground truth (green). \textbf{(a)} With the \emph{GNN-learned} kinetics the rollout
-  (black) drifts off in amplitude/phase --- per-metabolite Pearson $0.59$, and $V_{\max}$
-  unrecovered. \textbf{(b)} With $V_{\max}$ from a least-squares solve given the true substrate
-  shape, the rollout overlays the truth exactly (per-metabolite Pearson $1.00$). A single correct
-  solution nails both parameters and rollout; the GNN's mediocre rollout and wrong $V_{\max}$ are
-  two symptoms of the same shape$\times$scale learnability gap, not of an ill-posed problem.}
-  \label{fig:rollout_recovery}
-\end{figure}
-
-\paragraph{A realistic, non-oscillatory stimulus changes nothing.} One might worry the failure is
-an artefact of the \emph{shape} of the drive --- a clean multi-sinusoid is nothing like a real
-metabolome. The measured \emph{E.\ coli} trajectory is smooth, aperiodic and low-frequency (lag-$1$
-autocorrelation $0.37$), so we replaced the sinusoid with an Ornstein--Uhlenbeck / AR($1$) drive
-($\phi{=}0.98$; \cref{fig:ou_stimulus}a) and regenerated all three rungs with the same imposed-MM
-kinetics. The driven trajectories are correspondingly smooth and aperiodic (activity rank$_{99}$
-$13/37/38$ for glycolysis / \emph{E.\ coli} core / yeast central). Retraining the GNN on these
-realistic-stimulus data reproduces the failure \emph{exactly}: $V_{\max}$ recovery $R^2 = 0.008 /
-0.003 / 0.005$ ($70\%/86\%/98\%$ outliers), while free rollout stays serviceable
-(per-metabolite Pearson $0.90/0.90/0.83$; \cref{fig:ou_stimulus}b). This is the identical
-decoupling seen under the sinusoid --- good-enough trajectory prediction with unrecovered scale ---
-so the learnability barrier is \emph{stimulus-shape-invariant}: neither the richness nor the
-temporal character of the drive is the lever. The lever remains model-side.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{\figdir/ou_stimulus.png}
-  \caption{\textbf{Making the stimulus realistic does not rescue recovery.} \textbf{(a)} The drive
-  (orange) is an Ornstein--Uhlenbeck / AR($1$) process ($\phi{=}0.98$) --- smooth, aperiodic,
-  low-frequency, matching the real metabolome's character rather than an obvious oscillation --- and
-  the driven metabolite (black) inherits that structure. \textbf{(b)} Across all three rungs the GNN
-  recovers $V_{\max}$ at $R^2 \approx 0$ (grey) yet rolls out at per-metabolite Pearson $0.83$--$0.90$
-  (black): the same recovery/rollout decoupling as under the sinusoidal drive. The learnability
-  barrier is stimulus-shape-invariant.}
-  \label{fig:ou_stimulus}
-\end{figure}
-
-\paragraph{Least squares does the job; the GNN hardly does it yet.} The cleanest statement of where
-the difficulty lives is to put the two estimators side by side on the \emph{same} realistic-stimulus
-data (\cref{fig:lsq_vs_gnn}). Given the true substrate shape, least squares for the per-reaction
-scale is the achievable upper bound; built from the simulator's exact Jacobian, it recovers
-$V_{\max}$ \emph{perfectly} on the two rungs where the dynamics are genuinely linear in $V_{\max}$
-(glycolysis and \emph{E.\ coli} core, reconstruction residual ${\sim}10^{-4}$): $R^2 = 1.00$ vs the
-GNN's $0.008$ and $0.003$. The third rung (yeast central) is flux-limit-clamped, which makes the
-dynamics nonlinear in $V_{\max}$ and invalidates the linear design matrix (residual $0.30$); there
-even least squares degrades to $R^2 = 0.12$, but that is a property of the clamped simulator, not a
-limit of the data --- and the GNN is still worse ($0.005$). So a correct, shape-informed solve
-nails the parameters wherever the inverse problem is honestly posed, while the GNN, which must
-\emph{discover} the shape and the scale jointly, recovers essentially none of it. The remaining gap
-to close is the GNN's, and it is closed model-side: feed it the shape (or constrain
-$\mathrm{MLP_{sub}}$) and solve the scale by least squares, rather than asking it to learn both at
-once.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.72\textwidth]{\figdir/lsq_vs_gnn.png}
-  \caption{\textbf{Least squares recovers $V_{\max}$; the GNN does not (yet).} $V_{\max}$ recovery
-  $R^2$ on the realistic OU-stimulus data, least squares given the true shape (blue) vs the trained
-  GNN (black), per rung. Where the dynamics are genuinely linear in $V_{\max}$ (rungs 1--2,
-  reconstruction residual ${\sim}10^{-4}$) least squares is exact ($R^2{=}1.00$) while the GNN sits
-  at ${\approx}0$. Rung 3's flux clamping invalidates the linear design matrix (residual $0.30$), so
-  even least squares degrades --- a simulator artefact, not a data limit. The achievable solution
-  exists and is easy to compute; the open problem is getting the GNN to find it.}
-  \label{fig:lsq_vs_gnn}
-\end{figure}
-
-\begin{table}[H]
-\centering
-\small
-\begin{tabular}{l l l l}
-\toprule
-Target & Network / kinetics & Ground truth & Status \\
-\midrule
-Synthetic $k_j$ (S given) & random / mass-action & $k_j$ known & \textbf{works}, $R^2{\approx}0.87$ \\
-Synthetic homeostasis & random / mass-action & $\lambda_i$ known & open (single-step blind) \\
-Rung 1: yeast glycolysis & real / MM+Hill & $V_{\max},K_m$ known & rollout in-sample; $V_{\max}$ R$^2{\approx}0$ (degenerate) \\
-Real topology (\emph{E.\ coli} core) & real S / imposed MM & $V_{\max}$ known & $V_{\max}$ R$^2{\approx}0$, $100\%$ out (rank-2 degenerate) \\
-Real topology (yeast-GEM subgraph) & real S / imposed MM & $V_{\max}$ known & $V_{\max}$ R$^2{\approx}0$, $100\%$ out (rank-2 degenerate) \\
-\quad + realistic OU drive (rungs 1--3) & real S / imposed MM & $V_{\max}$ known & $V_{\max}$ R$^2{\approx}0$; rollout $0.83$--$0.90$ (shape-invariant) \\
-Rung 3: real \emph{E.\ coli} data & inferred / unknown & none & ingested; rank $102$, $181$ fully-obs.\ rxns; LSQ/GNN next \\
-\bottomrule
-\end{tabular}
-\caption{Where each target stands. Only the first row is a validated,
-leak-free result; the rest is the work ahead.}
-\label{tab:status}
-\end{table}
-
 \subsection{First look: are the four real datasets amenable?}
 \label{sec:amenability}
 
-Before training, we run the same cheap test on \emph{all four} datasets
-measured by \citet{link2015} --- \emph{E.\ coli}, \emph{B.\ subtilis},
-\emph{Y.\ lipolytica}, and a hybrid sample --- asking whether each recording
-carries the structure the GNN needs. The identical four-probe analysis
-is applied to every organism: SVD low-rank,
-per-ion lag-1 autocorrelation, example traces, and KEGG coverage against a
-common reference network (iJO1366; a proxy for core-metabolite
-mappability --- exact for \emph{E.\ coli}, approximate for the others). For the
-\emph{Y.\ lipolytica} fit target the proper yeast network yeast-GEM
-raises coverage from $63\%$ to $77\%$ ($127/164$ ions), confirming the
-under-estimate from the bacterial proxy.
-\Cref{tab:amenability} summarises and \cref{fig:amenability_grid} shows the
-per-organism panels.
+Before training, we run the same cheap four-probe test on \emph{all four} datasets measured by
+\citet{link2015} --- \emph{E.\ coli}, \emph{B.\ subtilis}, \emph{Y.\ lipolytica}, and a hybrid
+sample --- asking whether each recording carries the structure the GNN needs
+(\cref{tab:amenability}, \cref{fig:amenability_grid}).
 
 \paragraph{What the three probes compute, and how to read them.}
 \begin{itemize}
-  \item \textbf{SVD low-rank.} Stack the recording into a matrix
-    $C \in \mathbb{R}^{N \times T}$ ($N$ ions, $T$ time points) and $z$-score
-    each row over time, so the probe sees temporal \emph{shape} not absolute
-    scale. Its singular values $\sigma_1 \ge \sigma_2 \ge \dots$ give the
-    variance carried by each independent mode, $\sigma_i^2 / \sum_j \sigma_j^2$;
-    $\mathrm{rank}_{99}$ is the smallest number of modes whose cumulative
-    variance reaches $99\%$. \emph{Interpretation:} it counts the effective
-    dimensionality of the dynamics. A small $\mathrm{rank}_{99}$ relative to $N$
-    means the metabolites move in a coordinated, low-dimensional way --- shared
-    drivers and strong correlations --- which is exactly the structure a compact
-    network model can fit; $\mathrm{rank}_{99}\!\approx\!N$ would mean every ion
-    moves independently and no parsimonious mechanism exists. We compare the
-    \emph{fraction} $\mathrm{rank}_{99}/N$ against the synthetic regime
-    ($\sim$45\%).
-  \item \textbf{Per-ion lag-1 autocorrelation.} For each ion's mean-subtracted
-    trace $x(t)$, $\rho_1 = \sum_t x(t)\,x(t{-}1) \big/ \sum_t x(t)^2$ --- the
-    correlation of the signal with itself shifted by one frame; we report the
-    median over ions and the fraction with $\rho_1 > 0.5$.
-    \emph{Interpretation:} it measures temporal smoothness. $\rho_1 \to 1$ means
-    consecutive samples are nearly equal --- a smooth, slowly varying trace
-    whose finite-difference derivative $dc/dt$ is well defined and carries
-    signal; $\rho_1 \to 0$ means white-noise-like, so the measured $dc/dt$ is
-    dominated by noise. This is the decisive test for our setting, since the GNN
-    learns $dc/dt = f(c)$: a derivative made of noise cannot be fit, however
-    low-rank or well-annotated the data are.
-  \item \textbf{KEGG coverage.} Each ion is annotated with one or more KEGG
-    compound identifiers from its $m/z$ (an ion matching several formulae is
-    \emph{ambiguous}); we intersect those identifiers with the metabolites
-    present in a reference genome-scale network (iJO1366), and coverage
-    is the number of ions hitting at least one model metabolite.
-    \emph{Interpretation:} it asks whether a stoichiometry $\mathbf{S}$ --- the
-    reaction graph the GNN operates on --- can be built for the measured
-    species. A metabolite absent from every known reaction has no edges and
-    cannot be modelled mechanistically, so high coverage means the measured set
-    sits inside a real network; the \emph{unambiguous} count (single KEGG per
-    ion) flags how many identities are clean versus mass-degenerate.
+  \item \textbf{SVD low-rank} ($\mathrm{rank}_{99}$, the number of modes for $99\%$ of the
+    $z$-scored variance): the effective dimensionality of the dynamics. A small
+    $\mathrm{rank}_{99}/N$ means coordinated, low-dimensional motion a compact network model can
+    fit; $\approx N$ means no parsimonious mechanism exists.
+  \item \textbf{Per-ion lag-1 autocorrelation} $\rho_1$ (median over ions): temporal smoothness.
+    $\rho_1\to1$ is a smooth trace whose derivative $dc/dt$ carries signal; $\rho_1\to0$ is
+    white-noise-like, so $dc/dt$ is noise. This is the decisive test, since the GNN learns
+    $dc/dt=f(c)$.
+  \item \textbf{KEGG coverage}: the fraction of ions mapping (by $m/z$ annotation) onto a
+    reference network (iJO1366) --- whether a stoichiometry $\mathbf{S}$ can be built for the
+    measured species at all.
 \end{itemize}
 
 \begin{table}[H]
@@ -967,21 +408,13 @@ iJO1366. All four are low-rank and reasonably network-mappable; only
 \label{tab:amenability}
 \end{table}
 
-\noindent\textbf{Does it generalise?} Two of the three signals hold across all
-four datasets: the dynamics are \emph{low-rank} ($\mathrm{rank}_{99}=16$--$41\%$
-of ions) and a large share of metabolites are core/conserved (coverage
-$46$--$77\%$). The third --- temporal smoothness of $dc/dt$ --- does
-\emph{not} generalise: \emph{E.\ coli}, \emph{B.\ subtilis} and the hybrid are
-noise-dominated (median lag-1 autocorrelation $0.24$--$0.41$), whereas
-\textbf{\emph{Y.\ lipolytica} is smooth} (median $0.62$, $59\%$ of ions above
-$0.5$). The actionable consequence: the most promising target for an actual
-real-data fit is \emph{not} \emph{E.\ coli} (best network coverage but
-noisiest) but \textbf{\emph{Y.\ lipolytica}} --- smooth, learnable dynamics
-that are still low-rank and network-mappable. The hybrid is least amenable
-(lowest coverage, noisy), though most strongly low-rank. A real fit should
-therefore start from \emph{Y.\ lipolytica}, restricted to its smooth,
-high-variance, network-mapped ions and judged by held-out prediction --- not by
-mechanism recovery across the whole noisy measurement.
+\noindent\textbf{Does it generalise?} Two signals hold across all four datasets --- the dynamics
+are low-rank and a large share of metabolites are core/conserved --- but the third, temporal
+smoothness of $dc/dt$, does \emph{not}: \emph{E.\ coli}, \emph{B.\ subtilis} and the hybrid are
+noise-dominated, whereas \textbf{\emph{Y.\ lipolytica} is smooth}. The actionable consequence: the
+most promising real-data target is not \emph{E.\ coli} (best coverage but noisiest) but
+\emph{Y.\ lipolytica}, restricted to its smooth, network-mapped ions and judged by held-out
+prediction.
 
 \begin{figure}[H]
   \centering
@@ -990,15 +423,298 @@ mechanism recovery across the whole noisy measurement.
   \includegraphics[width=0.49\textwidth]{\figdir/amenability_ylipo.png}\hfill
   \includegraphics[width=0.49\textwidth]{\figdir/amenability_hybr.png}
   \caption{\textbf{Identical amenability probes across the four measured
-  datasets:} \textbf{(a)} \emph{E.\ coli}, \textbf{(b)} \emph{B.\ subtilis},
-  \textbf{(c)} \emph{Y.\ lipolytica}, \textbf{(d)} hybrid. Within each panel,
-  top-left: SVD cumulative variance (low-rank); top-right: per-ion lag-1
-  autocorrelation; bottom-left: six highest-variance traces ($z$-scored);
-  bottom-right: KEGG coverage against iJO1366. Low-rank structure and
-  network coverage recur in all four; only \emph{Y.\ lipolytica} shows smooth,
-  slowly varying traces and a right-shifted autocorrelation distribution.}
+  datasets:} \textbf{(a)} \emph{E.\ coli}, \textbf{(b)} \emph{B.\ subtilis}, \textbf{(c)}
+  \emph{Y.\ lipolytica}, \textbf{(d)} hybrid. Within each panel, top-left: SVD cumulative
+  variance; top-right: per-ion lag-1 autocorrelation; bottom-left: six highest-variance traces
+  ($z$-scored); bottom-right: KEGG coverage against iJO1366.}
   \label{fig:amenability_grid}
 \end{figure}
+
+
+The framework is validated on synthetic data with known ground truth; the goal is real
+metabolomic time series. Three vendored datasets stage that transition from fully parameterised
+kinetics, through genome-scale topology, to a real recording. None is solved yet; this section
+describes what each provides and what stands between it and a result.
+
+\paragraph{Rung 1 --- yeast glycolysis kinetic model (BioModels
+the published yeast glycolysis kinetic model).}
+A small, fully parameterised kinetic model of glycolysis in \emph{S.\ cerevisiae}
+\citep{smallbone2013}, imported from SBML: $20$ internal metabolites ($+9$ fixed boundary
+species), $30$ reactions including iso-enzymes, with real stoichiometry $\mathbf{S}$ and
+measured initial concentrations. Unlike the all-$|s|{=}1$ toy it is genuinely
+\emph{multi-substrate} ($15$ first-order, $13$ second-order, one fourth-order), and the rate
+laws are \emph{Michaelis--Menten} (MM), the saturating law $v = V_{\max}\,c/(K_m+c)$, so
+$v_j = V_{\max,j}\prod_k[c_k/(K_{m,kj}+c_k)]^{|S_{kj}|}$ rather than a power law. $V_{\max}$ is
+the per-reaction rate constant to recover (the MM analogue of $k_j$) and $K_m$ the
+half-saturation constant; known $V_{\max}/K_m$ make this the cleanest available ground truth.
+\emph{Status:} the SBML import, $\mathbf{S}$ extraction, and an MM simulator are in place
+($12{,}000$-frame dataset), with the connectome-style autoregressive curriculum ported to
+stabilise the rollout. Two cautions, both found by being sceptical of a good number. A test
+rollout that looked catastrophic was an evaluator bug (the boundary stimulus was omitted);
+supplied, the curriculum model reproduces the trajectory well (\cref{fig:glyco_rollout}). But
+that success is \emph{in-sample}, and both the leak-resistant recovery test
+(\cref{fig:glyco_recovery}) and a direct held-out rollout (\cref{fig:glyco_holdout}) fail: the
+model reproduces the dynamics with the \emph{wrong} kinetics, a degenerate fit, and the good
+in-sample rollout was effectively memorisation of one trajectory. The curriculum fixed rollout
+\emph{stability}; the open problem on real MM data is parameter \emph{identifiability} --- the
+same scale/compensation degeneracy as the synthetic setup, here unbroken.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.49\textwidth]{\figdir/glyco_rollout.png}\hfill
+  \includegraphics[width=0.49\textwidth]{\figdir/glyco_rollout_holdout.png}
+  \caption{\textbf{Rung 1 glycolysis rollout: in-sample vs held-out.} Eight highest-variance
+  metabolites, $z$-scored and stacked: ground truth (green) vs the learned free autoregressive
+  rollout (dashed black); the given external stimulus channels (orange, top) are the known
+  boundary drive, not predicted. \textbf{Left (in-sample):} the rollout tracks the training
+  trajectory. \textbf{Right (held-out):} on an unseen trajectory (different stimulus and
+  initial state) the rollout settles to the wrong levels and no longer tracks ground truth.}
+  \label{fig:glyco_rollout}
+  \label{fig:glyco_holdout}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.6\textwidth]{\figdir/glyco_k_recovery.png}
+  \caption{\textbf{Rung 1 glycolysis: $V_{max}$ recovery (leak-resistant test).} Learned vs
+  true $\log_{10} V_{max}$ for the $30$ reactions (dashed: identity); red points exceed the
+  $0.3$-dex outlier gate. Despite the near-perfect in-sample rollout (\cref{fig:glyco_rollout}),
+  the recovered kinetics do not track ground truth --- a degenerate fit.}
+  \label{fig:glyco_recovery}
+\end{figure}
+
+\paragraph{Does $\mathrm{MLP_{sub}}$ learn the glycolysis kinetics, and does the
+log-exp form help?} A natural suspect for the recovery failure is that $\mathrm{MLP_{sub}}$ cannot represent the
+saturating MM substrate law $[c/(K_m{+}c)]^{|s|}$. Comparing the learned $\mathrm{MLP_{sub}}$
+against that truth, for the plain MLP and the log-space form $g=\exp(\mathrm{MLP}(\log c, |s|))$
+(\cref{fig:glyco_sub}), representation is \emph{not} the bottleneck: the well-populated $|s|{=}1$
+and $|s|{=}2$ shapes are captured, and only the single $|s|{=}4$ reaction is unconstrained (too
+few examples to fit). The log-exp form does not rescue recovery either. The limiting factor is
+not how $\mathrm{MLP_{sub}}$ is parameterised but the MM identifiability degeneracy ($V_{\max}$ and
+$K_m$ trade off): the substrate function can be represented, yet the rate constants are not
+recovered.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{\figdir/glyco_sub_compare.png}
+  \caption{\textbf{Rung 1: does $\mathrm{MLP_{sub}}$ learn the glycolysis substrate
+  kinetics?} Learned $\mathrm{MLP_{sub}}(c,|s|)$ (solid) vs the true Michaelis--Menten law
+  $[c/(K_m{+}c)]^{|s|}$ (dashed) for the substrate orders $|s|{=}1,2,4$, log $y$-axis, anchored
+  at $c{=}1$. \textbf{(a)} plain MLP, \textbf{(b)} log-space MLP. The well-populated $|s|{=}1,2$
+  shapes are captured; the single $|s|{=}4$ reaction is unconstrained.}
+  \label{fig:glyco_sub}
+\end{figure}
+
+\paragraph{The limit is signal, not capacity.} Two controls on a synthetic $|s|{\ge}2$ regime localise the residual failure. Training on four
+diverse trajectories instead of one barely helps, so it is not a data-volume problem; and a
+\emph{structured} substrate function $g=c^{a(|s|)}$ --- which can represent any exponent exactly
+--- still fails, its learned exponent map nailing $a(1)$ but never reaching the high exponents
+because those reactions are \emph{rare}. The bottleneck for high-order kinetics is neither MLP
+capacity nor data volume but the \emph{scarcity of high-order reactions}: too little signal to
+identify a steep exponent. The fix is a structural prior (e.g.\ integer exponents) or a regime
+richer in high-$|s|$ reactions, not a better function approximator.
+
+\paragraph{Rung 2 --- consensus genome-scale model (yeast-GEM).}
+The community-curated genome-scale model of \emph{S.\ cerevisiae} \citep{yeastgem}: $2{,}806$
+metabolites, $4{,}131$ reactions, supplying a large real $\mathbf{S}$ and flux bounds but
+\emph{no} kinetic rate laws. The intended use is to extract a central-carbon subgraph, drive it
+with dynamic-FBA or literature kinetics, and fit the GNN in ``S given'' mode on realistic
+topology. \emph{Status:} not started beyond vendoring; subgraph extraction and a dynamics
+generator remain to be written.
+
+\paragraph{Rung 3 --- real-time metabolomics during nutrient transitions
+(real data).}
+High-frequency flow-injection mass spectrometry of live microbial culture \citep{link2015}.
+For \emph{E.\ coli} the released data give $247$ annotated ions over $119$ time points in three
+replicates, plus a starvation$\to$growth switch series; companion \emph{B.\ subtilis} and
+\emph{Y.\ lipolytica} sets are included. Each ion carries a KEGG annotation, though many are
+mass-ambiguous and the values are \emph{relative} intensities, not absolute concentrations.
+\emph{Status:} ingested and characterised (\cref{fig:ecoli_real}). The trajectory is
+\emph{information-rich} (activity rank well above the closed synthetic networks), so data
+richness is \emph{not} the limiting factor. The obstacle is \emph{partial observation}: the
+measured set is a small, open fraction of iJO1366 whose dynamics depend on unmeasured species;
+the only fully-observed subnetwork (reactions whose every metabolite is measured) is $\sim181$
+of iJO1366's reactions, the immediate LSQ/GNN target. There is \emph{no} kinetic ground truth,
+so success can be judged only by held-out prediction. A parallel mammalian direction is chronic
+jugular microdialysis in freely moving mice \citep{nardin2025}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{\figdir/ecoli_real_data.png}
+  \caption{\textbf{The real \emph{E.\ coli} metabolome is a high-rank trajectory.}
+  \textbf{(a)} Measured trajectory: $247$ metabolites $\times$ $119$ time points (relative ion
+  intensities; $z$-scored per metabolite, rows sorted by activity). \textbf{(b)} SVD
+  cumulative-variance spectrum (activity rank far richer than the closed synthetic networks).}
+  \label{fig:ecoli_real}
+\end{figure}
+
+\paragraph{What transfers and what changes.}
+The core recipe transfers: the bipartite graph, message passing over reactions, function
+discovery via $\mlpsub/\mlpnode$, and log-space rate-constant recovery. Real data adds, all at
+once, the obstacles the synthetic setup omits: saturating/allosteric kinetics that $\mlpsub$
+must learn; a partial, incomplete $\mathbf{S}$; far fewer, unevenly spaced time points; relative
+rather than absolute concentrations; and external drivers entering as $f_{\mathrm{ext}}(t)$ in
+\cref{eq:full}.
+
+\paragraph{Identifiability on a real network topology (imposed kinetics).}
+Short of full real data, we can probe identifiability on \emph{real} topology by imposing
+synthetic MM kinetics (random $V_{\max}/K_m$, hence known ground truth) on the real $\mathbf{S}$
+of two networks: \emph{E.\ coli} core ($72$ metabolites, $71$ reactions) and a yeast-GEM
+central-carbon subgraph ($208$ metabolites, $120$ reactions). With $\mathbf{S}$ given the model
+reproduces the dynamics yet recovers \emph{none} of the kinetics on either network
+(\cref{fig:rung_real}). The cause is dynamical, not structural: these closed networks relax to a
+steady state within a few frames, so their trajectories have activity rank ${\approx}2$ --- far
+below the oscillatory toy. Identifiability tracks the \emph{information content of the dynamics},
+not network size or method: a closed subnetwork at steady state is information-starved.
+Recovering kinetics on real topology requires holding the system \emph{off} its fixed point ---
+a sustained external drive, or the nutrient switch of Rung~3 --- to raise the rank.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.49\textwidth]{\figdir/toy_dashboard_ecoli_core_mm.png}\hfill
+  \includegraphics[width=0.49\textwidth]{\figdir/toy_dashboard_yeast_central_mm.png}
+  \caption{\textbf{Identifiability on real topology with imposed MM kinetics.} Left:
+  \emph{E.\ coli} core ($72{\times}71$); right: yeast-GEM cytosolic subgraph ($208{\times}120$).
+  Real stoichiometry, synthetic MM kinetics (so $V_{\max}/K_m$ are known), $\mathbf{S}$ given.
+  Each dashboard: \textbf{(a)} $\mlpnode$, \textbf{(b)} $\mlpsub$, \textbf{(c)} $V_{\max}$
+  recovery, \textbf{(d)} free rollout.}
+  \label{fig:rung_real}
+\end{figure}
+
+\paragraph{Raising identifiability: drive the network off steady state.}
+The failure above is a \emph{data} problem with a precise linear-algebra reading. With
+$\mathbf{S}$ given, recovering the kinetics is \emph{linear in the parameters},
+$\mathbf{A}\,\boldsymbol{\theta}=\mathbf{b}$; a metabolite that never varies gives constant or
+zero columns --- null directions in $\mathbf{A}$ --- so its parameters are unidentifiable.
+Equivalently, linearising as $\dot c = J c + B\,u(t)$, an autonomous trajectory collapses into
+a few slow eigenmodes, whereas an external source $u$ on $m$ metabolites drives it into a
+controllability subspace whose dimension grows with $m$. Injecting a known multi-frequency
+metabolite source and sweeping its breadth, the activity rank rises \emph{linearly} with the
+number of driven metabolites (rank ${\approx}m$) on both real topologies (\cref{fig:stim_rank}),
+clearing the rank-$20$ target. Information content, not network size, is the lever; the next
+step trains on these high-rank, stimulus-driven trajectories.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.62\textwidth]{\figdir/stimulus_rank.png}
+  \caption{\textbf{An external metabolite source raises the activity rank
+  ${\approx}$ linearly.} Activity rank ($99\%$) of the simulated trajectory vs the number of
+  metabolites carrying a known multi-frequency source drive, for all three rungs under imposed
+  MM kinetics: Rung~1 glycolysis ($20$ met), Rung~3 \emph{E.\ coli} core ($72$ met), Rung~2
+  yeast-GEM subgraph ($208$ met). Dashed line: rank ${\approx}m$ identity.}
+  \label{fig:stim_rank}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{\figdir/model_traces.png}
+  \caption{\textbf{Free-rollout traces under the external drive, one panel per rung} (the
+  trained GNN). Eight highest-variance metabolites, $z$-scored and stacked: ground truth (green)
+  vs the model's free rollout (black). \textbf{(a)} Rung~1 glycolysis; \textbf{(b)} Rung~3
+  \emph{E.\ coli} core and \textbf{(c)} Rung~2 yeast-GEM subgraph, both with the $m{=}40$
+  metabolite source holding the network in sustained oscillation. Per-metabolite Pearson
+  annotated. The least-squares companion is \cref{fig:lsq_rollout}.}
+  \label{fig:model_traces}
+\end{figure}
+
+\paragraph{Identifiability is not the bottleneck --- learnability is.} The GNN trained on the
+driven (rank-$38$) \emph{E.\ coli} data still recovers \emph{none} of the kinetics, yet the
+inverse problem is \emph{well-posed}: given $\mathbf{S}$ \emph{and the rate-law shape}, $dc/dt$ is
+linear in the per-reaction scale, $A\,\theta = b$ with $A_{\cdot j} = \mathbf{S}_{\cdot j}\,\phi_j(c)$,
+and built from the simulator's Jacobian this $A$ is full column rank and well conditioned at both
+rank-$2$ and rank-$38$ --- so a plain least-squares solve recovers $V_{\max}$ exactly and rolls it
+out perfectly (\cref{fig:lsq_rollout}). The catch is that this is conditional on \emph{knowing
+$\phi$}; the GNN must learn the shape ($\mathrm{MLP_{sub}}$) and the scale ($V_{\max}$) jointly, and
+a saturating shape with a free $K_m$ can absorb the scale so $V_{\max}$ drifts. GNN success is thus
+set by shape$\times$scale learnability, not identifiability. The lever is the model, not the data:
+solve $V_{\max}$ by least squares given the learned shape, or constrain $\mathrm{MLP_{sub}}$ --- not
+more rank, drive, or trajectories.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{\figdir/lsq_rollout_traces.png}
+  \caption{\textbf{Least-squares rollout (companion to \cref{fig:model_traces}).} Free-rollout
+  traces for the same three rungs and external drive as \cref{fig:model_traces}, but with the
+  per-reaction $V_{\max}$ set by a least-squares solve given the true substrate shape rather than
+  by the GNN. Eight highest-variance metabolites, $z$-scored and stacked: ground truth (green) vs
+  the least-squares rollout (black). \textbf{(a)} Rung~1 glycolysis; \textbf{(b)} Rung~3
+  \emph{E.\ coli} core; \textbf{(c)} Rung~2 yeast-GEM subgraph. Per-metabolite Pearson annotated.}
+  \label{fig:lsq_rollout}
+\end{figure}
+
+\paragraph{A realistic, non-oscillatory stimulus changes nothing.} One might worry the failure is
+an artefact of the \emph{shape} of the drive --- a clean multi-sinusoid is nothing like a real
+metabolome. Replacing the sinusoid with an Ornstein--Uhlenbeck / AR($1$) drive ($\phi{=}0.98$),
+smooth and aperiodic like the measured \emph{E.\ coli} trajectory, and regenerating all three rungs
+with the same imposed-MM kinetics reproduces the failure \emph{exactly}: the GNN still recovers
+$V_{\max}$ at $R^2 \approx 0$ while rolling out serviceably. Least squares, by contrast, recovers and
+free-rolls-out the dynamics almost perfectly on the same realistic-stimulus data
+(\cref{fig:lsq_rollout_ou}), exactly as under the sinusoid (\cref{fig:lsq_rollout}). The learnability
+barrier is \emph{stimulus-shape-invariant}: neither the richness nor the temporal character of the
+drive is the lever. The lever remains model-side.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{\figdir/lsq_rollout_traces_ou.png}
+  \caption{\textbf{Least-squares rollout under a realistic (OU) stimulus} (companion to
+  \cref{fig:lsq_rollout}). As \cref{fig:lsq_rollout}, but on the realistic Ornstein--Uhlenbeck /
+  AR($1$)-driven rungs: ground truth (green) vs the least-squares rollout (black), $z$-scored and
+  stacked. \textbf{(a)} Rung~1 glycolysis; \textbf{(b)} Rung~2 \emph{E.\ coli} core; \textbf{(c)}
+  Rung~3 yeast central. Per-metabolite Pearson annotated.}
+  \label{fig:lsq_rollout_ou}
+\end{figure}
+
+\paragraph{Least squares does the job; the GNN hardly does it yet.} Putting the two estimators
+side by side on the same realistic-stimulus data (\cref{fig:param_recovery_lsq,fig:param_recovery_gnn})
+locates the difficulty. Given the true substrate shape, least squares recovers $V_{\max}$ exactly on
+the two rungs where the dynamics are linear in $V_{\max}$ (glycolysis and \emph{E.\ coli} core); the
+third (yeast central) is flux-limit-clamped, a simulator artefact, not a data limit. The GNN, which
+must \emph{discover} shape and scale jointly, recovers essentially none of it. The remaining gap is
+closed model-side: feed the GNN the shape (or constrain $\mathrm{MLP_{sub}}$) and solve the scale by
+least squares, rather than asking it to learn both at once.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{\figdir/param_recovery_lsq.png}
+  \caption{\textbf{Per-reaction $V_{\max}$ recovery --- least squares.} Recovered vs true
+  $\log_{10} V_{\max}$ for every reaction (least squares given the true substrate shape), one panel
+  per rung: \textbf{(a)} glycolysis, \textbf{(b)} \emph{E.\ coli} core, \textbf{(c)} yeast central.
+  Dashed line: exact recovery; black inliers, red points exceed the $0.3$-dex outlier gate (raw and
+  trimmed $R^2$ and outlier fraction annotated). Companion to \cref{fig:param_recovery_gnn}.}
+  \label{fig:param_recovery_lsq}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{\figdir/param_recovery_gnn.png}
+  \caption{\textbf{Per-reaction $V_{\max}$ recovery --- the trained GNN.} As
+  \cref{fig:param_recovery_lsq}, for the GNN's leak-resistant recovery: recovered vs true
+  $\log_{10} V_{\max}$ per reaction, one panel per rung. Dashed line: exact recovery.}
+  \label{fig:param_recovery_gnn}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\small
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l l l l}
+\toprule
+Target & Network / kinetics & Ground truth & Status \\
+\midrule
+Synthetic $k_j$ (S given) & random / mass-action & $k_j$ known & \textbf{works}, $R^2{\approx}0.87$ \\
+Synthetic homeostasis & random / mass-action & $\lambda_i$ known & open (single-step blind) \\
+Rung 1: yeast glycolysis & real / MM+Hill & $V_{\max},K_m$ known & rollout in-sample; $V_{\max}$ R$^2{\approx}0$ (degenerate) \\
+Real topology (\emph{E.\ coli} core) & real S / imposed MM & $V_{\max}$ known & $V_{\max}$ R$^2{\approx}0$, $100\%$ out (rank-2 degenerate) \\
+Real topology (yeast-GEM subgraph) & real S / imposed MM & $V_{\max}$ known & $V_{\max}$ R$^2{\approx}0$, $100\%$ out (rank-2 degenerate) \\
+\quad + realistic OU drive (rungs 1--3) & real S / imposed MM & $V_{\max}$ known & $V_{\max}$ R$^2{\approx}0$; rollout $0.83$--$0.90$ (shape-invariant) \\
+Rung 3: real \emph{E.\ coli} data & inferred / unknown & none & ingested; rank $102$, $181$ fully-obs.\ rxns; LSQ/GNN next \\
+\bottomrule
+\end{tabular}}
+\caption{Where each target stands. Only the first row is a validated,
+leak-free result; the rest is the work ahead.}
+\label{tab:status}
+\end{table}
+
 
 \begin{thebibliography}{9}
 
